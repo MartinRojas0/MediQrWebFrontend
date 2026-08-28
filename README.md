@@ -1,1 +1,1 @@
-# MediQrWeb
+# MediQrMedicFrontend
