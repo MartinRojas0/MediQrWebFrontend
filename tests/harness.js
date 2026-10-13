@@ -109,7 +109,7 @@ async function run() {
   var salud = Array.prototype.filter.call(qa('.nav-links a'), function (a) { return a.textContent.trim().indexOf('Salud') === 0; });
   ok('N.1 Sin enlace "Salud" muerto', salud.length === 0);
   ok('N.2 Perfil sin caret enganoso', q('#nav-perfil') && q('#nav-perfil').textContent.trim() === 'Perfil');
-  ok('N.3 switchSection delega en el Router', typeof Router === 'object' && String(switchSection).indexOf('Router.ir') !== -1);
+  ok('N.3 Router disponible sin funciones globales', typeof Router === 'object' && typeof window.switchSection === 'undefined');
   ok('N.4 Iconos SVG renderizados', qa('svg.icon').length === 23, qa('svg.icon').length);
   ok('N.5 Sin placeholders de icono sin renderizar', qa('[data-icon]').length === 0);
 
@@ -172,28 +172,28 @@ async function run() {
   q('#doc-search').value = ''; MediModules.documents(); await tick();
 
   // ---------- VISTA 4: PERFIL ----------
-  switchSection('perfil'); await tick();
+  q('#nav-perfil').click(); await tick();
   ok('V4.1 Perfil visible', vis(q('#view-perfil')));
   ok('V4.2 nav-perfil activo', q('#nav-perfil').classList.contains('active'));
   var tabsOk = true;
   ['info-personal', 'info-medica', 'contactos', 'configuracion'].forEach(function (t) {
-    switchProfileTab(t, q('#ptab-' + t));
+    q('.sidebar-nav [data-action="perfil:pestana"][data-tab="' + t + '"]').click();
     if (!vis(q('#ptab-' + t))) tabsOk = false;
   });
   ok('V4.3 Cuatro pestanas visibles', tabsOk);
   ok('V4.4 Tres interruptores de configuracion', qa('#ptab-configuracion input[type="checkbox"]').length === 3);
-  switchProfileTab('info-personal', q('#ptab-info-personal'));
-  enablePersonalEdit(); await tick();
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="info-personal"]').click();
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
   ok('V4.5 Modo edicion personal se activa', vis(q('#personal-edit-form')));
   q('#inp-name').value = 'Prueba';
-  savePersonalEdit(new Event('submit')); await tick();
+  q('#personal-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
   ok('V4.6 Guardar edicion personal', q('#val-name').textContent === 'Prueba', q('#val-name').textContent);
-  switchProfileTab('info-medica', q('#ptab-info-medica'));
-  enableMedicalEdit(); await tick();
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="info-medica"]').click();
+  q('#ptab-info-medica [data-action="perfil:editar-medica"]').click(); await tick();
   ok('V4.7 Modo edicion medica se activa', vis(q('#medical-edit-form')));
-  saveMedicalEdit(new Event('submit')); await tick();
+  q('#medical-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
   ok('V4.8 Vuelve a la vista de lectura', vis(q('#medical-read-view')));
-  switchProfileTab('configuracion', q('#ptab-configuracion')); await tick();
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="configuracion"]').click(); await tick();
 
   // ---------- MODALES UNIFICADOS (sistema <dialog> nativo) ----------
   ok('M.0 Sistema antiguo eliminado', qa('.modal-backdrop').length === 0 && typeof window.openModal === 'undefined');
@@ -209,8 +209,8 @@ async function run() {
 
   for (var i = 0; i < disparadores.length; i++) {
     var d = disparadores[i];
-    switchSection(d[2] ? 'perfil' : 'inicio');
-    if (d[2]) switchProfileTab(d[2], q('#ptab-' + d[2]));
+    q(d[2] ? '#nav-perfil' : '#nav-inicio').click();
+    if (d[2]) q('.sidebar-nav [data-action="perfil:pestana"][data-tab="' + d[2] + '"]').click();
     await tick();
 
     var ambito = d[2] ? q('#ptab-' + d[2]) : q('#view-inicio');
@@ -237,7 +237,7 @@ async function run() {
   }
 
   // Escape real por teclado
-  q('button[onclick*="PerfilModales.cerrarSesion"]').click();
+  q('#ptab-configuracion [data-action="perfil:cerrar-sesion"]').click();
   await tick();
   ok('M.6 Dialog abierto antes de Escape', q('#module-dialog').open === true);
   q('#module-dialog').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -246,19 +246,19 @@ async function run() {
   ok('M.7 Cierre con Escape', q('#module-dialog').open === false);
 
   // Validacion de contrasena conservada
-  PerfilModales.cambiarPassword(); await tick();
+  q('#ptab-configuracion [data-action="perfil:cambiar-password"]').click(); await tick();
   q('#pass-curr').value = 'a'; q('#pass-new').value = '123'; q('#pass-conf').value = '456';
-  handlePasswordChange(new Event('submit')); await tick();
+  q('#password-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
   ok('M.8 Validacion de contrasena: minimo 6 caracteres', /6 caracteres/.test(q('#pass-error').textContent), q('#pass-error').textContent);
   q('#pass-new').value = 'abcdef'; q('#pass-conf').value = 'abcdeg';
-  handlePasswordChange(new Event('submit')); await tick();
+  q('#password-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
   ok('M.9 Validacion de contrasena: no coinciden', /coinciden/.test(q('#pass-error').textContent), q('#pass-error').textContent);
   q('#pass-new').value = 'abcdef'; q('#pass-conf').value = 'abcdef';
-  handlePasswordChange(new Event('submit')); await tick();
+  q('#password-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
   ok('M.10 Contrasena valida acepta y cierra', q('#module-dialog').open === false);
 
   // Toast accesible
-  PerfilModales.confirmarCierre(); await tick();
+  q('#ptab-configuracion [data-action="perfil:cerrar-sesion"]').click(); await tick(); q('#module-dialog [data-action="perfil:confirmar-cierre"]').click(); await tick();
   ok('M.11 Aviso accesible role=status', q('#module-notice').getAttribute('role') === 'status');
   ok('M.12 Aviso visible', !q('#module-notice').classList.contains('hidden'), q('#module-notice').textContent);
 
@@ -266,7 +266,7 @@ async function run() {
   ok('RT.1 Router disponible', typeof Router === 'object');
   ok('RT.2 Hash inicial por defecto', /^#\/inicio$/.test(hashInicial), hashInicial);
 
-  switchSection('perfil'); await tick();
+  q('#nav-perfil').click(); await tick();
   ok('RT.3 switchSection actualiza el hash', location.hash === '#/perfil', location.hash);
   ok('RT.4 Vista de perfil visible', vis(q('#view-perfil')));
   ok('RT.5 aria-current en el enlace activo', q('#nav-perfil').getAttribute('aria-current') === 'page');
@@ -295,7 +295,7 @@ async function run() {
   MediModules.irDocumentos('Todos'); await tick();
 
   // Foco al cambiar de vista
-  switchSection('inicio'); await tick();
+  q('#nav-inicio').click(); await tick();
   var encabezado = q('#view-inicio h1');
   ok('RT.16 Foco movido al encabezado de la vista', document.activeElement === encabezado,
      document.activeElement ? document.activeElement.tagName : 'null');
@@ -309,11 +309,79 @@ async function run() {
   await tick(); await tick();
   ok('RT.18 Ruta desconocida redirige a inicio', location.hash === '#/inicio' && vis(q('#view-inicio')), location.hash);
 
-  switchSection('inicio'); await tick();
+  q('#nav-inicio').click(); await tick();
   ok('RT.19 URL canonica en la vista inicial', location.hash === '#/inicio', location.hash);
 
+  // ---------- MIGRACION A data-action ----------
+  // Se revisa el HTML servido, no el DOM ya procesado por los listeners.
+  ok('E.1 Sin atributos onclick en el DOM', !/onclick\s*=/i.test(html),
+     (html.match(/onclick/gi) || []).length);
+  ok('E.2 Sin atributos onsubmit en el DOM', !/onsubmit\s*=/i.test(html),
+     (html.match(/onsubmit/gi) || []).length);
+  ok('E.3 Sin atributos oninput/onchange en el DOM', !/\bon(input|change)\s*=/i.test(html));
+
+  var conAccion = qa('[data-action]');
+  ok('E.4 Hay elementos con data-action', conAccion.length > 0, conAccion.length + ' elementos');
+  ok('E.5 Todos los data-action usan el formato ns:nombre',
+     Array.prototype.every.call(conAccion, function (el) { return /^[a-z-]+:[a-z-]+$/.test(el.dataset.action); }));
+
+  ok('E.6 MediAcciones disponible', typeof MediAcciones === 'object');
+  var registradas = Object.keys((MediAcciones && MediAcciones.registro) || {});
+  ok('E.7 Acciones registradas', registradas.length >= 35, registradas.length + ' acciones');
+
+  var huerfanas = Array.prototype.filter.call(conAccion, function (el) {
+    return registradas.indexOf(el.dataset.action) === -1;
+  });
+  ok('E.8 Ningun data-action sin registrar', huerfanas.length === 0,
+     huerfanas.length ? huerfanas.slice(0, 3).map(function (e) { return e.dataset.action; }).join(',') : 'todas registradas');
+
+  // No se simula la modularidad con manejadores globales.
+  ok('E.9 No queda switchSection global', typeof window.switchSection === 'undefined');
+  ok('E.10 No queda switchProfileTab global', typeof window.switchProfileTab === 'undefined');
+  ok('E.11 No queda PerfilModales global', typeof window.PerfilModales === 'undefined');
+  ok('E.12 No quedan funciones de edicion globales',
+     ['enablePersonalEdit', 'savePersonalEdit', 'enableMedicalEdit', 'saveMedicalEdit', 'handlePasswordChange']
+       .every(function (n) { return typeof window[n] === 'undefined'; }));
+
+  // La delegacion debe responder tambien en el contenido que JS genera
+  // despues (los listeners viven en document, no en el markup estatico).
+  q('button[data-menu="documentos"][data-vista="Todos"]').click(); await tick();
+  var accionesDoc = qa('#documents-content [data-action]');
+  ok('E.13 Acciones en las tarjetas de documento', accionesDoc.length === 27, accionesDoc.length + ' acciones');
+
+  var verBtn = q('#documents-content [data-action="documentos:ver"]');
+  ok('E.14 Accion de ver documento presente', !!verBtn);
+  if (verBtn) {
+    verBtn.click(); await tick();
+    ok('E.15 La accion delegada abre el dialog', q('#module-dialog').open === true,
+       q('#module-dialog-title').textContent);
+    q('#module-dialog [data-action="modal:cerrar"]').click(); await tick();
+    ok('E.16 modal:cerrar delegado funciona', q('#module-dialog').open === false);
+  }
+
+  var pedirBorrar = q('#documents-content [data-action="documentos:pedir-eliminar"]');
+  if (pedirBorrar) {
+    pedirBorrar.click(); await tick();
+    ok('E.17 Confirmacion de eliminar delegada',
+       q('#module-dialog').open === true && /eliminar/.test(q('#module-dialog-title').textContent),
+       q('#module-dialog-title').textContent);
+    q('#module-dialog [data-action="modal:cerrar"]').click(); await tick();
+  }
+
+  // Un submit delegado debe funcionar aunque el formulario no tenga manejadores.
+  q('#nav-perfil').click(); await tick();
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="info-personal"]').click(); await tick();
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+  var formPersonal = q('#personal-edit-form');
+  ok('E.18 Formulario de edicion sin manejadores', !!formPersonal && !formPersonal.getAttribute('onsubmit'));
+  q('#inp-name').value = 'Delegada';
+  formPersonal.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
+  ok('E.19 Submit delegado guarda los datos', q('#val-name').textContent === 'Delegada', q('#val-name').textContent);
+
+  q('#nav-inicio').click(); await tick();
+
   // ---------- ESTADO GLOBAL ----------
-  switchSection('inicio'); await tick();
+  q('#nav-inicio').click(); await tick();
   ok('G.1 Vuelta a Inicio', vis(q('#view-inicio')));
   ok('G.2 Una sola vista visible', qa('.view-section:not(.hidden)').length === 1, qa('.view-section:not(.hidden)').length);
   ok('G.3 Datos intactos', MediModules.citas.length === 9 && MediModules.documentos.length === 9);
