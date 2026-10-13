@@ -171,5 +171,8 @@ function ejecutarNavegador(navegador, url) {
     .replace(/&amp;/g, '&');
 
   console.log(texto);
+  // Un fallo del propio harness es un fallo de la suite: no debe reportarse
+  // como exito, porque enmascararia cualquier comprobacion que no llego a ejecutarse.
+  if (/HARNESS ERROR/.test(texto)) process.exit(1);
   process.exit(/FAIL \|/.test(texto) ? 1 : 0);
 })();

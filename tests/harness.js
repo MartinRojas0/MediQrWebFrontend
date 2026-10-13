@@ -249,6 +249,8 @@ async function run() {
      document.activeElement ? document.activeElement.tagName : 'null');
   ok('RT.17 El encabezado es programaticamente enfocable', encabezado.getAttribute('tabindex') === '-1',
      encabezado.getAttribute('tabindex'));
+  ok('RT.17b El foco por codigo no dibuja anillo', getComputedStyle(encabezado).outlineStyle === 'none',
+     getComputedStyle(encabezado).outlineStyle);
 
   // Ruta invalida -> inicio
   location.hash = '#/ruta-inexistente';

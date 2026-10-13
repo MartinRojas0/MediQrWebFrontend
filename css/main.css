@@ -82,6 +82,16 @@ body { background-color: var(--bg-main); color: var(--text-main); }
 .form-actions { display: flex; gap: 0.5rem; }
 .error-msg { color: var(--danger); font-size: 0.85rem; margin-top: 0.5rem; }
 
+/* Foco movido tras cambiar de vista (js/router.js).
+   El encabezado recibe tabindex="-1": no es alcanzable con el Tab, el foco
+   se mueve por codigo para que un lector de pantalla anuncie la vista.
+   El anillo por defecto solo delataria el salto, incluso al entrar con raton. */
+h1[tabindex="-1"]:focus,
+h2[tabindex="-1"]:focus,
+[data-titulo-vista]:focus {
+  outline: none;
+}
+
 /* ICONOS SVG EN LINEA (reemplazan al CDN de Font Awesome) */
 .icon {
   width: 1em;
