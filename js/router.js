@@ -22,6 +22,7 @@
 const RUTAS = {
   inicio: { vista: "inicio" },
   salud: { vista: "salud" },
+  historial: { vista: "historial" },
   citas: { vista: "citas" },
   documentos: { vista: "documentos" },
   perfil: { vista: "perfil" }
@@ -32,6 +33,7 @@ const RUTA_INICIAL = "inicio";
 const TITULOS = {
   inicio: "MediQR - Inicio",
   salud: "MediQR - Expediente clínico",
+  historial: "MediQR - Historial",
   "citas/calendario": "MediQR - Calendario de citas",
   "citas/proximas": "MediQR - Próximas citas",
   "citas/historial": "MediQR - Historial de citas",
@@ -130,6 +132,21 @@ const Router = {
       activo.classList.add("active");
       activo.setAttribute("aria-current", "page");
     }
+
+    // Historial no ocupa una posicion en la barra (en el movil se abre
+    // desde Inicio, igual que aqui). Para que la seccion activa siga
+    // siendo visible, se marca su tarjeta de acceso, pero solo cuando
+    // no hay ya un enlace de navegacion que la represente.
+    document.querySelectorAll('.quick-card[data-ruta]').forEach((tarjeta) => {
+      const esActual = tarjeta.dataset.ruta === base;
+      tarjeta.classList.toggle('active', esActual && !activo);
+
+      if (esActual && !activo) {
+        tarjeta.setAttribute('aria-current', 'page');
+      } else {
+        tarjeta.removeAttribute('aria-current');
+      }
+    });
 
     document.querySelectorAll("[data-menu]").forEach((boton) => {
       boton.classList.toggle(

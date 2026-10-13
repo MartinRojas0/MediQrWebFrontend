@@ -51,8 +51,7 @@
   }
 
   function arrancar() {
-    // 1. Fechas de los datos ficticios antes de dibujar nada.
-    MediModules.resolverFechas();
+    // 1. Las fechas ya se resolvieron al cargar el store.
 
     // 2. Menus del navbar.
     registrarMenus();

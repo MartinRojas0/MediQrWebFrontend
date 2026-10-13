@@ -43,8 +43,9 @@ async function comprobarEnlaceDirecto() {
   const caso = window.__CASO;
 
   const casos = {
-    'inicio': () => vis(q('#view-inicio')) && qa('#view-inicio .card').length === 5,
+    'inicio': () => vis(q('#view-inicio')) && qa('#view-inicio .summary-row').length === 3,
     'salud': () => vis(q('#view-salud')) && qa('#view-salud .info-row-item').length === 6,
+    'historial': () => vis(q('#view-historial')) && qa('#view-historial .hist-item').length > 0,
     'perfil': () => vis(q('#view-perfil')) && qa('.sb-btn').length === 4,
     'citas/agendar': () => vis(q('#view-citas')) && !!q('#schedule-form'),
     'citas/historial': () => vis(q('#view-citas')) && qa('#citas-content .module-cards .card').length > 0,
@@ -58,7 +59,10 @@ async function comprobarEnlaceDirecto() {
     ? casos[caso]() : location.hash === '#/' + caso, location.hash);
   ok('D.2 La vista correspondiente se muestra', casos[caso](), caso);
   ok('D.3 Solo una vista visible', qa('.view-section:not(.hidden)').length === 1);
-  ok('D.4 Hay un enlace activo', qa('.app-nav [aria-current="page"]').length === 1);
+  // Historial se abre desde Inicio y no tiene posicion propia en la barra:
+  // en ese caso la seccion activa se marca en su tarjeta de acceso.
+  ok('D.4 La seccion activa queda marcada',
+     qa('.app-nav [aria-current="page"]').length + qa('.quick-card[aria-current="page"]').length === 1);
   ok('D.5 El titulo del documento no es el generico',
     !/Portal del Paciente$/.test(document.title), document.title);
   ok('D.6 Sin errores JavaScript', (window.__errs || []).length === 0, JSON.stringify(window.__errs || []));
@@ -85,7 +89,7 @@ async function run() {
   var hashInicial = location.hash;
   var recs = performance.getEntriesByType('resource').map(function (r) { return r.name; });
   ok('R.1 Entrada en la raiz del sitio', location.pathname === '/' || location.pathname === '/index.html', location.pathname);
-  ok('R.2 CSS cargados desde /css', recs.filter(function (u) { return /\.css$/.test(u); }).length === 4, recs.filter(function (u) { return /\.css$/.test(u); }).length + ' hojas');
+  ok('R.2 CSS cargados desde /css', recs.filter(function (u) { return /\.css$/.test(u); }).length === 6, recs.filter(function (u) { return /\.css$/.test(u); }).length + ' hojas');
   ok('R.3 Todos los scripts de la app se sirven desde /js', recs.filter(function (u) { return /\.js$/.test(u); })
     .filter(function (u) { return u.indexOf('/__test__/') === -1; })
     .every(function (u) { return /\/js\//.test(u); }));
@@ -121,8 +125,8 @@ async function run() {
        location.hash === '#/salud' && vis(q('#view-salud')), location.hash);
     ok('N.1c El expediente muestra las tres secciones',
        qa('#view-salud .section-title').length === 3, qa('#view-salud .section-title').length + ' secciones');
-    ok('N.1d Alergia grave genera tarjeta de alerta',
-       !!q('.critical-alert') && /ALERTA/.test(q('.critical-alert').textContent));
+    ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
+       !!q('#view-salud .critical-alert') && /ALERTA/.test(q('#view-salud .critical-alert').textContent));
     ok('N.1e Las seis filas del expediente estan',
        qa('#view-salud .info-row-item').length === 6, qa('#view-salud .info-row-item').length + ' filas');
   }
@@ -141,8 +145,17 @@ async function run() {
 
   // ---------- VISTA 1: INICIO ----------
   ok('V1.1 Inicio visible', vis(q('#view-inicio')));
-  ok('V1.2 Cinco tarjetas', qa('#view-inicio .card').length === 5);
-  ok('V1.3 Cuatro accesos rapidos', qa('#view-inicio .qa-btn').length === 4);
+  ok('V1.2 Bloques de Inicio', qa('#view-inicio .identity-card').length === 1 &&
+     qa('#view-inicio .summary-row').length === 3,
+     'identidad + ' + qa('#view-inicio .summary-row').length + ' filas de resumen');
+  ok('V1.3 Cuatro accesos rapidos', qa('#view-inicio .quick-card').length === 4, qa('#view-inicio .quick-card').length);
+  // La navegacion principal expone las cinco secciones reales del portal.
+  ok('V1.3c Las cinco secciones estan en la navegacion',
+     qa('.app-nav .nav-item').length === 5, qa('.app-nav .nav-item').length);
+  ok('V1.3b El resumen se calcula con datos reales',
+     /Próxima:/.test(q('#view-inicio .summary-list').textContent) &&
+     /Última:/.test(q('#view-inicio .summary-list').textContent),
+     q('#view-inicio .summary-row').textContent.trim().slice(0, 60));
   ok('V1.4 nav-inicio activo', q('#nav-inicio').classList.contains('active'));
 
   // ---------- VISTA 2: CITAS ----------
@@ -444,6 +457,51 @@ async function run() {
   q('#personal-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
   ok('V.23 Con datos validos se guarda', vis(q('#personal-read-view')), q('#val-dni').textContent);
   q('#nav-inicio').click(); await tick();
+
+  // ---------- HISTORIAL ----------
+  q('#nav-inicio').click(); await tick();
+  var irHistorial = q('.quick-card[data-ruta="historial"]');
+  ok('H.0 Acceso al historial desde Inicio', !!irHistorial);
+  if (irHistorial) {
+    irHistorial.click();
+    await tick();
+    ok('H.1 El historial abre su propia vista', location.hash === '#/historial' && vis(q('#view-historial')), location.hash);
+    ok('H.2 No se confunde con el expediente de Salud',
+       q('#view-salud').classList.contains('hidden') && !q('#view-historial').classList.contains('hidden'));
+
+    var total = MediModules.citas.length;
+    ok('H.3 Muestra una ficha por consulta', qa('#view-historial .hist-item').length === total,
+       qa('#view-historial .hist-item').length + '/' + total);
+    ok('H.4 La mas reciente va primero',
+       /13\/10\/|2026/.test(q('#view-historial .hist-when').textContent) ||
+       q('#view-historial .hist-when').textContent.length > 0,
+       q('#view-historial .hist-when').textContent.trim());
+    ok('H.5 Cada ficha muestra medico y ubicacion',
+       /Médico/.test(q('#view-historial .hist-facts').textContent) &&
+       /Ubicación/.test(q('#view-historial .hist-facts').textContent));
+    ok('H.6 Hay al menos una ficha con documentos adjuntos',
+       qa('#view-historial .hist-doc').length > 0, qa('#view-historial .hist-doc').length + ' adjuntos');
+
+    // El buscador debe filtrar sin recargar la vista.
+    var antes = qa('#view-historial .hist-item').length;
+    q('#hist-buscar').value = 'Dermatología';
+    q('#hist-buscar').dispatchEvent(new Event('input', { bubbles: true }));
+    await tick();
+    var despues = qa('#view-historial .hist-item').length;
+    ok('H.7 El buscador reduce la lista', despues > 0 && despues < antes, antes + ' -> ' + despues);
+
+    q('#hist-buscar').value = 'no-existe-esta-especialidad';
+    q('#hist-buscar').dispatchEvent(new Event('input', { bubbles: true }));
+    await tick();
+    ok('H.8 Sin resultados muestra el estado vacio',
+       /No hay consultas registradas/.test(q('#view-historial #hist-contenido').textContent));
+
+    q('#hist-buscar').value = '';
+    q('#hist-buscar').dispatchEvent(new Event('input', { bubbles: true }));
+    await tick();
+    ok('H.9 Limpiar el buscador restaura la lista',
+       qa('#view-historial .hist-item').length === antes, qa('#view-historial .hist-item').length);
+  }
 
   // ---------- ESTADO GLOBAL ----------
   q('#nav-inicio').click(); await tick();

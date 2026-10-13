@@ -1,0 +1,152 @@
+/* ==========================================================
+   MediQR · Vista Historial
+   Linea de tiempo de consultas, con el hilo y el punto del movil.
+   ========================================================== */
+
+/* ---------- Buscador ---------- */
+.hist-search {
+  display: block;
+  max-width: 460px;
+  margin-top: var(--space-xl);
+}
+
+.hist-count { margin-top: var(--space-md); }
+
+/* ---------- Linea de tiempo ---------- */
+.hist-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hist-item {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+/* Hilo vertical con el punto: timeline_top + timeline_dot + timeline_bottom */
+.hist-rail {
+  position: relative;
+  flex: none;
+  width: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.hist-rail::before,
+.hist-rail::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: var(--border-strong);
+}
+
+/* El hilo arranca justo debajo del punto de la ficha anterior */
+.hist-item:first-child .hist-rail::before { top: 32px; bottom: 0; }
+.hist-item:not(:first-child) .hist-rail::before { top: 0; bottom: 0; }
+.hist-item:not(:last-child) .hist-rail::after { top: 32px; bottom: -20px; }
+.hist-item:last-child .hist-rail::after { display: none; }
+
+.hist-dot {
+  position: relative;
+  z-index: 1;
+  width: 14px;
+  height: 14px;
+  margin-top: 18px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 0 4px var(--primary-light);
+}
+
+.hist-card {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: var(--space-lg);
+  border-left: 3px solid var(--primary);
+}
+
+.hist-specialty { font-size: var(--text-subtitle); }
+
+.hist-when {
+  font-size: var(--text-label);
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+}
+
+/* ---------- Datos de la consulta ---------- */
+.hist-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+  margin: 0 0 var(--space-md);
+}
+.hist-facts dt {
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+.hist-facts dd { margin: 2px 0 0; color: var(--text-primary); overflow-wrap: anywhere; }
+
+/* ---------- Detalle ---------- */
+.hist-detail {
+  background: var(--bg-sunken);
+  border-radius: var(--radius-sm);
+  padding: var(--space-md) var(--space-lg);
+  margin-bottom: var(--space-md);
+}
+.hist-detail-title {
+  display: block;
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.hist-detail p { margin-top: var(--space-2xs); color: var(--text-primary); }
+
+/* ---------- Documentos adjuntos ---------- */
+.hist-docs {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-md);
+}
+
+.hist-docs-title {
+  display: block;
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-sm);
+}
+
+.hist-doc {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: 100%;
+  min-height: 40px;
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-xs);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: var(--text-label);
+  text-align: left;
+  cursor: pointer;
+}
+.hist-doc:hover { border-color: var(--primary); }
+.hist-doc .icon { color: var(--primary); }
+.hist-doc-name { overflow-wrap: anywhere; }
+
+/* ---------- Adaptaciones ---------- */
+@media (max-width: 560px) {
+  .hist-item { gap: var(--space-md); }
+  .hist-facts { grid-template-columns: 1fr; gap: var(--space-sm); }
+  .hist-card { padding: var(--space-lg); }
+}

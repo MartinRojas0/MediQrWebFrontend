@@ -1,124 +1,144 @@
 // ==========================================================
 // MediQR · Vista Inicio
 //
-// Marcado del panel de inicio del paciente. Se renderiza una sola vez
-// al arrancar; el contenido es estatico salvo los enlaces a otras vistas.
+// Reproduce el orden de fragment_inicio.xml de la app movil:
+//
+//   1. Identidad medica  -> QR + boton de compartir
+//   2. Resumen actual    -> tres filas calculadas con datos reales
+//   3. Accesos rapidos   -> historial, salud, citas, documentos
+//   4. SOS               -> boton flotante (js/modules/sos.js)
+//
+// Todo el contenido se deriva de MediModules: si no hay citas, la
+// pantalla lo dice. No hay datos escritos a mano en el marcado.
 // ==========================================================
 (function () {
   "use strict";
 
-  var MARCADO = `      <div class="header-welcome">
-        <h1>Hola, Paciente Demo <i data-icon="hand" class="icon-wave"></i></h1>
-        <p class="text-muted">Esto es lo más importante de tu salud hoy.</p>
-      </div>
+  const esc = (v) => MediPartes.dom.escapar(v == null ? "" : String(v));
 
-      <div class="dashboard-grid">
+  // La proxima es la cita no atendida mas cercana; la ultima, la atendida
+  // mas reciente. Es la misma regla que actualizarResumen() del movil.
+  function resumen() {
+    const citas = MediModules.citas;
 
-        <!-- 2. TARJETA QR DE EMERGENCIA (DESTACADA) -->
-        <article class="card card-featured">
-          <div class="card-header">
-            <h3><i data-icon="qrcode"></i> QR de Emergencia</h3>
-            <span class="badge badge-danger"><i data-icon="triangle-exclamation"></i> EMERGENCIA</span>
-          </div>
-          <div class="qr-content-flex">
-            <div class="qr-info">
-              <h4>Paciente Demo</h4>
-              <p><strong>Grupo sanguíneo:</strong> O+</p>
-              <p><strong>Alergias:</strong> Penicilina, Aspirina</p>
-              <p><strong>Condiciones:</strong> Hipertensión leve</p>
-            </div>
-            <div class="qr-preview">
-              <!-- SVG de QR visual mock sin necesidad de archivos de imagen -->
-              <svg width="90" height="90" viewBox="0 0 100 100" style="background:#fff; padding:4px; border-radius:8px; border:1px solid #e2e8f0;">
-                <rect width="100" height="100" fill="#ffffff"/>
-                <path d="M10 10h30v30H10zM60 10h30v30H60zM10 60h30v30H10z" fill="#0284c7"/>
-                <path d="M20 20h10v10H20zM70 20h10v10H70zM20 70h10v10H20z" fill="#ffffff"/>
-                <rect x="50" y="50" width="15" height="15" fill="#0284c7"/>
-                <rect x="75" y="75" width="15" height="15" fill="#0284c7"/>
-                <rect x="50" y="75" width="15" height="15" fill="#0284c7"/>
-              </svg>
-            </div>
-          </div>
-          <div class="card-actions mt-1">
-            <button class="btn btn-outline"  data-action="perfil:ver-qr">Ver QR</button>
-            <button class="btn btn-primary"  data-action="demo:aviso" data-mensaje="Descargando QR visual...">Descargar QR</button>
-          </div>
-        </article>
+    const pendientes = citas
+      .filter((c) => c.estado === "Próxima")
+      .sort((a, b) => (a.fecha + a.hora).localeCompare(b.fecha + b.hora));
 
-        <!-- 3. PRÓXIMA CITA -->
-        <article class="card">
-          <div class="card-header">
-            <h3><i data-icon="calendar-check"></i> Próxima Cita</h3>
-            <span class="badge badge-info">Próxima</span>
-          </div>
-          <p><strong>Especialidad:</strong> Odontología</p>
-          <p><strong>Médico:</strong> Dr. Carlos Pérez</p>
-          <p><strong>Fecha:</strong> 25 de septiembre</p>
-          <p><strong>Hora:</strong> 10:30 AM</p>
-          <p><strong>Lugar:</strong> Clínica MediSalud</p>
-          <button class="btn btn-secondary full-width mt-1"  data-action="nav:ir" data-ruta="citas">Ver cita</button>
-        </article>
+    const atendidas = citas
+      .filter((c) => c.estado === "Atendida")
+      .sort((a, b) => (b.fecha + b.hora).localeCompare(a.fecha + a.hora));
 
-        <!-- 4. ÚLTIMA CONSULTA -->
-        <article class="card">
-          <h3><i data-icon="stethoscope"></i> Última Consulta</h3>
-          <p><strong>Especialidad:</strong> Medicina General</p>
-          <p><strong>Médico:</strong> Dra. Ana Martínez</p>
-          <p><strong>Fecha:</strong> 10 de agosto</p>
-          <p><strong>Diagnóstico:</strong> Rinitis Alérgica</p>
-          <p class="text-muted"><small>Se receta antihistamínico. Control en caso de persistencia.</small></p>
-          <button class="btn btn-secondary full-width mt-1"  data-action="demo:aviso" data-mensaje="Dirigiendo visualmente a Detalle de Consulta...">Ver consulta</button>
-        </article>
+    return { proxima: pendientes[0] || null, ultima: atendidas[0] || null };
+  }
 
-        <!-- 5. MEDICAMENTOS -->
-        <article class="card">
-          <h3><i data-icon="pills"></i> Medicamentos</h3>
-          <p><strong>Nombre:</strong> Paracetamol</p>
-          <p><strong>Dosis:</strong> 500 mg</p>
-          <p><strong>Frecuencia:</strong> Cada 8 horas</p>
-          <div class="dose-highlight mt-1">
-            <span>Próxima dosis:</span>
-            <strong>18:00</strong>
-          </div>
-          <p class="mt-1"><small>Recordatorio: <strong>Activado</strong></small></p>
-          <button class="btn btn-secondary full-width mt-1"  data-action="demo:aviso" data-mensaje="Dirigiendo visualmente a Medicamentos...">Ver medicamentos</button>
-        </article>
+  // FragmentoInicio.actualizarResumen() marca la fila de alertas en rojo
+  // si hay una alergia grave o penicilina.
+  function tieneRiesgo() {
+    const alergias = MediModules.salud.alergias
+      .map((a) => (a.nombre + " " + (a.severidad || "")))
+      .join(" ")
+      .toLowerCase();
 
-        <!-- 6. ACCESOS RÁPIDOS -->
-        <article class="card card-full">
-          <h3><i data-icon="bolt"></i> Accesos Rápidos</h3>
-          <div class="quick-access-grid mt-1">
-            <button class="qa-btn"  data-action="demo:aviso" data-mensaje="Dirigiendo a Historial clínico">
-              <span class="qa-icon"><i data-icon="file-medical"></i></span>
-              <span>Historial clínico</span>
-            </button>
-            <button class="qa-btn"  data-action="demo:aviso" data-mensaje="Dirigiendo a Medicamentos">
-              <span class="qa-icon"><i data-icon="capsules"></i></span>
-              <span>Medicamentos</span>
-            </button>
-           <button class="qa-btn"  data-action="nav:ir" data-ruta="citas">
-            <span class="qa-icon">
-              <i data-icon="calendar-days"></i>
-            </span>
-            <span>Citas</span>
-          </button>
-            <button class="qa-btn"  data-action="nav:ir" data-ruta="documentos">
-              <span class="qa-icon"><i data-icon="folder-open"></i></span>
-              <span>Documentos</span>
-            </button>
-          </div>
-        </article>
+    return alergias.includes("grave") || alergias.includes("penicilina");
+  }
 
-      </div>`;
+  function filaResumen(icono, texto, tono) {
+    return `
+      <button type="button" class="summary-row" data-action="inicio:resumen" data-fila="${esc(texto.split(':')[0])}">
+        <span class="summary-icon summary-icon--${tono}"><i data-icon="${icono}"></i></span>
+        <span class="summary-text">${esc(texto)}</span>
+        <span class="row-chevron" aria-hidden="true"><i data-icon="chevron-right"></i></span>
+      </button>`;
+  }
+
+  function accesos() {
+    return [
+      { icono: "history", etiqueta: "Historial", ruta: "historial", sub: "Tus consultas" },
+      { icono: "heart-pulse", etiqueta: "Salud", ruta: "salud", sub: "Expediente" },
+      { icono: "calendar-days", etiqueta: "Citas", ruta: "citas", sub: "Ver y agendar" },
+      { icono: "folder-open", etiqueta: "Documentos", ruta: "documentos", sub: "Recetas y exámenes" }
+    ].map((a) => `
+      <button type="button" class="quick-card" data-action="nav:ir" data-ruta="${a.ruta}">
+        <span class="quick-icon"><i data-icon="${a.icono}"></i></span>
+        <span class="quick-label">${a.etiqueta}</span>
+        <span class="quick-sub">${a.sub}</span>
+      </button>`).join("");
+  }
 
   function render() {
-    var destino = document.getElementById("view-inicio");
+    const destino = document.getElementById("view-inicio");
+    if (!destino || destino.dataset.renderizado === "1") return;
 
-    if (destino && !destino.dataset.renderizado) {
-      destino.innerHTML = MARCADO;
-      destino.dataset.renderizado = "1";
-    }
+    const salud = MediModules.salud;
+    const { proxima, ultima } = resumen();
+    const riesgo = tieneRiesgo();
+    const alergias = salud.alergias
+      .map((a) => (a.severidad ? a.nombre + " (" + a.severidad + ")" : a.nombre))
+      .join(", ");
+
+    destino.innerHTML = `
+      <h1 data-titulo-vista class="heading-1">Hola, Paciente Demo <i data-icon="hand" class="icon-wave"></i></h1>
+      <p class="text-muted">Tu ecosistema médico está al día</p>
+
+      <!-- Identidad medica: el QR es lo primero, igual que en el movil -->
+      <article class="card identity-card">
+        <div class="identity-main">
+          <span class="identity-label">Identidad médica digital</span>
+          <p class="identity-name">Paciente Demo · ${esc(salud.tipoSangre || "Sin grupo sanguíneo")}</p>
+          <p class="identity-detail">${esc(alergias || "Sin alergias registradas")}</p>
+          <div class="identity-actions">
+            <button type="button" class="btn btn-outline" data-action="inicio:ver-qr">Ver QR</button>
+            <button type="button" class="btn btn-primary" data-action="inicio:compartir">
+              <i data-icon="share"></i> Compartir información
+            </button>
+          </div>
+        </div>
+        <button type="button" class="identity-qr" data-action="inicio:ver-qr" aria-label="Ver código QR de emergencia">
+          <i data-icon="qrcode"></i>
+        </button>
+      </article>
+
+      ${riesgo ? `
+        <div class="critical-alert" role="alert">
+          <i data-icon="triangle-exclamation"></i>
+          <span>Alergia crítica: ${esc(alergias)}</span>
+        </div>` : ""}
+
+      <!-- Resumen actual: tres filas calculadas, como row_summary_item -->
+      <h2 class="section-title">Resumen actual</h2>
+      <div class="summary-list">
+        ${filaResumen("calendar-days",
+          proxima ? "Próxima: " + proxima.especialidad + " · " + MediPartes.fechas.fechaCorta(proxima.fecha) : "Próxima: sin citas",
+          "primary")}
+        ${filaResumen("history",
+          ultima ? "Última: " + ultima.especialidad + " · " + ultima.medico : "Última: sin historial",
+          "accent")}
+        ${filaResumen(riesgo ? "triangle-exclamation" : "heart-pulse",
+          riesgo ? "Alerta: " + alergias : "Sin alertas críticas",
+          riesgo ? "danger" : "muted")}
+      </div>
+
+      <h2 class="section-title">Accesos rápidos</h2>
+      <div class="quick-grid">${accesos()}</div>
+    `;
+
+    destino.dataset.renderizado = "1";
   }
+
+  MediAcciones.definirVarias({
+    "inicio:ver-qr": function () { MediModules.verQr(); },
+    "inicio:compartir": function () {
+      MediModules.aviso("Compartir información médica depende del servicio de QR, aún no conectado.");
+    },
+    // Las filas del resumen llevan a la seccion que corresponde.
+    "inicio:resumen": function (el) {
+      const fila = el.dataset.fila;
+      if (fila === "Próxima") MediModules.irCitas("proximas");
+      else if (fila === "Última") MediModules.irDocumentos("Todos");
+      else MediModules.irDocumentos("Recetas");
+    }
+  });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", render);

@@ -242,20 +242,6 @@
   // Todos usan el <dialog> nativo a traves de MediModules.modal(),
   // que aporta foco atrapado, cierre con Escape y ::backdrop.
   var PerfilModales = {
-    verQr() {
-      MediModules.modal('Código QR de Emergencia', `
-        <div class="text-center">
-          <svg width="180" height="180" viewBox="0 0 100 100" role="img" aria-label="Código QR de emergencia de demostración" style="background:#fff; padding:8px; border-radius:8px; border:1px solid #e2e8f0;">
-            <rect width="100" height="100" fill="#ffffff"/>
-            <path d="M10 10h30v30H10zM60 10h30v30H60zM10 60h30v30H10z" fill="#0284c7"/>
-            <path d="M20 20h10v10H20zM70 20h10v10H70zM20 70h10v10H20z" fill="#ffffff"/>
-            <rect x="50" y="50" width="15" height="15" fill="#0284c7"/>
-            <rect x="75" y="75" width="15" height="15" fill="#0284c7"/>
-            <rect x="50" y="75" width="15" height="15" fill="#0284c7"/>
-          </svg>
-        </div>
-      `, true);
-    },
     agregarContacto() {
       MediModules.modal('Contacto de Emergencia', `
         <form id="contacto-form" class="module-form" novalidate data-action="perfil:guardar-contacto">
@@ -357,7 +343,7 @@
       MediModules.close();
       MediModules.aviso('Contacto guardado visualmente.');
     },
-    "perfil:ver-qr": function () { PerfilModales.verQr(); },
+    
     "perfil:agregar-contacto": function () { PerfilModales.agregarContacto(); },
     "perfil:eliminar-contacto": function () { PerfilModales.eliminarContacto(); },
     "perfil:confirmar-eliminar": function () { PerfilModales.confirmarEliminar(); },

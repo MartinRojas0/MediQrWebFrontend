@@ -1,0 +1,174 @@
+/* ==========================================================
+   MediQR · Vista Inicio
+   Compuesta por los componentes comunes: tarjeta, boton, distintivo
+   y fila de resumen. Solo se declara lo propio de esta pantalla.
+   ========================================================== */
+
+/* ---------- Saludo ---------- */
+#view-inicio > .heading-1 { margin-bottom: var(--space-2xs); }
+
+/* ---------- Identidad medica ----------
+   Bloque principal: QR a la derecha, datos a la izquierda. El borde
+   de acento recoge el azul medico de la app. */
+.identity-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+  margin-top: var(--space-xl);
+  border-left: 4px solid var(--primary);
+}
+
+.identity-main { flex: 1 1 auto; min-width: 0; }
+
+.identity-label {
+  display: block;
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary);
+}
+
+.identity-name {
+  font-size: var(--text-subtitle);
+  font-weight: 700;
+  color: var(--text-strong);
+  margin-top: var(--space-xs);
+  overflow-wrap: anywhere;
+}
+
+.identity-detail {
+  font-size: var(--text-label);
+  color: var(--text-secondary);
+  margin-top: var(--space-2xs);
+  overflow-wrap: anywhere;
+}
+
+.identity-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-lg);
+}
+
+/* El QR es un boton: se abre en el dialogo, no es decorativo */
+.identity-qr {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 92px;
+  height: 92px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  color: var(--primary);
+  font-size: 2.5rem;
+  cursor: pointer;
+  transition: transform var(--motion-fast) var(--ease-out),
+              border-color var(--motion-fast) var(--ease-standard);
+}
+.identity-qr:hover { transform: scale(1.04); border-color: var(--primary); }
+.identity-qr .icon { width: 1em; height: 1em; }
+
+/* ---------- Resumen actual ---------- */
+.summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.summary-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: var(--space-md) var(--space-lg);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard),
+              transform var(--motion-fast) var(--ease-standard);
+}
+.summary-row:hover { border-color: var(--primary); transform: translateX(2px); }
+
+.summary-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+}
+.summary-icon--accent { background: var(--success-soft); color: var(--success-text); }
+.summary-icon--danger { background: var(--danger-soft); color: var(--danger); }
+.summary-icon--muted { background: var(--bg-sunken); color: var(--text-secondary); }
+
+.summary-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: var(--text-body);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Accesos rapidos ---------- */
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.quick-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-lg) var(--space-sm);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  text-align: center;
+  transition: transform var(--motion-fast) var(--ease-out),
+              box-shadow var(--motion-fast) var(--ease-standard),
+              border-color var(--motion-fast) var(--ease-standard);
+}
+.quick-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+  box-shadow: var(--elevation-2);
+}
+
+.quick-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-size: 1.35rem;
+  margin-bottom: var(--space-2xs);
+}
+
+.quick-label { font-weight: 700; font-size: var(--text-label); color: var(--text-strong); }
+.quick-sub { font-size: var(--text-caption); color: var(--text-tertiary); }
+
+/* ---------- Adaptaciones ---------- */
+@media (max-width: 900px) {
+  .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 560px) {
+  .identity-card { gap: var(--space-lg); }
+  .identity-qr { width: 72px; height: 72px; font-size: 2rem; }
+  .identity-actions .btn { flex: 1 1 auto; }
+}

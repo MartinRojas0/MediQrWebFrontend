@@ -157,4 +157,9 @@
   );
 
   global.MediModules = MediModules;
+
+  // Las fechas de los datos ficticios se resuelven aqui y no en el arranque:
+  // las vistas se dibujan en DOMContentLoaded y necesitan ".fecha ya
+  // calculado para ordenar la proxima cita.
+  MediModules.resolverFechas();
 })(window);

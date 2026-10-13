@@ -132,6 +132,7 @@
 
     // ---- Ventana modal ----
     "modal:cerrar": function () { global.MediModules.close(); },
+    "qr:ver": function () { global.MediModules.verQr(); },
 
     // ---- Accesorios todavia no implementados ----
     // Avisan con el toast accesible en lugar de alert(), que bloquea la
