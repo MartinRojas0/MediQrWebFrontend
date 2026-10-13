@@ -21,6 +21,10 @@ window.confirm = function () { return true; };
 
 window.addEventListener('DOMContentLoaded', function () {
   setTimeout(function () {
+    // Modo enlace directo: el ejecutor pide una ruta concreta y solo se
+    // comprueba que el portal restaura esa vista al cargar (equivale a
+    // recargar la pagina con la URL ya escrita).
+    if (window.__CASO) { return comprobarEnlaceDirecto(); }
     run().catch(function (e) {
       var pre = document.createElement('pre');
       pre.id = 'TESTRESULT';
@@ -29,6 +33,41 @@ window.addEventListener('DOMContentLoaded', function () {
     });
   }, 0);
 });
+
+async function comprobarEnlaceDirecto() {
+  const R = [];
+  const ok = (n, c, x) => R.push({ t: n, p: !!c, x: x == null ? '' : String(x) });
+  const q = (s) => document.querySelector(s);
+  const qa = (s) => document.querySelectorAll(s);
+  const vis = (e) => !!e && !e.classList.contains('hidden');
+  const caso = window.__CASO;
+
+  const casos = {
+    'inicio': () => vis(q('#view-inicio')) && qa('#view-inicio .card').length === 5,
+    'perfil': () => vis(q('#view-perfil')) && qa('.sb-btn').length === 4,
+    'citas/agendar': () => vis(q('#view-citas')) && !!q('#schedule-form'),
+    'citas/historial': () => vis(q('#view-citas')) && qa('#citas-content .module-cards .card').length > 0,
+    'documentos/recetas': () => vis(q('#view-documentos')) && qa('#documents-content .doc-card').length === 2,
+    'documentos/examenes': () => vis(q('#view-documentos')) && qa('#documents-content .doc-card').length === 3,
+    'documentos/todos': () => vis(q('#view-documentos')) && qa('#documents-content .doc-card').length === 9,
+    'ruta-inexistente': () => location.hash === '#/inicio' && vis(q('#view-inicio'))
+  };
+
+  ok('D.1 La ruta se restaura al cargar', caso === 'ruta-inexistente'
+    ? casos[caso]() : location.hash === '#/' + caso, location.hash);
+  ok('D.2 La vista correspondiente se muestra', casos[caso](), caso);
+  ok('D.3 Solo una vista visible', qa('.view-section:not(.hidden)').length === 1);
+  ok('D.4 Hay un enlace activo', qa('.nav-links a[aria-current="page"]').length === 1);
+  ok('D.5 El titulo del documento no es el generico',
+    !/Portal del Paciente$/.test(document.title), document.title);
+  ok('D.6 Sin errores JavaScript', (window.__errs || []).length === 0, JSON.stringify(window.__errs || []));
+
+  const pass = R.filter((r) => r.p).length;
+  let out = `==RESULTADO==\nCASO=${caso}\nTOTAL=${R.length} OK=${pass} FALLOS=${R.length - pass}\n`;
+  R.forEach((r) => { out += (r.p ? 'PASS | ' : 'FAIL | ') + r.t + (r.x ? `  [${r.x}]` : '') + '\n'; });
+  const pre = document.createElement('pre'); pre.id = 'TESTRESULT'; pre.textContent = out;
+  document.body.appendChild(pre);
+}
 
 var tick = function () { return new Promise(function (r) { setTimeout(r, 30); }); };
 

@@ -1,7 +1,7 @@
 # ==========================================================
 # MediQR - Pruebas funcionales
 #
-# Ejecuta las 112 comprobaciones del portal en un navegador real
+# Ejecuta 112 comprobaciones funcionales y 8 cargas por enlace directo en un navegador real
 # (Microsoft Edge o Google Chrome) en modo headless.
 #
 # REQUISITOS
@@ -31,6 +31,12 @@
 #   V4.* vista Perfil (pestanas, edicion)
 #   M.*  modales unificados: apertura, titulo, foco, cierre con Escape
 #   G.*  estado global y errores de JavaScript
+#   RT.* router: hash, sub-vistas, aria-current, foco, atras/adelante
+#
+# Ademas abre el portal en 8 rutas distintas (inicio, perfil, citas/agendar,
+# citas/historial, documentos/todos, recetas, examenes y una ruta
+# inexistente) para comprobar que restaura la vista correcta al cargar, que
+# es lo que ocurre al recargar con la URL ya escrita.
 #
 # NOTAS
 #   - El harness se sirve como archivo aparte (/__test__/harness.js) y no

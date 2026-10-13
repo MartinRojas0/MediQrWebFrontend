@@ -35,6 +35,7 @@ const TITULOS = {
   "citas/historial": "MediQR - Historial de citas",
   "citas/agendar": "MediQR - Agendar cita",
   documentos: "MediQR - Documentos",
+  "documentos/todos": "MediQR - Documentos",
   "documentos/recetas": "MediQR - Recetas médicas",
   "documentos/examenes": "MediQR - Exámenes médicos",
   "documentos/informes": "MediQR - Informes médicos",

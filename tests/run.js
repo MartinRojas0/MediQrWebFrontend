@@ -50,6 +50,10 @@ function buscarNavegador() {
 function crearServidor(harness) {
   return http.createServer((req, res) => {
     const ruta = decodeURIComponent(req.url.split('?')[0]);
+    // ?caso=X indica al harness que ejecute la comprobacion de enlace
+    // directo. El hash viaja despues del ? en la URL real del navegador,
+    // de modo que la app resuelve la ruta como en una recarga de verdad.
+    const caso = decodeURIComponent((req.url.split('?')[1] || '').replace(/^caso=/, ''));
 
     if (ruta === '/__test__/harness.js') {
       const buf = Buffer.from(harness, 'utf8');
@@ -65,9 +69,10 @@ function crearServidor(harness) {
       // El harness se sirve como archivo separado, nunca en linea: si se
       // incrustara en el HTML, sus propias cadenas de busqueda pasarian a
       // formar parte del DOM que las comprobaciones inspeccionan.
+      const prefijo = caso ? `<script>window.__CASO=${JSON.stringify(caso)};</script>\n` : '';
       const html = fs
         .readFileSync(path.join(RAIZ, 'index.html'), 'utf8')
-        .replace('</body>', '  <script src="/__test__/harness.js"></script>\n</body>');
+        .replace('</body>', `  ${prefijo}<script src="/__test__/harness.js"></script>\n</body>`);
       const buf = Buffer.from(html, 'utf8');
       res.writeHead(200, {
         'Content-Type': TIPOS['.html'],
@@ -95,19 +100,23 @@ function crearServidor(harness) {
 // Ejecuta el navegador y devuelve el DOM volcado por --dump-dom.
 // Se usa spawn (asincrono) y no spawnSync porque los ejecutables graficos de
 // Windows no respeutan la espera sincrona de Node.
-function ejecutarNavegador(navegador, url) {
+// Rutas que se comprueban abriendo el portal directamente en ellas,
+// como ocurriria al recargar con la URL ya escrita.
+const RUTAS_DIRECTAS = [
+  'inicio', 'perfil', 'citas/agendar', 'citas/historial',
+  'documentos/todos', 'documentos/recetas', 'documentos/examenes',
+  'ruta-inexistente'
+];
+
+function ejecutarURL(navegador, url) {
   return new Promise((resolve, reject) => {
     const perfil = path.join(os.tmpdir(), 'mediqr-test-profile');
     const hijo = spawn(navegador, [
-      '--headless',
-      '--disable-gpu',
-      '--no-sandbox',
+      '--headless', '--disable-gpu', '--no-sandbox',
       '--user-data-dir=' + perfil,
-      '--no-first-run',
-      '--no-default-browser-check',
+      '--no-first-run', '--no-default-browser-check',
       '--virtual-time-budget=20000',
-      '--dump-dom',
-      url
+      '--dump-dom', url
     ], { windowsHide: true });
 
     let salida = '';
@@ -126,6 +135,15 @@ function ejecutarNavegador(navegador, url) {
       resolve(salida);
     });
   });
+}
+
+function extraer(salida) {
+  const m = salida.match(/id="TESTRESULT">([\s\S]*?)<\/pre>/);
+  if (!m) return null;
+  return m[1]
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&amp;/g, '&');
 }
 
 (async function main() {
@@ -151,28 +169,57 @@ function ejecutarNavegador(navegador, url) {
 
   let salida;
   try {
-    salida = await ejecutarNavegador(navegador, 'http://127.0.0.1:' + PUERTO + '/');
+    salida = await ejecutarURL(navegador, 'http://127.0.0.1:' + PUERTO + '/');
   } catch (e) {
     servidor.close();
     console.error('Error al ejecutar el navegador: ' + e.message);
     process.exit(1);
   }
-  servidor.close();
 
-  const m = salida.match(/id="TESTRESULT">([\s\S]*?)<\/pre>/);
-  if (!m) {
+  const texto = extraer(salida);
+  if (texto === null) {
+    servidor.close();
     console.error('El harness no produjo resultado. Revisa que el sitio compile en el navegador.');
     process.exit(1);
   }
 
-  const texto = m[1]
-    .replace(/&lt;/g, '<').replace(/&gt;/g, '>')
-    .replace(/&quot;/g, '"').replace(/&#39;/g, "'")
-    .replace(/&amp;/g, '&');
-
   console.log(texto);
-  // Un fallo del propio harness es un fallo de la suite: no debe reportarse
-  // como exito, porque enmascararia cualquier comprobacion que no llego a ejecutarse.
+
+  // Segunda pasada: abrir el portal directamente en cada ruta, como
+  // ocurriria al recargar con la URL ya escrita.
+  let fallosDirectos = 0;
+  console.log('\n--- enlaces directos (recarga con la URL escrita) ---');
+
+  for (const ruta of RUTAS_DIRECTAS) {
+    let dom;
+    try {
+      dom = await ejecutarURL(navegador, 'http://127.0.0.1:' + PUERTO + '/?caso=' + encodeURIComponent(ruta) + '#/' + ruta);
+    } catch (e) {
+      console.error('  ' + ruta.padEnd(20) + ' ERROR: ' + e.message);
+      fallosDirectos++;
+      continue;
+    }
+
+    const textoRuta = extraer(dom);
+    if (textoRuta === null) {
+      console.error('  ' + ruta.padEnd(20) + ' sin resultado');
+      fallosDirectos++;
+      continue;
+    }
+
+    const resumen = (textoRuta.match(/TOTAL=\d+ OK=\d+ FALLOS=\d+/) || ['?'])[0];
+    const falla = /FAIL \||HARNESS ERROR/.test(textoRuta);
+    if (falla) fallosDirectos++;
+    console.log('  ' + (falla ? 'FALLA' : ' OK  ') + '  ' + ruta.padEnd(20) + resumen);
+
+    if (falla) {
+      textoRuta.split('\n').filter((l) => /FAIL \||HARNESS ERROR/.test(l)).forEach((l) => console.log('        ' + l));
+    }
+  }
+
+  servidor.close();
+
   if (/HARNESS ERROR/.test(texto)) process.exit(1);
-  process.exit(/FAIL \|/.test(texto) ? 1 : 0);
+  if (/FAIL \|/.test(texto) || fallosDirectos > 0) process.exit(1);
+  process.exit(0);
 })();
