@@ -40,6 +40,9 @@ async function run() {
   var vis = function (e) { return !!e && !e.classList.contains('hidden'); };
 
   // ---------- RECURSOS ----------
+  // Se captura antes de cualquier navegacion: el hash inicial solo es
+  // observable en la primera carga.
+  var hashInicial = location.hash;
   var recs = performance.getEntriesByType('resource').map(function (r) { return r.name; });
   ok('R.1 Entrada en la raiz del sitio', location.pathname === '/' || location.pathname === '/index.html', location.pathname);
   ok('R.2 CSS cargados desde /css', recs.filter(function (u) { return /\.css$/.test(u); }).length === 2);
@@ -54,7 +57,7 @@ async function run() {
   var salud = Array.prototype.filter.call(qa('.nav-links a'), function (a) { return a.textContent.trim().indexOf('Salud') === 0; });
   ok('N.1 Sin enlace "Salud" muerto', salud.length === 0);
   ok('N.2 Perfil sin caret enganoso', q('#nav-perfil') && q('#nav-perfil').textContent.trim() === 'Perfil');
-  ok('N.3 switchSection es el conmutador generico', String(switchSection).indexOf('view-') !== -1);
+  ok('N.3 switchSection delega en el Router', typeof Router === 'object' && String(switchSection).indexOf('Router.ir') !== -1);
   ok('N.4 Iconos SVG renderizados', qa('svg.icon').length === 23, qa('svg.icon').length);
   ok('N.5 Sin placeholders de icono sin renderizar', qa('[data-icon]').length === 0);
 
@@ -206,6 +209,54 @@ async function run() {
   PerfilModales.confirmarCierre(); await tick();
   ok('M.11 Aviso accesible role=status', q('#module-notice').getAttribute('role') === 'status');
   ok('M.12 Aviso visible', !q('#module-notice').classList.contains('hidden'), q('#module-notice').textContent);
+
+  // ---------- ROUTER (hash routing) ----------
+  ok('RT.1 Router disponible', typeof Router === 'object');
+  ok('RT.2 Hash inicial por defecto', /^#\/inicio$/.test(hashInicial), hashInicial);
+
+  switchSection('perfil'); await tick();
+  ok('RT.3 switchSection actualiza el hash', location.hash === '#/perfil', location.hash);
+  ok('RT.4 Vista de perfil visible', vis(q('#view-perfil')));
+  ok('RT.5 aria-current en el enlace activo', q('#nav-perfil').getAttribute('aria-current') === 'page');
+  ok('RT.6 Solo un aria-current activo', qa('.nav-links a[aria-current="page"]').length === 1, qa('.nav-links a[aria-current="page"]').length);
+  ok('RT.7 Titulo del documento actualizado', /Perfil/.test(document.title), document.title);
+
+  Router.ir('citas/agendar'); await tick();
+  ok('RT.8 Ruta con sub-vista', location.hash === '#/citas/agendar', location.hash);
+  ok('RT.9 Vista de citas visible', vis(q('#view-citas')) && !!q('#schedule-form'));
+  ok('RT.10 Titulo de sub-vista', /Agendar/.test(document.title), document.title);
+
+  // Navegacion hacia atras y adelante
+  history.back(); await tick(); await tick();
+  ok('RT.11 El boton atras del navegador funciona', !vis(q('#view-citas')) && vis(q('#view-perfil')),
+     'hash=' + location.hash);
+
+  history.forward(); await tick(); await tick();
+  ok('RT.12 El boton adelante funciona', vis(q('#view-citas')), 'hash=' + location.hash);
+
+  // Sub-vistas de documentos
+  MediModules.irDocumentos('Recetas'); await tick();
+  ok('RT.13 Sub-vista de documentos en la URL', location.hash === '#/documentos/recetas', location.hash);
+  ok('RT.14 Solo recetas listadas', qa('#documents-content .doc-card').length === 2, qa('#documents-content .doc-card').length);
+  MediModules.irDocumentos('Exámenes'); await tick();
+  ok('RT.15 Sub-vista examenes sin acentos en la URL', location.hash === '#/documentos/examenes', location.hash);
+  MediModules.irDocumentos('Todos'); await tick();
+
+  // Foco al cambiar de vista
+  switchSection('inicio'); await tick();
+  var encabezado = q('#view-inicio h1');
+  ok('RT.16 Foco movido al encabezado de la vista', document.activeElement === encabezado,
+     document.activeElement ? document.activeElement.tagName : 'null');
+  ok('RT.17 El encabezado es programaticamente enfocable', encabezado.getAttribute('tabindex') === '-1',
+     encabezado.getAttribute('tabindex'));
+
+  // Ruta invalida -> inicio
+  location.hash = '#/ruta-inexistente';
+  await tick(); await tick();
+  ok('RT.18 Ruta desconocida redirige a inicio', location.hash === '#/inicio' && vis(q('#view-inicio')), location.hash);
+
+  switchSection('inicio'); await tick();
+  ok('RT.19 URL canonica en la vista inicial', location.hash === '#/inicio', location.hash);
 
   // ---------- ESTADO GLOBAL ----------
   switchSection('inicio'); await tick();

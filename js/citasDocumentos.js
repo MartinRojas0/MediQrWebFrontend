@@ -2,38 +2,35 @@
 // MediQR · Citas + Documentos
 // ==========================================================
 
-// Navegación del menú principal
+// Navegación entre vistas.
+// Alias compatible: el control real vive en js/router.js (hash routing).
+// Se mantiene por los onclick inline y por las pruebas existentes.
 function switchSection(section) {
-  const vista = document.getElementById("view-" + section);
+  if (typeof Router === "undefined") return;
 
-  if (!vista) return;
+  const sub = { citas: "calendario", documentos: "todos" }[section];
 
-  document.querySelectorAll(".view-section").forEach(function (elemento) {
-    elemento.classList.add("hidden");
-  });
+  Router.ir(sub ? section + "/" + sub : section);
+}
 
-  document.querySelectorAll(".nav-links a").forEach(function (enlace) {
-    enlace.classList.remove("active");
-  });
+// Los menus del navbar usan nombres legibles ("Exámenes"); las rutas usan
+// slugs sin acentos ni mayusculas para que la URL sea estable.
+const DOC_SLUG = { Todos: "todos", Recetas: "recetas", "Exámenes": "examenes", Informes: "informes", Otros: "otros" };
+const DOC_VISTA = { todos: "Todos", recetas: "Recetas", examenes: "Exámenes", informes: "Informes", otros: "Otros" };
 
-  vista.classList.remove("hidden");
+function routerAlEntrar(base, sub) {
+  if (typeof MediModules === "undefined") return;
 
-  const enlaceActivo = document.getElementById("nav-" + section);
+  MediModules.cerrarMenus();
 
-  if (enlaceActivo) {
-    enlaceActivo.classList.add("active");
+  if (base === "citas") {
+    MediModules.pestaña = sub || "calendario";
+    MediModules.render();
   }
 
-  if (typeof MediModules !== "undefined") {
-    MediModules.cerrarMenus();
-
-    if (section === "citas") {
-      MediModules.render();
-    }
-
-    if (section === "documentos") {
-      MediModules.documents();
-    }
+  if (base === "documentos") {
+    MediModules.docVista = DOC_VISTA[sub] || "Todos";
+    MediModules.documents();
   }
 }
 
@@ -275,9 +272,8 @@ const MediModules = {
   },
 
   irCitas(vista) {
-    this.pestaña = vista;
     this.close();
-    switchSection("citas");
+    Router.ir("citas/" + vista);
   },
 
   irDocumentos(vista) {
@@ -285,9 +281,8 @@ const MediModules = {
       this.limpiarFiltrosDoc();
     }
 
-    this.docVista = vista;
     this.close();
-    switchSection("documentos");
+    Router.ir("documentos/" + (DOC_SLUG[vista] || "todos"));
   },
 
   /* ------------------------------------------------------
