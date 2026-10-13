@@ -671,7 +671,7 @@ const MediModules = {
 
     this.modal("Cita cancelada", `
       <div class="result-box result-danger">
-        <i class="fa-solid fa-circle-xmark"></i>
+        <i data-icon="circle-xmark"></i>
         <p>La cita fue cancelada.</p>
       </div>
 
@@ -781,7 +781,7 @@ const MediModules = {
 
       this.modal("Cita reprogramada", `
         <div class="result-box result-ok">
-          <i class="fa-solid fa-circle-check"></i>
+          <i data-icon="circle-check"></i>
           <p>¡Cambio realizado correctamente!</p>
         </div>
 
@@ -1046,7 +1046,7 @@ const MediModules = {
       .map((medico) => `
         <label class="choice">
           <input type="radio" name="medico" value="${this.atributo(medico)}" ${b.medico === medico ? "checked" : ""}>
-          <span><i class="fa-solid fa-user-doctor"></i> ${this.escapar(medico)}</span>
+          <span><i data-icon="user-doctor"></i> ${this.escapar(medico)}</span>
         </label>
       `)
       .join("");
@@ -1115,7 +1115,7 @@ const MediModules = {
 
     this.modal("¡Cita agendada correctamente!", `
       <div class="result-box result-ok">
-        <i class="fa-solid fa-circle-check"></i>
+        <i data-icon="circle-check"></i>
         <p>Tu cita fue registrada.</p>
       </div>
 
@@ -1164,7 +1164,7 @@ const MediModules = {
 
     this.modal("¿Deseas agregar un documento a esta consulta?", `
       <div class="result-box result-ok">
-        <i class="fa-solid fa-circle-check"></i>
+        <i data-icon="circle-check"></i>
         <p>La cita fue marcada como atendida.</p>
       </div>
 
@@ -1194,10 +1194,10 @@ const MediModules = {
   iconoArchivo(nombre) {
     const ext = this.extension(nombre);
 
-    if (ext === "pdf") return "fa-file-pdf";
-    if (["jpg", "jpeg", "png"].includes(ext)) return "fa-file-image";
+    if (ext === "pdf") return "file-pdf";
+    if (["jpg", "jpeg", "png"].includes(ext)) return "file-image";
 
-    return "fa-file-lines";
+    return "file-lines";
   },
 
   resolverDoc(doc) {
@@ -1320,7 +1320,7 @@ const MediModules = {
       <article class="card doc-card">
         <div class="doc-card-top">
           <span class="document-icon" aria-hidden="true">
-            <i class="fa-solid ${this.iconoArchivo(doc.nombre)}"></i>
+            <i data-icon="${this.iconoArchivo(doc.nombre)}"></i>
             <small>${this.escapar(this.extension(doc.nombre).toUpperCase())}</small>
           </span>
 
@@ -1358,7 +1358,7 @@ const MediModules = {
     } else {
       vista = `
         <div class="doc-preview">
-          <i class="fa-solid ${this.iconoArchivo(doc.nombre)}"></i>
+          <i data-icon="${this.iconoArchivo(doc.nombre)}"></i>
           <p>${doc.url ? "Vista previa no disponible. Usa “Abrir archivo”." : "Documento de ejemplo (sin archivo adjunto)."}</p>
         </div>
       `;
@@ -1547,7 +1547,7 @@ const MediModules = {
 
       this.modal("Documento agregado correctamente.", `
         <div class="result-box result-ok">
-          <i class="fa-solid fa-circle-check"></i>
+          <i data-icon="circle-check"></i>
           <p>Tu documento ya está en tu biblioteca.</p>
         </div>
 

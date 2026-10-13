@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MediQR - Portal del Paciente</title>
-  <!-- CDN Font Awesome para los íconos -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="../css/main.css">
 <link rel="stylesheet" href="../css/citasDocumentos.css">
 </head>
@@ -55,7 +53,7 @@
     <!-- ========================================== -->
     <section id="view-inicio" class="view-section">
       <div class="header-welcome">
-        <h1>Hola, Paciente Demo <i class="fa-solid fa-hand-wave" style="color: #f59e0b;"></i></h1>
+        <h1>Hola, Paciente Demo <i data-icon="hand" style="color: #f59e0b;"></i></h1>
         <p class="text-muted">Esto es lo más importante de tu salud hoy.</p>
       </div>
 
@@ -64,8 +62,8 @@
         <!-- 2. TARJETA QR DE EMERGENCIA (DESTACADA) -->
         <article class="card card-featured">
           <div class="card-header">
-            <h3><i class="fa-solid fa-qrcode"></i> QR de Emergencia</h3>
-            <span class="badge badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> EMERGENCIA</span>
+            <h3><i data-icon="qrcode"></i> QR de Emergencia</h3>
+            <span class="badge badge-danger"><i data-icon="triangle-exclamation"></i> EMERGENCIA</span>
           </div>
           <div class="qr-content-flex">
             <div class="qr-info">
@@ -95,7 +93,7 @@
         <!-- 3. PRÓXIMA CITA -->
         <article class="card">
           <div class="card-header">
-            <h3><i class="fa-solid fa-calendar-check"></i> Próxima Cita</h3>
+            <h3><i data-icon="calendar-check"></i> Próxima Cita</h3>
             <span class="badge badge-info">Próxima</span>
           </div>
           <p><strong>Especialidad:</strong> Odontología</p>
@@ -108,7 +106,7 @@
 
         <!-- 4. ÚLTIMA CONSULTA -->
         <article class="card">
-          <h3><i class="fa-solid fa-stethoscope"></i> Última Consulta</h3>
+          <h3><i data-icon="stethoscope"></i> Última Consulta</h3>
           <p><strong>Especialidad:</strong> Medicina General</p>
           <p><strong>Médico:</strong> Dra. Ana Martínez</p>
           <p><strong>Fecha:</strong> 10 de agosto</p>
@@ -119,7 +117,7 @@
 
         <!-- 5. MEDICAMENTOS -->
         <article class="card">
-          <h3><i class="fa-solid fa-pills"></i> Medicamentos</h3>
+          <h3><i data-icon="pills"></i> Medicamentos</h3>
           <p><strong>Nombre:</strong> Paracetamol</p>
           <p><strong>Dosis:</strong> 500 mg</p>
           <p><strong>Frecuencia:</strong> Cada 8 horas</p>
@@ -133,24 +131,24 @@
 
         <!-- 6. ACCESOS RÁPIDOS -->
         <article class="card card-full">
-          <h3><i class="fa-solid fa-bolt"></i> Accesos Rápidos</h3>
+          <h3><i data-icon="bolt"></i> Accesos Rápidos</h3>
           <div class="quick-access-grid mt-1">
             <button class="qa-btn" onclick="alert('Dirigiendo a Historial clínico')">
-              <span class="qa-icon"><i class="fa-solid fa-file-medical"></i></span>
+              <span class="qa-icon"><i data-icon="file-medical"></i></span>
               <span>Historial clínico</span>
             </button>
             <button class="qa-btn" onclick="alert('Dirigiendo a Medicamentos')">
-              <span class="qa-icon"><i class="fa-solid fa-capsules"></i></span>
+              <span class="qa-icon"><i data-icon="capsules"></i></span>
               <span>Medicamentos</span>
             </button>
            <button class="qa-btn" onclick="switchSection('citas')">
             <span class="qa-icon">
-              <i class="fa-solid fa-calendar-days"></i>
+              <i data-icon="calendar-days"></i>
             </span>
             <span>Citas</span>
           </button>
             <button class="qa-btn" onclick="switchSection('documentos')">
-              <span class="qa-icon"><i class="fa-solid fa-folder-open"></i></span>
+              <span class="qa-icon"><i data-icon="folder-open"></i></span>
               <span>Documentos</span>
             </button>
           </div>
@@ -255,16 +253,16 @@
         <!-- BARRA LATERAL DEL PERFIL -->
         <aside class="profile-sidebar">
           <div class="avatar-box">
-            <!-- Avatar automático con iniciales MV -->
+            <!-- Avatar local: no se solicita a servicios de terceros -->
             <img src="../img/avatar.png" alt="Foto de perfil del paciente" class="avatar-img">
             <h3>Paciente Demo</h3>
             <p class="text-muted"><small>DNI: 00000000</small></p>
           </div>
           <nav class="sidebar-nav mt-1">
-            <button class="sb-btn active" onclick="switchProfileTab('info-personal', this)"><i class="fa-solid fa-user"></i> Información Personal</button>
-            <button class="sb-btn" onclick="switchProfileTab('info-medica', this)"><i class="fa-solid fa-heart-pulse"></i> Información Médica</button>
-            <button class="sb-btn" onclick="switchProfileTab('contactos', this)"><i class="fa-solid fa-phone"></i> Contactos de Emergencia</button>
-            <button class="sb-btn" onclick="switchProfileTab('configuracion', this)"><i class="fa-solid fa-gear"></i> Configuración</button>
+            <button class="sb-btn active" onclick="switchProfileTab('info-personal', this)"><i data-icon="user"></i> Información Personal</button>
+            <button class="sb-btn" onclick="switchProfileTab('info-medica', this)"><i data-icon="heart-pulse"></i> Información Médica</button>
+            <button class="sb-btn" onclick="switchProfileTab('contactos', this)"><i data-icon="phone"></i> Contactos de Emergencia</button>
+            <button class="sb-btn" onclick="switchProfileTab('configuracion', this)"><i data-icon="gear"></i> Configuración</button>
           </nav>
         </aside>
 
@@ -274,7 +272,7 @@
           <!-- 8. INFORMACIÓN PERSONAL -->
           <article id="ptab-info-personal" class="card card-full profile-tab-content">
             <div class="card-header">
-              <h3><i class="fa-solid fa-user"></i> Información Personal</h3>
+              <h3><i data-icon="user"></i> Información Personal</h3>
               <button class="btn btn-outline-sm" id="btn-edit-personal" onclick="enablePersonalEdit()">Editar</button>
             </div>
 
@@ -306,7 +304,7 @@
           <!-- 9. INFORMACIÓN MÉDICA -->
           <article id="ptab-info-medica" class="card card-full profile-tab-content hidden">
             <div class="card-header">
-              <h3><i class="fa-solid fa-heart-pulse"></i> Información Médica</h3>
+              <h3><i data-icon="heart-pulse"></i> Información Médica</h3>
               <button class="btn btn-outline-sm" id="btn-edit-medical" onclick="enableMedicalEdit()">Editar</button>
             </div>
 
@@ -332,7 +330,7 @@
           <!-- 10. CONTACTOS DE EMERGENCIA -->
           <article id="ptab-contactos" class="card card-full profile-tab-content hidden">
             <div class="card-header">
-              <h3><i class="fa-solid fa-phone"></i> Contactos de Emergencia</h3>
+              <h3><i data-icon="phone"></i> Contactos de Emergencia</h3>
               <button class="btn btn-primary-sm" onclick="openModal('modal-add-contact')">+ Agregar contacto</button>
             </div>
 
@@ -351,7 +349,7 @@
 
           <!-- 11. CONFIGURACIÓN -->
           <article id="ptab-configuracion" class="card card-full profile-tab-content hidden">
-            <h3><i class="fa-solid fa-bell"></i> Notificaciones</h3>
+            <h3><i data-icon="bell"></i> Notificaciones</h3>
             <div class="settings-list mt-1">
               <div class="setting-item">
                 <span>Recordatorios de medicamentos</span>
@@ -367,13 +365,13 @@
               </div>
             </div>
 
-            <h3 class="mt-2"><i class="fa-solid fa-sliders"></i> Preferencias Generales</h3>
+            <h3 class="mt-2"><i data-icon="sliders"></i> Preferencias Generales</h3>
             <p class="text-muted"><small>Preferencias de la aplicación (Idioma: Español / Modo Claro).</small></p>
 
-            <h3 class="mt-2"><i class="fa-solid fa-shield-halved"></i> Seguridad</h3>
+            <h3 class="mt-2"><i data-icon="shield-halved"></i> Seguridad</h3>
             <div class="security-actions mt-1">
-              <button class="btn btn-outline" onclick="openModal('modal-change-password')"><i class="fa-solid fa-key"></i> Cambiar contraseña</button>
-              <button class="btn btn-danger" onclick="openModal('modal-logout')"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</button>
+              <button class="btn btn-outline" onclick="openModal('modal-change-password')"><i data-icon="key"></i> Cambiar contraseña</button>
+              <button class="btn btn-danger" onclick="openModal('modal-logout')"><i data-icon="right-from-bracket"></i> Cerrar sesión</button>
             </div>
           </article>
 
@@ -605,6 +603,7 @@
           role="status"
         ></div>
 
+     <script src="../js/icons.js"></script>
      <script src="../js/citasDocumentos.js"></script>
 </body>
 </html>

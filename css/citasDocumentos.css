@@ -340,7 +340,7 @@ a.btn {
   font-weight: 600;
 }
 
-.result-box i {
+.result-box .icon {
   font-size: 1.4rem;
 }
 
@@ -587,7 +587,7 @@ a.btn {
   font-size: 0.9rem;
 }
 
-.doc-preview i {
+.doc-preview .icon {
   font-size: 2.5rem;
   color: var(--primary);
 }
