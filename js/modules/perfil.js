@@ -12,7 +12,8 @@
 (function () {
   "use strict";
 
-  var MARCADO = `      <h2>Perfil del Paciente</h2>
+  var MARCADO = `      <h1 data-titulo-vista class="heading-1">Perfil del paciente</h1>
+      <p class="text-muted">Tus datos y la configuración del portal</p>
 
       <div class="profile-layout mt-1">
 
@@ -235,7 +236,7 @@
     document.getElementById('val-allergies').textContent = document.getElementById('inp-allergies').value;
     document.getElementById('val-conditions').textContent = document.getElementById('inp-conditions').value;
     document.getElementById('val-notes').textContent = document.getElementById('inp-notes').value;
-    alert('¡Información médica actualizada visualmente!');
+    MediModules.aviso('Información médica actualizada.');
     cancelMedicalEdit();
   }
   // 5. Modales de Perfil

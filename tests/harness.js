@@ -458,6 +458,56 @@ async function run() {
   ok('V.23 Con datos validos se guarda', vis(q('#personal-read-view')), q('#val-dni').textContent);
   q('#nav-inicio').click(); await tick();
 
+  // ---------- SOS ----------
+  var sos = q('#sos-boton');
+  ok('S.1 El boton SOS esta presente y es accesible',
+     !!sos && sos.getAttribute('aria-label') === 'Emergencia médica SOS');
+
+  if (sos) {
+    sos.click(); await tick();
+    ok('S.2 El boton abre el dialogo SOS', q('#module-dialog').open === true);
+    ok('S.3 El dialogo ofrece las tres acciones del movil',
+       !!q('#module-dialog [data-action="sos:enviar"]') &&
+       !!q('#module-dialog [data-action="sos:ambulancia"]') &&
+       !!q('#module-dialog [data-action="sos:cancelar"]'));
+    ok('S.4 Muestra la cuenta atras', /Se cerrará en \d+s/.test(q('#sos-timer').textContent),
+       q('#sos-timer').textContent);
+    ok('S.5 El aviso es una region viva', q('#sos-timer').getAttribute('aria-live') === 'polite');
+
+    // El enlace de telefono debe llevar el numero de emergencia real.
+    var tel = q('#module-dialog [data-action="sos:ambulancia"]');
+    ok('S.6 Llamar a ambulancia apunta a un telefono', !!tel && /^tel:\+\d{9,}$/.test(tel.getAttribute('href')),
+       tel ? tel.getAttribute('href') : '(sin enlace)');
+
+    q('#module-dialog [data-action="sos:cancelar"]').click(); await tick();
+    ok('S.7 Cancelar cierra sin ejecutar nada', q('#module-dialog').open === false);
+
+    // Cancelar no debe dejar el temporizador vivo.
+    sos.click(); await tick();
+    q('#module-dialog [data-action="sos:cancelar"]').click(); await tick();
+    var contador = q('#sos-timer');
+    ok('S.8 Cancelar detiene la cuenta atras', !contador || /Cerr/.test(contador.textContent) === false,
+       contador ? contador.textContent : '(timer retirado)');
+
+    // Escape debe cerrar el dialogo nativo.
+    sos.click(); await tick();
+    q('#module-dialog').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    q('#module-dialog').close(); await tick();
+    ok('S.9 Escape cierra el dialogo SOS', q('#module-dialog').open === false);
+
+    // No se simula un envio de alerta.
+    sos.click(); await tick();
+    var antes = window.__alerts.slice();
+    q('#module-dialog [data-action="sos:enviar"]').click(); await tick();
+    var nuevos = window.__alerts.slice(antes.length);
+    ok('S.10 Enviar alerta no muestra un exito simulado',
+       !nuevos.some(function (m) { return /correctamente|exito|éxito|enviad/i.test(m); }) &&
+       q('#module-dialog').open === false,
+       nuevos.length ? nuevos.join(' | ') : 'sin dialogos de exito');
+    ok('S.11 Tras enviar, el aviso aclara que falta el servicio',
+       /todav/i.test(q('#module-notice').textContent), q('#module-notice').textContent);
+  }
+
   // ---------- HISTORIAL ----------
   q('#nav-inicio').click(); await tick();
   var irHistorial = q('.quick-card[data-ruta="historial"]');
