@@ -1,0 +1,23 @@
+# Normalizar fin de linea en el repositorio.
+# Motivo: core.autocrlf=true en Windows provoca diffs de archivo completo
+# cuando se edita el mismo archivo desde sistemas distintos.
+* text=auto
+
+*.js   text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+*.md   text eol=lf
+*.json text eol=lf
+*.yml  text eol=lf
+
+# Archivos de configuracion de Git.
+.gitattributes text eol=lf
+.gitignore     text eol=lf
+
+# Imagenes: nunca aplicar conversiones de fin de linea.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.svg  text eol=lf
+*.ico  binary

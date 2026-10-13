@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediQR - Portal del Paciente</title>
+  <!-- CDN Font Awesome para los íconos -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="../css/main.css">
+<link rel="stylesheet" href="../css/citasDocumentos.css">
+</head>
+<body>
+
+  <!-- NAVBAR PRINCIPAL -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="logo"><strong>MediQR</strong></div>
+      <nav class="nav-links">
+        <a id="nav-inicio" class="active" onclick="switchSection('inicio')">Inicio</a>
+        <a>Salud ▾</a>
+        <div class="nav-dropdown">
+          <a id="nav-citas" class="nav-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false"
+             onclick="MediModules.toggleMenu(event, this)">Citas ▾</a>
+          <div class="nav-submenu">
+            <div class="nav-submenu-list">
+              <button type="button" data-menu="citas" data-vista="calendario" onclick="MediModules.irCitas('calendario')">Calendario</button>
+              <button type="button" data-menu="citas" data-vista="proximas" onclick="MediModules.irCitas('proximas')">Próximas citas</button>
+              <button type="button" data-menu="citas" data-vista="historial" onclick="MediModules.irCitas('historial')">Historial de citas</button>
+              <button type="button" data-menu="citas" data-vista="agendar" onclick="MediModules.irCitas('agendar')">Agendar cita</button>
+            </div>
+          </div>
+        </div>
+        <div class="nav-dropdown">
+          <a id="nav-documentos" class="nav-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false"
+             onclick="MediModules.toggleMenu(event, this)">Documentos ▾</a>
+          <div class="nav-submenu">
+            <div class="nav-submenu-list">
+              <button type="button" data-menu="documentos" data-vista="Todos" onclick="MediModules.irDocumentos('Todos')">Todos</button>
+              <button type="button" data-menu="documentos" data-vista="Recetas" onclick="MediModules.irDocumentos('Recetas')">Recetas</button>
+              <button type="button" data-menu="documentos" data-vista="Exámenes" onclick="MediModules.irDocumentos('Exámenes')">Exámenes</button>
+              <button type="button" data-menu="documentos" data-vista="Informes" onclick="MediModules.irDocumentos('Informes')">Informes</button>
+              <button type="button" data-menu="documentos" data-vista="Otros" onclick="MediModules.irDocumentos('Otros')">Otros</button>
+            </div>
+          </div>
+        </div>
+        <a id="nav-perfil" onclick="switchSection('perfil')">Perfil ▾</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- ========================================== -->
+    <!-- 1. VISTA: INICIO / DASHBOARD               -->
+    <!-- ========================================== -->
+    <section id="view-inicio" class="view-section">
+      <div class="header-welcome">
+        <h1>Hola, Paciente Demo <i class="fa-solid fa-hand-wave" style="color: #f59e0b;"></i></h1>
+        <p class="text-muted">Esto es lo más importante de tu salud hoy.</p>
+      </div>
+
+      <div class="dashboard-grid">
+
+        <!-- 2. TARJETA QR DE EMERGENCIA (DESTACADA) -->
+        <article class="card card-featured">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-qrcode"></i> QR de Emergencia</h3>
+            <span class="badge badge-danger"><i class="fa-solid fa-triangle-exclamation"></i> EMERGENCIA</span>
+          </div>
+          <div class="qr-content-flex">
+            <div class="qr-info">
+              <h4>Paciente Demo</h4>
+              <p><strong>Grupo sanguíneo:</strong> O+</p>
+              <p><strong>Alergias:</strong> Penicilina, Aspirina</p>
+              <p><strong>Condiciones:</strong> Hipertensión leve</p>
+            </div>
+            <div class="qr-preview">
+              <!-- SVG de QR visual mock sin necesidad de archivos de imagen -->
+              <svg width="90" height="90" viewBox="0 0 100 100" style="background:#fff; padding:4px; border-radius:8px; border:1px solid #e2e8f0;">
+                <rect width="100" height="100" fill="#ffffff"/>
+                <path d="M10 10h30v30H10zM60 10h30v30H60zM10 60h30v30H10z" fill="#0284c7"/>
+                <path d="M20 20h10v10H20zM70 20h10v10H70zM20 70h10v10H20z" fill="#ffffff"/>
+                <rect x="50" y="50" width="15" height="15" fill="#0284c7"/>
+                <rect x="75" y="75" width="15" height="15" fill="#0284c7"/>
+                <rect x="50" y="75" width="15" height="15" fill="#0284c7"/>
+              </svg>
+            </div>
+          </div>
+          <div class="card-actions mt-1">
+            <button class="btn btn-outline" onclick="openModal('modal-qr-view')">Ver QR</button>
+            <button class="btn btn-primary" onclick="alert('Descargando QR visual...')">Descargar QR</button>
+          </div>
+        </article>
+
+        <!-- 3. PRÓXIMA CITA -->
+        <article class="card">
+          <div class="card-header">
+            <h3><i class="fa-solid fa-calendar-check"></i> Próxima Cita</h3>
+            <span class="badge badge-info">Próxima</span>
+          </div>
+          <p><strong>Especialidad:</strong> Odontología</p>
+          <p><strong>Médico:</strong> Dr. Carlos Pérez</p>
+          <p><strong>Fecha:</strong> 25 de septiembre</p>
+          <p><strong>Hora:</strong> 10:30 AM</p>
+          <p><strong>Lugar:</strong> Clínica MediSalud</p>
+          <button class="btn btn-secondary full-width mt-1" onclick="switchSection('citas')">Ver cita</button>
+        </article>
+
+        <!-- 4. ÚLTIMA CONSULTA -->
+        <article class="card">
+          <h3><i class="fa-solid fa-stethoscope"></i> Última Consulta</h3>
+          <p><strong>Especialidad:</strong> Medicina General</p>
+          <p><strong>Médico:</strong> Dra. Ana Martínez</p>
+          <p><strong>Fecha:</strong> 10 de agosto</p>
+          <p><strong>Diagnóstico:</strong> Rinitis Alérgica</p>
+          <p class="text-muted"><small>Se receta antihistamínico. Control en caso de persistencia.</small></p>
+          <button class="btn btn-secondary full-width mt-1" onclick="alert('Dirigiendo visualmente a Detalle de Consulta...')">Ver consulta</button>
+        </article>
+
+        <!-- 5. MEDICAMENTOS -->
+        <article class="card">
+          <h3><i class="fa-solid fa-pills"></i> Medicamentos</h3>
+          <p><strong>Nombre:</strong> Paracetamol</p>
+          <p><strong>Dosis:</strong> 500 mg</p>
+          <p><strong>Frecuencia:</strong> Cada 8 horas</p>
+          <div class="dose-highlight mt-1">
+            <span>Próxima dosis:</span>
+            <strong>18:00</strong>
+          </div>
+          <p class="mt-1"><small>Recordatorio: <strong>Activado</strong></small></p>
+          <button class="btn btn-secondary full-width mt-1" onclick="alert('Dirigiendo visualmente a Medicamentos...')">Ver medicamentos</button>
+        </article>
+
+        <!-- 6. ACCESOS RÁPIDOS -->
+        <article class="card card-full">
+          <h3><i class="fa-solid fa-bolt"></i> Accesos Rápidos</h3>
+          <div class="quick-access-grid mt-1">
+            <button class="qa-btn" onclick="alert('Dirigiendo a Historial clínico')">
+              <span class="qa-icon"><i class="fa-solid fa-file-medical"></i></span>
+              <span>Historial clínico</span>
+            </button>
+            <button class="qa-btn" onclick="alert('Dirigiendo a Medicamentos')">
+              <span class="qa-icon"><i class="fa-solid fa-capsules"></i></span>
+              <span>Medicamentos</span>
+            </button>
+           <button class="qa-btn" onclick="switchSection('citas')">
+            <span class="qa-icon">
+              <i class="fa-solid fa-calendar-days"></i>
+            </span>
+            <span>Citas</span>
+          </button>
+            <button class="qa-btn" onclick="switchSection('documentos')">
+              <span class="qa-icon"><i class="fa-solid fa-folder-open"></i></span>
+              <span>Documentos</span>
+            </button>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- SECCIÓN: CITAS (Calendario, Próximas, Historial y Agendar se dibujan desde js/citasDocumentos.js) -->
+<section id="view-citas" class="view-section hidden">
+  <p class="demo-note">
+    Vista de demostración · Los cambios se mantienen
+    mientras esta página esté abierta.
+  </p>
+
+  <div id="citas-content"></div>
+</section>
+
+<!-- SECCIÓN: DOCUMENTOS (Todos, Recetas, Exámenes, Informes y Otros) -->
+<section id="view-documentos" class="view-section hidden">
+  <div class="module-heading">
+    <div>
+      <h1 id="doc-title">Mis documentos</h1>
+      <p id="doc-subtitle" class="text-muted">
+        Tus recetas, exámenes e informes en un solo lugar.
+      </p>
+    </div>
+
+    <button
+      class="btn btn-primary"
+      onclick="MediModules.documentForm()"
+    >
+      + Subir documento
+    </button>
+  </div>
+
+  <p class="demo-note">
+    Vista de demostración · Los archivos seleccionados
+    no se envían a un servidor.
+  </p>
+
+  <div class="document-filters">
+    <label>
+      Buscar documento
+      <input
+        id="doc-search"
+        type="search"
+        placeholder="Nombre, médico o especialidad"
+        oninput="MediModules.documents()"
+      >
+    </label>
+
+    <label id="doc-type-label">
+      Tipo
+      <select
+        id="doc-type"
+        onchange="MediModules.documents()"
+      >
+        <option>Todos</option>
+        <option>Receta</option>
+        <option>Examen</option>
+        <option>Informe</option>
+        <option>Otro</option>
+      </select>
+    </label>
+
+    <label>
+      Desde
+      <input
+        id="doc-from"
+        type="date"
+        onchange="MediModules.documents()"
+      >
+    </label>
+
+    <label>
+      Hasta
+      <input
+        id="doc-to"
+        type="date"
+        onchange="MediModules.documents()"
+      >
+    </label>
+  </div>
+
+  <p id="doc-count" class="text-muted"></p>
+
+  <div
+    id="documents-content"
+    class="module-cards docs-grid"
+  ></div>
+</section>
+
+    <!-- ========================================== -->
+    <!-- 7. VISTA: PERFIL                           -->
+    <!-- ========================================== -->
+    <section id="view-perfil" class="view-section hidden">
+      <h2>Perfil del Paciente</h2>
+
+      <div class="profile-layout mt-1">
+
+        <!-- BARRA LATERAL DEL PERFIL -->
+        <aside class="profile-sidebar">
+          <div class="avatar-box">
+            <!-- Avatar automático con iniciales MV -->
+            <img src="../img/avatar.png" alt="Foto de perfil del paciente" class="avatar-img">
+            <h3>Paciente Demo</h3>
+            <p class="text-muted"><small>DNI: 00000000</small></p>
+          </div>
+          <nav class="sidebar-nav mt-1">
+            <button class="sb-btn active" onclick="switchProfileTab('info-personal', this)"><i class="fa-solid fa-user"></i> Información Personal</button>
+            <button class="sb-btn" onclick="switchProfileTab('info-medica', this)"><i class="fa-solid fa-heart-pulse"></i> Información Médica</button>
+            <button class="sb-btn" onclick="switchProfileTab('contactos', this)"><i class="fa-solid fa-phone"></i> Contactos de Emergencia</button>
+            <button class="sb-btn" onclick="switchProfileTab('configuracion', this)"><i class="fa-solid fa-gear"></i> Configuración</button>
+          </nav>
+        </aside>
+
+        <!-- PANEL DE CONTENIDOS DE PERFIL -->
+        <main class="profile-main">
+
+          <!-- 8. INFORMACIÓN PERSONAL -->
+          <article id="ptab-info-personal" class="card card-full profile-tab-content">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-user"></i> Información Personal</h3>
+              <button class="btn btn-outline-sm" id="btn-edit-personal" onclick="enablePersonalEdit()">Editar</button>
+            </div>
+
+            <!-- Vista Lectura -->
+            <div id="personal-read-view" class="data-grid">
+              <p><strong>Nombres:</strong> <span id="val-name">Paciente</span></p>
+              <p><strong>Apellidos:</strong> <span id="val-lastname">Demo</span></p>
+              <p><strong>DNI:</strong> <span id="val-dni">00000000</span></p>
+              <p><strong>Fecha de Nacimiento:</strong> <span id="val-birth">1990-01-01</span></p>
+              <p><strong>Correo electrónico:</strong> <span id="val-email">paciente.demo@ejemplo.invalid</span></p>
+              <p><strong>Teléfono:</strong> <span id="val-phone">+51 000 000 000</span></p>
+            </div>
+
+            <!-- Formulario Edición (Convertible visualmente) -->
+            <form id="personal-edit-form" class="form-grid hidden" onsubmit="savePersonalEdit(event)">
+              <label>Nombres: <input type="text" id="inp-name" value="Paciente" required></label>
+              <label>Apellidos: <input type="text" id="inp-lastname" value="Demo" required></label>
+              <label>DNI: <input type="text" id="inp-dni" value="00000000" required></label>
+              <label>Fecha Nacimiento: <input type="date" id="inp-birth" value="1990-01-01" required></label>
+              <label>Correo: <input type="email" id="inp-email" value="paciente.demo@ejemplo.invalid" required></label>
+              <label>Teléfono: <input type="text" id="inp-phone" value="+51 000 000 000" required></label>
+              <div class="form-actions mt-1" style="grid-column: span 2;">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <button type="button" class="btn btn-outline" onclick="cancelPersonalEdit()">Cancelar</button>
+              </div>
+            </form>
+          </article>
+
+          <!-- 9. INFORMACIÓN MÉDICA -->
+          <article id="ptab-info-medica" class="card card-full profile-tab-content hidden">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-heart-pulse"></i> Información Médica</h3>
+              <button class="btn btn-outline-sm" id="btn-edit-medical" onclick="enableMedicalEdit()">Editar</button>
+            </div>
+
+            <div id="medical-read-view" class="data-grid">
+              <p><strong>Grupo Sanguíneo:</strong> <span id="val-blood">O+</span></p>
+              <p><strong>Alergias:</strong> <span id="val-allergies">Penicilina, Aspirina</span></p>
+              <p><strong>Condiciones Médicas:</strong> <span id="val-conditions">Hipertensión leve</span></p>
+              <p><strong>Información Relevante:</strong> <span id="val-notes">Chequeo cardiológico anual recomendado.</span></p>
+            </div>
+
+            <form id="medical-edit-form" class="form-grid hidden" onsubmit="saveMedicalEdit(event)">
+              <label>Grupo Sanguíneo: <input type="text" id="inp-blood" value="O+" required></label>
+              <label>Alergias: <input type="text" id="inp-allergies" value="Penicilina, Aspirina"></label>
+              <label>Condiciones: <input type="text" id="inp-conditions" value="Hipertensión leve"></label>
+              <label>Información Relevante: <input type="text" id="inp-notes" value="Chequeo cardiológico anual recomendado."></label>
+              <div class="form-actions mt-1" style="grid-column: span 2;">
+                <button type="submit" class="btn btn-primary">Guardar</button>
+                <button type="button" class="btn btn-outline" onclick="cancelMedicalEdit()">Cancelar</button>
+              </div>
+            </form>
+          </article>
+
+          <!-- 10. CONTACTOS DE EMERGENCIA -->
+          <article id="ptab-contactos" class="card card-full profile-tab-content hidden">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-phone"></i> Contactos de Emergencia</h3>
+              <button class="btn btn-primary-sm" onclick="openModal('modal-add-contact')">+ Agregar contacto</button>
+            </div>
+
+            <div class="contacts-grid mt-1">
+              <div class="contact-card">
+                <h4>Contacto Demo</h4>
+                <p><strong>Parentesco:</strong> Hermana</p>
+                <p><strong>Teléfono:</strong> +51 000 000 001</p>
+                <div class="contact-actions mt-1">
+                  <button class="btn btn-outline-sm" onclick="openModal('modal-add-contact')">Editar</button>
+                  <button class="btn btn-danger-sm" onclick="openModal('modal-delete-contact')">Eliminar</button>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- 11. CONFIGURACIÓN -->
+          <article id="ptab-configuracion" class="card card-full profile-tab-content hidden">
+            <h3><i class="fa-solid fa-bell"></i> Notificaciones</h3>
+            <div class="settings-list mt-1">
+              <div class="setting-item">
+                <span>Recordatorios de medicamentos</span>
+                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+              </div>
+              <div class="setting-item">
+                <span>Recordatorios de citas</span>
+                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+              </div>
+              <div class="setting-item">
+                <span>Avisos importantes</span>
+                <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+              </div>
+            </div>
+
+            <h3 class="mt-2"><i class="fa-solid fa-sliders"></i> Preferencias Generales</h3>
+            <p class="text-muted"><small>Preferencias de la aplicación (Idioma: Español / Modo Claro).</small></p>
+
+            <h3 class="mt-2"><i class="fa-solid fa-shield-halved"></i> Seguridad</h3>
+            <div class="security-actions mt-1">
+              <button class="btn btn-outline" onclick="openModal('modal-change-password')"><i class="fa-solid fa-key"></i> Cambiar contraseña</button>
+              <button class="btn btn-danger" onclick="openModal('modal-logout')"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</button>
+            </div>
+          </article>
+
+        </main>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODALES CENTRADOS                          -->
+  <!-- ========================================== -->
+
+  <!-- Modal QR Ampliado -->
+  <div id="modal-qr-view" class="modal-backdrop hidden">
+    <div class="modal-card text-center">
+      <h3>Código QR de Emergencia</h3>
+      <div class="mt-1">
+        <svg width="180" height="180" viewBox="0 0 100 100" style="background:#fff; padding:8px; border-radius:8px; border:1px solid #e2e8f0;">
+          <rect width="100" height="100" fill="#ffffff"/>
+          <path d="M10 10h30v30H10zM60 10h30v30H60zM10 60h30v30H10z" fill="#0284c7"/>
+          <path d="M20 20h10v10H20zM70 20h10v10H70zM20 70h10v10H20z" fill="#ffffff"/>
+          <rect x="50" y="50" width="15" height="15" fill="#0284c7"/>
+          <rect x="75" y="75" width="15" height="15" fill="#0284c7"/>
+          <rect x="50" y="75" width="15" height="15" fill="#0284c7"/>
+        </svg>
+      </div>
+      <div class="mt-1">
+        <button class="btn btn-outline" onclick="closeModal('modal-qr-view')">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Agregar Contacto -->
+  <div id="modal-add-contact" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h3>Contacto de Emergencia</h3>
+      <form class="form-grid mt-1" onsubmit="event.preventDefault(); alert('Contacto guardado visualmente'); closeModal('modal-add-contact');">
+        <label>Nombre: <input type="text" placeholder="Ej. Juan Pérez" required></label>
+        <label>Parentesco: <input type="text" placeholder="Ej. Padre" required></label>
+        <label style="grid-column: span 2;">Teléfono: <input type="text" placeholder="+51 900 000 000" required></label>
+        <div class="form-actions mt-1" style="grid-column: span 2;">
+          <button type="submit" class="btn btn-primary">Guardar</button>
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-add-contact')">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Eliminar Contacto -->
+  <div id="modal-delete-contact" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h3>¿Deseas eliminar este contacto?</h3>
+      <p class="text-muted mt-1"><small>Esta acción es una simulación visual.</small></p>
+      <div class="form-actions mt-2">
+        <button class="btn btn-danger" onclick="alert('Contacto eliminado visualmente'); closeModal('modal-delete-contact');">Eliminar</button>
+        <button class="btn btn-outline" onclick="closeModal('modal-delete-contact')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. Modal Cambiar Contraseña (con validaciones visuales) -->
+  <div id="modal-change-password" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h3>Cambiar Contraseña</h3>
+      <form class="form-grid mt-1" onsubmit="handlePasswordChange(event)">
+        <label style="grid-column: span 2;">Contraseña actual: <input type="password" id="pass-curr"></label>
+        <label style="grid-column: span 2;">Nueva contraseña: <input type="password" id="pass-new"></label>
+        <label style="grid-column: span 2;">Confirmar nueva contraseña: <input type="password" id="pass-conf"></label>
+        <p id="pass-error" class="error-msg hidden" style="grid-column: span 2;"></p>
+        <div class="form-actions mt-1" style="grid-column: span 2;">
+          <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
+          <button type="button" class="btn btn-outline" onclick="closeModal('modal-change-password')">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 13. Modal Cerrar Sesión -->
+  <div id="modal-logout" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <h3>¿Deseas cerrar sesión?</h3>
+      <p class="text-muted mt-1"><small>Saldrás de la demostración visual del portal.</small></p>
+      <div class="form-actions mt-2">
+        <button class="btn btn-danger" onclick="alert('Sesión cerrada visualmente'); closeModal('modal-logout');">Cerrar sesión</button>
+        <button class="btn btn-outline" onclick="closeModal('modal-logout')">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LÓGICA JAVASCRIPT COMPLETA E INTEGRADA -->
+  <script>
+    // 1. Navegación entre Vistas (Inicio / Perfil)
+    function switchSection(section) {
+      document.getElementById('view-inicio').classList.add('hidden');
+      document.getElementById('view-perfil').classList.add('hidden');
+      document.getElementById('nav-inicio').classList.remove('active');
+      document.getElementById('nav-perfil').classList.remove('active');
+
+      if (section === 'inicio') {
+        document.getElementById('view-inicio').classList.remove('hidden');
+        document.getElementById('nav-inicio').classList.add('active');
+      } else if (section === 'perfil') {
+        document.getElementById('view-perfil').classList.remove('hidden');
+        document.getElementById('nav-perfil').classList.add('active');
+      }
+    }
+
+    // 2. Navegación por pestañas del Perfil
+    function switchProfileTab(tabId, btn) {
+      document.querySelectorAll('.profile-tab-content').forEach(tab => tab.classList.add('hidden'));
+      document.querySelectorAll('.sb-btn').forEach(b => b.classList.remove('active'));
+
+      document.getElementById('ptab-' + tabId).classList.remove('hidden');
+      btn.classList.add('active');
+    }
+
+    // 3. Edición visual de Información Personal
+    function enablePersonalEdit() {
+      document.getElementById('personal-read-view').classList.add('hidden');
+      document.getElementById('personal-edit-form').classList.remove('hidden');
+      document.getElementById('btn-edit-personal').classList.add('hidden');
+    }
+
+    function cancelPersonalEdit() {
+      document.getElementById('personal-read-view').classList.remove('hidden');
+      document.getElementById('personal-edit-form').classList.add('hidden');
+      document.getElementById('btn-edit-personal').classList.remove('hidden');
+    }
+
+    function savePersonalEdit(e) {
+      e.preventDefault();
+      document.getElementById('val-name').textContent = document.getElementById('inp-name').value;
+      document.getElementById('val-lastname').textContent = document.getElementById('inp-lastname').value;
+      document.getElementById('val-dni').textContent = document.getElementById('inp-dni').value;
+      document.getElementById('val-birth').textContent = document.getElementById('inp-birth').value;
+      document.getElementById('val-email').textContent = document.getElementById('inp-email').value;
+      document.getElementById('val-phone').textContent = document.getElementById('inp-phone').value;
+
+      alert('¡Información personal actualizada visualmente!');
+      cancelPersonalEdit();
+    }
+
+    // 4. Edición visual de Información Médica
+    function enableMedicalEdit() {
+      document.getElementById('medical-read-view').classList.add('hidden');
+      document.getElementById('medical-edit-form').classList.remove('hidden');
+      document.getElementById('btn-edit-medical').classList.add('hidden');
+    }
+
+    function cancelMedicalEdit() {
+      document.getElementById('medical-read-view').classList.remove('hidden');
+      document.getElementById('medical-edit-form').classList.add('hidden');
+      document.getElementById('btn-edit-medical').classList.remove('hidden');
+    }
+
+    function saveMedicalEdit(e) {
+      e.preventDefault();
+      document.getElementById('val-blood').textContent = document.getElementById('inp-blood').value;
+      document.getElementById('val-allergies').textContent = document.getElementById('inp-allergies').value;
+      document.getElementById('val-conditions').textContent = document.getElementById('inp-conditions').value;
+      document.getElementById('val-notes').textContent = document.getElementById('inp-notes').value;
+
+      alert('¡Información médica actualizada visualmente!');
+      cancelMedicalEdit();
+    }
+
+    // 5. Control de Modales
+    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+    // 6. Validación visual de Cambiar Contraseña (Punto 12)
+    function handlePasswordChange(e) {
+      e.preventDefault();
+      const curr = document.getElementById('pass-curr').value;
+      const newP = document.getElementById('pass-new').value;
+      const confP = document.getElementById('pass-conf').value;
+      const errBox = document.getElementById('pass-error');
+
+      if (!curr || !newP || !confP) {
+        errBox.textContent = "Campos vacíos: Todos los datos son obligatorios.";
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      if (newP.length < 6) {
+        errBox.textContent = "Contraseña insuficiente: Debe tener al menos 6 caracteres.";
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      if (newP !== confP) {
+        errBox.textContent = "Contraseñas diferentes: Las contraseñas no coinciden.";
+        errBox.classList.remove('hidden');
+        return;
+      }
+
+      errBox.classList.add('hidden');
+      alert("¡Contraseña actualizada visualmente con éxito!");
+      closeModal('modal-change-password');
+    }
+  </script>
+
+     <!-- VENTANA PARA FORMULARIOS Y DETALLES -->
+        <dialog
+          id="module-dialog"
+          class="module-dialog"
+          aria-labelledby="module-dialog-title"
+        >
+          <div class="module-heading">
+            <h2 id="module-dialog-title"></h2>
+
+            <button
+              class="btn btn-outline"
+              aria-label="Cerrar ventana"
+              onclick="MediModules.close()"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div id="module-dialog-body"></div>
+        </dialog>
+
+        <!-- AVISOS DE CONFIRMACIÓN -->
+        <div
+          id="module-notice"
+          class="module-notice hidden"
+          role="status"
+        ></div>
+
+     <script src="../js/citasDocumentos.js"></script>
+</body>
+</html>

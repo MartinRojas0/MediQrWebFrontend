@@ -1,0 +1,62 @@
+# ==========================================
+# MediQR · Portal del Paciente
+# Archivos que NO deben versionarse
+# ==========================================
+
+# --- Sistema operativo ---
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
+
+# --- Editores / IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Logs ---
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- Dependencias (por si se anaden en el futuro) ---
+node_modules/
+
+# --- Artefactos de build / despliegue ---
+dist/
+build/
+.output/
+
+# --- Secretos y variables de entorno ---
+# Ningun archivo .env debe llegar al repositorio.
+.env
+.env.*
+!.env.example
+
+# --- Credenciales / llaves ---
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+credentials.json
+service-account*.json
+
+# --- Archivos privados de pacientes ---
+# Datos medicos y archivos subidos por pacientes nunca se versionan.
+# Documentos clinicos (recetas, examenes, informes) no se versionan.
+uploads/
+uploads-*/
+tmp/
+temp/
+
+# Documentos clinicos (recetas, examenes, informes) no se versionan.
+*.pdf
+*.jpg
+*.jpeg
+
+# ...excepto los recursos graficos propios del portal (img/).
+!img/**
