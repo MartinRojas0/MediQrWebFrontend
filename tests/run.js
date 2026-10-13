@@ -65,6 +65,47 @@ function crearServidor(harness) {
       return res.end(buf);
     }
 
+    if (ruta === '/__test__/marco.html') {
+      // Marco de medida: la pagina padre mide el iframe y escribe el
+      // resultado en su propio DOM, porque --dump-dom solo serializa el
+      // documento principal. Asi se pueden comprobar anchos por debajo
+      // del minimo que impone --window-size.
+      const q = new URLSearchParams(req.url.split('?')[1] || '');
+      const w = Number(q.get('w')) || 390;
+      const v = q.get('v') || 'inicio';
+
+      const marco = `<!doctype html><html><head><meta charset="utf-8"></head>
+<body style="margin:0">
+<iframe id="f" src="/?sondeo=1#/${v}" width="${w}" height="900" style="border:0"></iframe>
+<pre id="MEDIDA"></pre>
+<script>
+document.getElementById('f').addEventListener('load', function () {
+  var f = this;
+  setTimeout(function () {
+    var doc = f.contentDocument;
+    var vp = f.clientWidth;
+    var sw = doc.documentElement.scrollWidth;
+    var out = ['vp=' + vp, 'sw=' + sw, 'desborde=' + (sw - vp), 'culpables=0'];
+    var vistos = {};
+    Array.prototype.forEach.call(doc.querySelectorAll('body *'), function (el) {
+      var r = el.getBoundingClientRect();
+      if (r.width === 0 || r.right <= vp + 1) return;
+      var sel = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') +
+        (typeof el.className === 'string' && el.className.trim()
+          ? '.' + el.className.trim().split(/\\s+/)[0] : '');
+      if (!vistos[sel]) { vistos[sel] = 1; out.push('culpable ' + sel + ' right=' + Math.round(r.right)); }
+    });
+    document.getElementById('MEDIDA').textContent = out.join('\\n');
+  }, 250);
+});
+<\/script>
+</body></html>`;
+
+      const buf = Buffer.from(marco, 'utf8');
+      res.writeHead(200, { 'Content-Type': TIPOS['.html'], 'Content-Length': buf.length, 'Cache-Control': 'no-store' });
+      return res.end(buf);
+    }
+
     if (ruta === '/' || ruta === '/index.html') {
       // El harness se sirve como archivo separado, nunca en linea: si se
       // incrustara en el HTML, sus propias cadenas de busqueda pasarian a
@@ -100,7 +141,62 @@ function crearServidor(harness) {
 // Ejecuta el navegador y devuelve el DOM volcado por --dump-dom.
 // Se usa spawn (asincrono) y no spawnSync porque los ejecutables graficos de
 // Windows no respeutan la espera sincrona de Node.
-// Rutas que se comprueban abriendo el portal directamente en ellas,
+// Tercera pasada: cada vista dentro de un marco de ancho fijo, para
+// detectar desbordamiento horizontal. --window-sizeno baja de 492 px,
+// asi que la medicion se hace con iframes de ancho exacto.
+const VISTAS_RESPONSIVE = ['inicio', 'salud', 'citas', 'documentos', 'perfil'];
+const ANCHOS = [360, 390, 430, 540, 768, 1024, 1440];
+
+function medir(navegador, url) {
+  return new Promise((resolve) => {
+    const hijo = spawn(navegador, [
+      '--headless', '--disable-gpu', '--no-sandbox',
+      '--user-data-dir=' + path.join(os.tmpdir(), 'mediqr-test-marco'),
+      '--no-first-run', '--no-default-browser-check',
+      '--window-size=1600,1000',
+      '--virtual-time-budget=12000',
+      '--dump-dom', url
+    ], { windowsHide: true });
+
+    let salida = '';
+    let terminado = false;
+    hijo.stdout.on('data', (d) => { salida += d.toString('utf8'); });
+    const limite = setTimeout(() => { if (!terminado) { hijo.kill(); resolve(''); } }, 40000);
+    hijo.on('close', () => { terminado = true; clearTimeout(limite); resolve(salida); });
+  });
+}
+
+async function faseResponsive(navegador) {
+  console.log('\n--- responsive: sin desbordamiento horizontal ---');
+  let fallos = 0;
+
+  for (const v of VISTAS_RESPONSIVE) {
+    const linea = [];
+
+    for (const w of ANCHOS) {
+      const dom = await medir(navegador, `http://127.0.0.1:${PUERTO}/__test__/marco.html?w=${w}&v=${v}`);
+      const m = dom.match(/id="MEDIDA">([\s\S]*?)<\/pre>/);
+
+      if (!m) { linea.push(w + ':?'); fallos++; continue; }
+
+      const texto = m[1].replace(/&gt;/g, '>').replace(/&lt;/g, '<').replace(/&amp;/g, '&');
+      const desborde = Number((/desborde=(-?\d+)/.exec(texto) || [])[1] || 99);
+      // Ojo: la cabecera es 'culpables=0'; los culpables reales empiezan por 'culpable ' con espacio.
+      const culpables = texto.split('\n').filter((l) => l.startsWith('culpable '));
+
+      if (desborde > 1 || culpables.length > 0) {
+        fallos++;
+        linea.push(w + ':DESBORDA');
+        culpables.slice(0, 3).forEach((c) => console.log('        ' + v + ' ' + w + 'px -> ' + c));
+      } else {
+        linea.push(String(w));
+      }
+    }
+    console.log('  ' + (linea.every((s) => /^\d+$/.test(s)) ? ' OK  ' : 'FALLA') + '  ' + v.padEnd(12) + linea.join(' '));
+  }
+
+  return fallos;
+}
 // como ocurriria al recargar con la URL ya escrita.
 const RUTAS_DIRECTAS = [
   'inicio', 'salud', 'perfil', 'citas/agendar', 'citas/historial',
@@ -217,9 +313,11 @@ function extraer(salida) {
     }
   }
 
+  const fallosResponsive = await faseResponsive(navegador);
+
   servidor.close();
 
   if (/HARNESS ERROR/.test(texto)) process.exit(1);
-  if (/FAIL \|/.test(texto) || fallosDirectos > 0) process.exit(1);
+  if (/FAIL \|/.test(texto) || fallosDirectos > 0 || fallosResponsive > 0) process.exit(1);
   process.exit(0);
 })();

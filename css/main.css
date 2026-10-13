@@ -219,6 +219,53 @@ h2[tabindex="-1"]:focus,
 .result-box .icon { font-size: 1.4rem; }
 .document-icon .icon { font-size: 1.2rem; }
 
+/* Boton SOS flotante (sos_button_background / SOSButton del movil) */
+.sos-boton {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.5rem;
+  z-index: 900;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: none;
+  background: var(--danger);
+  color: var(--white);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+}
+.sos-boton:hover { transform: scale(1.05); }
+.sos-boton .icon { width: 1.5rem; height: 1.5rem; }
+/* Se oculta al bajar la pagina y reaparece al subir, igual que el
+   onScrollChangeListener de FragmentoInicio. */
+.sos-boton.sos-oculto { opacity: 0; transform: translateY(120%); pointer-events: none; }
+
+/* Panel del dialogo SOS */
+.sos-panel { text-align: center; }
+.sos-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--severity-high);
+  color: var(--danger);
+  margin-bottom: 0.6rem;
+}
+.sos-icon .icon { width: 1.75rem; height: 1.75rem; }
+.sos-timer { font-weight: 700; color: var(--danger); margin-bottom: 0.35rem; }
+.sos-actions { justify-content: center; }
+.sos-actions .btn { flex: 1 1 100%; }
 /* SWITCH TOGGLE */
 .settings-list { border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 1rem; background: var(--white); }
 .setting-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid var(--border); }

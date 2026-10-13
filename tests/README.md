@@ -1,7 +1,7 @@
 # ==========================================================
 # MediQR - Pruebas funcionales
 #
-# Ejecuta 112 comprobaciones funcionales y 8 cargas por enlace directo en un navegador real
+# Ejecuta 135 comprobaciones funcionales, 9 cargas por enlace directo y 35 mediciones responsive en un navegador real
 # (Microsoft Edge o Google Chrome) en modo headless.
 #
 # REQUISITOS
@@ -32,8 +32,14 @@
 #   M.*  modales unificados: apertura, titulo, foco, cierre con Escape
 #   G.*  estado global y errores de JavaScript
 #   RT.* router: hash, sub-vistas, aria-current, foco, atras/adelante
+#   N.1*  vista Salud (expediente clinico) y su alerta critica
 #
-# Ademas abre el portal en 8 rutas distintas (inicio, perfil, citas/agendar,
+# Y una tercera pasada mide cada vista dentro de un iframe de ancho fijo
+# (360, 390, 430, 540, 768, 1024 y 1440 px) para detectar desbordamiento
+# horizontal. --window-size no baja de 492 px en headless, por eso la
+# medicion se hace con iframes de ancho exacto y no con la ventana.
+#
+# Ademas abre el portal en 9 rutas distintas (inicio, perfil, citas/agendar,
 # citas/historial, documentos/todos, recetas, examenes y una ruta
 # inexistente) para comprobar que restaura la vista correcta al cargar, que
 # es lo que ocurre al recargar con la URL ya escrita.
