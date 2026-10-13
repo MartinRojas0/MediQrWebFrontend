@@ -84,7 +84,7 @@
             </div>
           </div>
           <div class="card-actions mt-1">
-            <button class="btn btn-outline" onclick="openModal('modal-qr-view')">Ver QR</button>
+            <button class="btn btn-outline" onclick="PerfilModales.verQr()">Ver QR</button>
             <button class="btn btn-primary" onclick="alert('Descargando QR visual...')">Descargar QR</button>
           </div>
         </article>
@@ -330,7 +330,7 @@
           <article id="ptab-contactos" class="card card-full profile-tab-content hidden">
             <div class="card-header">
               <h3><i data-icon="phone"></i> Contactos de Emergencia</h3>
-              <button class="btn btn-primary-sm" onclick="openModal('modal-add-contact')">+ Agregar contacto</button>
+              <button class="btn btn-primary-sm" onclick="PerfilModales.agregarContacto()">+ Agregar contacto</button>
             </div>
 
             <div class="contacts-grid mt-1">
@@ -339,8 +339,8 @@
                 <p><strong>Parentesco:</strong> Hermana</p>
                 <p><strong>Teléfono:</strong> +51 000 000 001</p>
                 <div class="contact-actions mt-1">
-                  <button class="btn btn-outline-sm" onclick="openModal('modal-add-contact')">Editar</button>
-                  <button class="btn btn-danger-sm" onclick="openModal('modal-delete-contact')">Eliminar</button>
+                  <button class="btn btn-outline-sm" onclick="PerfilModales.agregarContacto()">Editar</button>
+                  <button class="btn btn-danger-sm" onclick="PerfilModales.eliminarContacto()">Eliminar</button>
                 </div>
               </div>
             </div>
@@ -369,8 +369,8 @@
 
             <h3 class="mt-2"><i data-icon="shield-halved"></i> Seguridad</h3>
             <div class="security-actions mt-1">
-              <button class="btn btn-outline" onclick="openModal('modal-change-password')"><i data-icon="key"></i> Cambiar contraseña</button>
-              <button class="btn btn-danger" onclick="openModal('modal-logout')"><i data-icon="right-from-bracket"></i> Cerrar sesión</button>
+              <button class="btn btn-outline" onclick="PerfilModales.cambiarPassword()"><i data-icon="key"></i> Cambiar contraseña</button>
+              <button class="btn btn-danger" onclick="PerfilModales.cerrarSesion()"><i data-icon="right-from-bracket"></i> Cerrar sesión</button>
             </div>
           </article>
 
@@ -382,86 +382,7 @@
 
   <!-- ========================================== -->
   <!-- MODALES CENTRADOS                          -->
-  <!-- ========================================== -->
-
-  <!-- Modal QR Ampliado -->
-  <div id="modal-qr-view" class="modal-backdrop hidden">
-    <div class="modal-card text-center">
-      <h3>Código QR de Emergencia</h3>
-      <div class="mt-1">
-        <svg width="180" height="180" viewBox="0 0 100 100" style="background:#fff; padding:8px; border-radius:8px; border:1px solid #e2e8f0;">
-          <rect width="100" height="100" fill="#ffffff"/>
-          <path d="M10 10h30v30H10zM60 10h30v30H60zM10 60h30v30H10z" fill="#0284c7"/>
-          <path d="M20 20h10v10H20zM70 20h10v10H70zM20 70h10v10H20z" fill="#ffffff"/>
-          <rect x="50" y="50" width="15" height="15" fill="#0284c7"/>
-          <rect x="75" y="75" width="15" height="15" fill="#0284c7"/>
-          <rect x="50" y="75" width="15" height="15" fill="#0284c7"/>
-        </svg>
-      </div>
-      <div class="mt-1">
-        <button class="btn btn-outline" onclick="closeModal('modal-qr-view')">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal Agregar Contacto -->
-  <div id="modal-add-contact" class="modal-backdrop hidden">
-    <div class="modal-card">
-      <h3>Contacto de Emergencia</h3>
-      <form class="form-grid mt-1" onsubmit="event.preventDefault(); alert('Contacto guardado visualmente'); closeModal('modal-add-contact');">
-        <label>Nombre: <input type="text" placeholder="Ej. Juan Pérez" required></label>
-        <label>Parentesco: <input type="text" placeholder="Ej. Padre" required></label>
-        <label style="grid-column: span 2;">Teléfono: <input type="text" placeholder="+51 900 000 000" required></label>
-        <div class="form-actions mt-1" style="grid-column: span 2;">
-          <button type="submit" class="btn btn-primary">Guardar</button>
-          <button type="button" class="btn btn-outline" onclick="closeModal('modal-add-contact')">Cancelar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- Modal Eliminar Contacto -->
-  <div id="modal-delete-contact" class="modal-backdrop hidden">
-    <div class="modal-card">
-      <h3>¿Deseas eliminar este contacto?</h3>
-      <p class="text-muted mt-1"><small>Esta acción es una simulación visual.</small></p>
-      <div class="form-actions mt-2">
-        <button class="btn btn-danger" onclick="alert('Contacto eliminado visualmente'); closeModal('modal-delete-contact');">Eliminar</button>
-        <button class="btn btn-outline" onclick="closeModal('modal-delete-contact')">Cancelar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 12. Modal Cambiar Contraseña (con validaciones visuales) -->
-  <div id="modal-change-password" class="modal-backdrop hidden">
-    <div class="modal-card">
-      <h3>Cambiar Contraseña</h3>
-      <form class="form-grid mt-1" onsubmit="handlePasswordChange(event)">
-        <label style="grid-column: span 2;">Contraseña actual: <input type="password" id="pass-curr"></label>
-        <label style="grid-column: span 2;">Nueva contraseña: <input type="password" id="pass-new"></label>
-        <label style="grid-column: span 2;">Confirmar nueva contraseña: <input type="password" id="pass-conf"></label>
-        <p id="pass-error" class="error-msg hidden" style="grid-column: span 2;"></p>
-        <div class="form-actions mt-1" style="grid-column: span 2;">
-          <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
-          <button type="button" class="btn btn-outline" onclick="closeModal('modal-change-password')">Cancelar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- 13. Modal Cerrar Sesión -->
-  <div id="modal-logout" class="modal-backdrop hidden">
-    <div class="modal-card">
-      <h3>¿Deseas cerrar sesión?</h3>
-      <p class="text-muted mt-1"><small>Saldrás de la demostración visual del portal.</small></p>
-      <div class="form-actions mt-2">
-        <button class="btn btn-danger" onclick="alert('Sesión cerrada visualmente'); closeModal('modal-logout');">Cerrar sesión</button>
-        <button class="btn btn-outline" onclick="closeModal('modal-logout')">Cancelar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- LÓGICA JAVASCRIPT COMPLETA E INTEGRADA -->
+  <!-- ========================================== -->`r`n  <!-- LÓGICA JAVASCRIPT COMPLETA E INTEGRADA -->
   <script>
     // La navegación entre vistas vive en js/citasDocumentos.js (switchSection).
     // Aquí solo queda lo específico de Inicio y Perfil.
@@ -525,9 +446,91 @@
       cancelMedicalEdit();
     }
 
-    // 5. Control de Modales
-    function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
-    function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+    // 5. Modales de Perfil
+    // Todos usan el <dialog> nativo a traves de MediModules.modal(),
+    // que aporta foco atrapado, cierre con Escape y ::backdrop.
+    var PerfilModales = {
+      verQr() {
+        MediModules.modal('Código QR de Emergencia', `
+          <div class="text-center">
+            <svg width="180" height="180" viewBox="0 0 100 100" role="img" aria-label="Código QR de emergencia de demostración" style="background:#fff; padding:8px; border-radius:8px; border:1px solid #e2e8f0;">
+              <rect width="100" height="100" fill="#ffffff"/>
+              <path d="M10 10h30v30H10zM60 10h30v30H60zM10 60h30v30H10z" fill="#0284c7"/>
+              <path d="M20 20h10v10H20zM70 20h10v10H70zM20 70h10v10H20z" fill="#ffffff"/>
+              <rect x="50" y="50" width="15" height="15" fill="#0284c7"/>
+              <rect x="75" y="75" width="15" height="15" fill="#0284c7"/>
+              <rect x="50" y="75" width="15" height="15" fill="#0284c7"/>
+            </svg>
+          </div>
+        `, true);
+      },
+
+      agregarContacto() {
+        MediModules.modal('Contacto de Emergencia', `
+          <form id="contacto-form" class="module-form" novalidate>
+            <label class="wide">Nombre: <input name="nombre" type="text" placeholder="Ej. Juan Pérez" required></label>
+            <label class="wide">Parentesco: <input name="parentesco" type="text" placeholder="Ej. Padre" required></label>
+            <label class="wide">Teléfono: <input name="telefono" type="tel" placeholder="+51 900 000 000" required></label>
+            <p id="contacto-error" class="error-msg wide" role="alert"></p>
+            <div class="module-actions wide">
+              <button type="submit" class="btn btn-primary">Guardar</button>
+              <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cancelar</button>
+            </div>
+          </form>
+        `);
+
+        document.getElementById('contacto-form').onsubmit = (evento) => {
+          evento.preventDefault();
+          MediModules.close();
+          MediModules.aviso('Contacto guardado visualmente.');
+        };
+      },
+
+      eliminarContacto() {
+        MediModules.modal('¿Deseas eliminar este contacto?', `
+          <p class="text-muted"><small>Esta acción es una simulación visual.</small></p>
+          <div class="module-actions">
+            <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cancelar</button>
+            <button type="button" class="btn btn-danger" onclick="PerfilModales.confirmarEliminar()">Eliminar</button>
+          </div>
+        `, true);
+      },
+
+      confirmarEliminar() {
+        MediModules.close();
+        MediModules.aviso('Contacto eliminado visualmente.');
+      },
+
+      cambiarPassword() {
+        MediModules.modal('Cambiar contraseña', `
+          <form id="password-form" class="module-form" novalidate onsubmit="handlePasswordChange(event)">
+            <label class="wide">Contraseña actual: <input type="password" id="pass-curr" autocomplete="current-password"></label>
+            <label class="wide">Nueva contraseña: <input type="password" id="pass-new" autocomplete="new-password"></label>
+            <label class="wide">Confirmar nueva contraseña: <input type="password" id="pass-conf" autocomplete="new-password"></label>
+            <p id="pass-error" class="error-msg wide" role="alert"></p>
+            <div class="module-actions wide">
+              <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
+              <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cancelar</button>
+            </div>
+          </form>
+        `);
+      },
+
+      cerrarSesion() {
+        MediModules.modal('¿Deseas cerrar sesión?', `
+          <p class="text-muted"><small>Saldrás de la demostración visual del portal.</small></p>
+          <div class="module-actions">
+            <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cancelar</button>
+            <button type="button" class="btn btn-danger" onclick="PerfilModales.confirmarCierre()">Cerrar sesión</button>
+          </div>
+        `, true);
+      },
+
+      confirmarCierre() {
+        MediModules.close();
+        MediModules.aviso('Sesión cerrada visualmente.');
+      }
+    };
 
     // 6. Validación visual de Cambiar Contraseña (Punto 12)
     function handlePasswordChange(e) {
@@ -556,8 +559,8 @@
       }
 
       errBox.classList.add('hidden');
-      alert("¡Contraseña actualizada visualmente con éxito!");
-      closeModal('modal-change-password');
+      MediModules.close();
+      MediModules.aviso('Contraseña actualizada visualmente con éxito.');
     }
   </script>
 
