@@ -1,7 +1,7 @@
 # ==========================================================
 # MediQR - Pruebas funcionales
 #
-# Ejecuta 135 comprobaciones funcionales, 9 cargas por enlace directo y 35 mediciones responsive en un navegador real
+# Ejecuta 158 comprobaciones funcionales, 9 cargas por enlace directo y 35 mediciones responsive en un navegador real
 # (Microsoft Edge o Google Chrome) en modo headless.
 #
 # REQUISITOS
@@ -33,6 +33,7 @@
 #   G.*  estado global y errores de JavaScript
 #   RT.* router: hash, sub-vistas, aria-current, foco, atras/adelante
 #   N.1*  vista Salud (expediente clinico) y su alerta critica
+#   V.*   validaciones de datos (nombre, DNI, telefono, email, contrasena, edad)
 #
 # Y una tercera pasada mide cada vista dentro de un iframe de ancho fijo
 # (360, 390, 430, 540, 768, 1024 y 1440 px) para detectar desbordamiento

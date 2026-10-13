@@ -60,6 +60,7 @@
               <label>Fecha Nacimiento: <input type="date" id="inp-birth" value="1990-01-01" required></label>
               <label>Correo: <input type="email" id="inp-email" value="paciente.demo@ejemplo.invalid" required></label>
               <label>Teléfono: <input type="text" id="inp-phone" value="+51 000 000 000" required></label>
+              <p id="personal-error" class="error-msg" style="grid-column: span 2;" role="alert"></p>
               <div class="form-actions mt-1" style="grid-column: span 2;">
                 <button type="submit" class="btn btn-primary">Guardar</button>
                 <button type="button" class="btn btn-outline"  data-action="perfil:cancelar-personal">Cancelar</button>
@@ -173,13 +174,48 @@
   }
   function savePersonalEdit(e) {
     e.preventDefault();
-    document.getElementById('val-name').textContent = document.getElementById('inp-name').value;
-    document.getElementById('val-lastname').textContent = document.getElementById('inp-lastname').value;
-    document.getElementById('val-dni').textContent = document.getElementById('inp-dni').value;
-    document.getElementById('val-birth').textContent = document.getElementById('inp-birth').value;
-    document.getElementById('val-email').textContent = document.getElementById('inp-email').value;
-    document.getElementById('val-phone').textContent = document.getElementById('inp-phone').value;
-    alert('¡Información personal actualizada visualmente!');
+
+    const valores = {
+      nombre: document.getElementById('inp-name').value,
+      apellido: document.getElementById('inp-lastname').value,
+      dni: document.getElementById('inp-dni').value,
+      nacimiento: document.getElementById('inp-birth').value,
+      email: document.getElementById('inp-email').value,
+      telefono: document.getElementById('inp-phone').value
+    };
+
+    // Reglas de utils/Validaciones.kt de la app movil. El telefono llega
+    // con prefijo internacional: se comprueban los 9 digitos locales.
+    const digitosLocales = valores.telefono.replace(/\D/g, '').slice(-9);
+
+    const resultado = MediValidaciones.todo([
+      function () { return MediValidaciones.nombre(valores.nombre); },
+      function () { return MediValidaciones.nombre(valores.apellido); },
+      function () { return MediValidaciones.dni(valores.dni); },
+      function () { return MediValidaciones.nacimiento(valores.nacimiento); },
+      function () { return MediValidaciones.email(valores.email); },
+      function () { return MediValidaciones.telefono(digitosLocales); }
+    ]);
+
+    const error = document.getElementById('personal-error');
+
+    if (!resultado.ok) {
+      error.textContent = resultado.mensaje;
+      error.classList.remove('hidden');
+      return;
+    }
+
+    error.textContent = '';
+    error.classList.add('hidden');
+
+    document.getElementById('val-name').textContent = valores.nombre;
+    document.getElementById('val-lastname').textContent = valores.apellido;
+    document.getElementById('val-dni').textContent = valores.dni;
+    document.getElementById('val-birth').textContent = valores.nacimiento;
+    document.getElementById('val-email').textContent = valores.email;
+    document.getElementById('val-phone').textContent = valores.telefono;
+
+    MediModules.aviso('Información personal actualizada.');
     cancelPersonalEdit();
   }
   // 4. Edición visual de Información Médica

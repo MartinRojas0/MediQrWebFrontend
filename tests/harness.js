@@ -399,6 +399,52 @@ async function run() {
 
   q('#nav-inicio').click(); await tick();
 
+  // ---------- VALIDACIONES (reglas de Validaciones.kt del movil) ----------
+  var V = MediValidaciones;
+  ok('V.1 Modo de validacion disponible', !!V);
+
+  ok('V.2 Nombre de menos de 3 caracteres se rechaza', !V.nombre('Jo').ok, V.nombre('Jo').mensaje);
+  ok('V.3 Nombre valido se acepta', V.nombre('Ana').ok);
+  ok('V.4 Nombre vacio se rechaza', !V.nombre('').ok);
+
+  ok('V.5 DNI de 8 digitos se acepta', V.dni('72819304').ok);
+  ok('V.6 DNI con letras se rechaza', !V.dni('1234567A').ok, V.dni('1234567A').mensaje);
+  ok('V.7 DNI de 7 digitos se rechaza', !V.dni('1234567').ok);
+
+  ok('V.8 Telefono de 9 digitos se acepta', V.telefono('987654321').ok);
+  ok('V.9 Telefono de 8 digitos se rechaza', !V.telefono('87654321').ok);
+
+  ok('V.10 Email sin arroba se rechaza', !V.email('paciente.demo').ok);
+  ok('V.11 Email valido se acepta', V.email('paciente@ejemplo.com').ok);
+
+  ok('V.12 Contrasena corta se rechaza', !V.contrasena('abc').ok);
+  ok('V.13 Contrasena sin numero se rechaza', !V.contrasena('abcdef').ok, V.contrasena('abcdef').mensaje);
+  ok('V.14 Contrasena sin letra se rechaza', !V.contrasena('123456').ok);
+  ok('V.15 Contrasena valida se acepta', V.contrasena('abc123').ok);
+  ok('V.16 Confirmacion distinta se rechaza', !V.confirmar('abc123', 'abc124').ok);
+
+  ok('V.17 Fecha futura se rechaza', !V.nacimiento('2099-01-01').ok, V.nacimiento('2099-01-01').mensaje);
+  ok('V.18 Menor de 18 se rechaza', !V.nacimiento('2015-01-01').ok, V.nacimiento('2015-01-01').mensaje);
+  ok('V.19 Fecha inexistente se rechaza', !V.nacimiento('2026-02-31').ok);
+  ok('V.20 Adulto se acepta', V.nacimiento('1990-01-01').ok);
+
+  // La validacion se aplica de verdad en el formulario del perfil.
+  q('#nav-perfil').click(); await tick();
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="info-personal"]').click(); await tick();
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+
+  q('#inp-dni').value = '123';
+  q('#personal-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
+  ok('V.21 El formulario rechaza un DNI invalido',
+     /DNI/.test(q('#personal-error').textContent) && !vis(q('#personal-edit-form')) === false,
+     q('#personal-error').textContent);
+  ok('V.22 No se guardaron datos invalidos', q('#val-dni').textContent !== '123', q('#val-dni').textContent);
+
+  q('#inp-dni').value = '00000000';
+  q('#personal-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
+  ok('V.23 Con datos validos se guarda', vis(q('#personal-read-view')), q('#val-dni').textContent);
+  q('#nav-inicio').click(); await tick();
+
   // ---------- ESTADO GLOBAL ----------
   q('#nav-inicio').click(); await tick();
   ok('G.1 Vuelta a Inicio', vis(q('#view-inicio')));
