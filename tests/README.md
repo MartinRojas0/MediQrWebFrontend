@@ -1,7 +1,7 @@
 # ==========================================================
 # MediQR - Pruebas funcionales
 #
-# Ejecuta las 90 comprobaciones del portal en un navegador real
+# Ejecuta las 112 comprobaciones del portal en un navegador real
 # (Microsoft Edge o Google Chrome) en modo headless.
 #
 # REQUISITOS

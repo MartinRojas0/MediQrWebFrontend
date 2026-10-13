@@ -46,7 +46,20 @@ async function run() {
   var recs = performance.getEntriesByType('resource').map(function (r) { return r.name; });
   ok('R.1 Entrada en la raiz del sitio', location.pathname === '/' || location.pathname === '/index.html', location.pathname);
   ok('R.2 CSS cargados desde /css', recs.filter(function (u) { return /\.css$/.test(u); }).length === 2);
-  ok('R.3 JS de la app cargados desde /js', recs.filter(function (u) { return /\/(icons|citasDocumentos)\.js$/.test(u); }).length === 2);
+  ok('R.3 Todos los scripts de la app se sirven desde /js', recs.filter(function (u) { return /\.js$/.test(u); })
+    .filter(function (u) { return u.indexOf('/__test__/') === -1; })
+    .every(function (u) { return /\/js\//.test(u); }));
+
+  // La arquitectura modular sustituyo al archivo monolitico: se comprueba
+  // que los modulos nuevos se cargan y que el antiguo ya no se pide.
+  var esperados = ['lib/dates.js', 'lib/dom.js', 'lib/format.js', 'components/navbar.js',
+    'components/modal.js', 'modules/citas.js', 'modules/documentos.js',
+    'modules/inicio.js', 'modules/perfil.js', 'data/store.js', 'router.js', 'app.js', 'icons.js'];
+  var faltan = esperados.filter(function (n) {
+    return !recs.some(function (u) { return u.indexOf('/js/' + n) !== -1; });
+  });
+  ok('R.3b Todos los modulos se cargan', faltan.length === 0, faltan.length ? faltan.join(',') : esperados.length + ' modulos');
+  ok('R.3c El archivo monolitico ya no se pide', !recs.some(function (u) { return /citasDocumentos\.js$/.test(u); }));
   ok('R.4 Imagen cargada desde /img', recs.filter(function (u) { return /\.png$/.test(u); }).length === 1);
   ok('R.5 CSS aplicado', getComputedStyle(document.body).backgroundColor !== 'rgba(0, 0, 0, 0)', getComputedStyle(document.body).backgroundColor);
   ok('R.6 Sin peticiones a terceros', recs.every(function (u) { return /^https?:\/\/(127\.0\.0\.1|localhost)/.test(u); }));
