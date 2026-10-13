@@ -15,6 +15,7 @@
       <div class="logo"><strong>MediQR</strong></div>
       <nav class="nav-links">
         <a id="nav-inicio" class="active"  data-action="nav:ir" data-ruta="inicio">Inicio</a>
+        <a id="nav-salud" data-action="nav:ir" data-ruta="salud">Salud</a>
         <div class="nav-dropdown">
           <a id="nav-citas" class="nav-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false"
               data-action="nav:toggle">Citas ▾</a>
@@ -54,7 +55,10 @@
     </section>
 
     <!-- SECCIÓN: CITAS (Calendario, Próximas, Historial y Agendar se dibujan desde js/citasDocumentos.js) -->
-<section id="view-citas" class="view-section hidden">
+<section id="view-salud" class="view-section hidden">
+    </section>
+
+    <section id="view-citas" class="view-section hidden">
   <p class="demo-note">
     Vista de demostración · Los cambios se mantienen
     mientras esta página esté abierta.
@@ -181,6 +185,7 @@
 <script src="js/core/acciones.js"></script>
 <script src="js/router.js"></script>
 <script src="js/modules/inicio.js"></script>
+<script src="js/modules/salud.js"></script>
 <script src="js/modules/perfil.js"></script>
      <script src="js/lib/dates.js"></script>
 <script src="js/lib/dom.js"></script>

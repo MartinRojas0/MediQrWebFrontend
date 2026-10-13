@@ -103,7 +103,7 @@ function crearServidor(harness) {
 // Rutas que se comprueban abriendo el portal directamente en ellas,
 // como ocurriria al recargar con la URL ya escrita.
 const RUTAS_DIRECTAS = [
-  'inicio', 'perfil', 'citas/agendar', 'citas/historial',
+  'inicio', 'salud', 'perfil', 'citas/agendar', 'citas/historial',
   'documentos/todos', 'documentos/recetas', 'documentos/examenes',
   'ruta-inexistente'
 ];

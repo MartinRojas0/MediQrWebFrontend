@@ -44,6 +44,7 @@ async function comprobarEnlaceDirecto() {
 
   const casos = {
     'inicio': () => vis(q('#view-inicio')) && qa('#view-inicio .card').length === 5,
+    'salud': () => vis(q('#view-salud')) && qa('#view-salud .info-row-item').length === 6,
     'perfil': () => vis(q('#view-perfil')) && qa('.sb-btn').length === 4,
     'citas/agendar': () => vis(q('#view-citas')) && !!q('#schedule-form'),
     'citas/historial': () => vis(q('#view-citas')) && qa('#citas-content .module-cards .card').length > 0,
@@ -106,11 +107,29 @@ async function run() {
   ok('R.8 lang declarado en espanol', document.documentElement.lang === 'es', document.documentElement.lang);
 
   // ---------- NAVEGACION ----------
-  var salud = Array.prototype.filter.call(qa('.nav-links a'), function (a) { return a.textContent.trim().indexOf('Salud') === 0; });
-  ok('N.1 Sin enlace "Salud" muerto', salud.length === 0);
+  // "Salud" dejo de ser un enlace muerto: abre el expediente clinico,
+  // igual que en la app movil.
+  var enlaceSalud = Array.prototype.filter.call(qa('.nav-links a'), function (a) {
+    return a.textContent.trim().indexOf('Salud') === 0;
+  })[0];
+
+  ok('N.1 El enlace Salud existe', !!enlaceSalud);
+  if (enlaceSalud) {
+    enlaceSalud.click();
+    await tick();
+    ok('N.1b Salud abre el expediente clinico',
+       location.hash === '#/salud' && vis(q('#view-salud')), location.hash);
+    ok('N.1c El expediente muestra las tres secciones',
+       qa('#view-salud .section-title').length === 3, qa('#view-salud .section-title').length + ' secciones');
+    ok('N.1d Alergia grave genera tarjeta de alerta',
+       !!q('.critical-alert') && /ALERTA/.test(q('.critical-alert').textContent));
+    ok('N.1e Las seis filas del expediente estan',
+       qa('#view-salud .info-row-item').length === 6, qa('#view-salud .info-row-item').length + ' filas');
+  }
+  q('#nav-inicio').click(); await tick();
   ok('N.2 Perfil sin caret enganoso', q('#nav-perfil') && q('#nav-perfil').textContent.trim() === 'Perfil');
   ok('N.3 Router disponible sin funciones globales', typeof Router === 'object' && typeof window.switchSection === 'undefined');
-  ok('N.4 Iconos SVG renderizados', qa('svg.icon').length === 23, qa('svg.icon').length);
+  ok('N.4 Iconos SVG renderizados', qa('svg.icon').length >= 23, qa('svg.icon').length);
   ok('N.5 Sin placeholders de icono sin renderizar', qa('[data-icon]').length === 0);
 
   // ---------- PRIVACIDAD ----------

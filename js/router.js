@@ -21,6 +21,7 @@
 
 const RUTAS = {
   inicio: { vista: "inicio" },
+  salud: { vista: "salud" },
   citas: { vista: "citas" },
   documentos: { vista: "documentos" },
   perfil: { vista: "perfil" }
@@ -30,6 +31,7 @@ const RUTA_INICIAL = "inicio";
 
 const TITULOS = {
   inicio: "MediQR - Inicio",
+  salud: "MediQR - Expediente clínico",
   "citas/calendario": "MediQR - Calendario de citas",
   "citas/proximas": "MediQR - Próximas citas",
   "citas/historial": "MediQR - Historial de citas",

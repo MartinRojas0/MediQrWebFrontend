@@ -57,6 +57,38 @@
       { id: 9, nombre: "Comprobante_seguro.pdf", tipo: "Otro", subtipo: "Seguro médico", citaId: null, desp: -30 }
     ],
 
+    /* ------------------------------------------------------
+       EXPEDIENTE CLINICO
+       Fuente de verdad: FragmentoSalud.java y models/
+       HistorialMedico.kt de la app movil. Alli las alergias,
+       condiciones, medicamentos, vacunas y cirugias son
+       estructuras, no texto suelto como estaban aqui.
+    ------------------------------------------------------ */
+    salud: {
+      tipoSangre: "O+",
+
+      alergias: [
+        { nombre: "Penicilina", severidad: "grave" },
+        { nombre: "Aspirina", severidad: "leve" }
+      ],
+
+      condicionesCronicas: [
+        { nombre: "Hipertensión leve", diagnostico: "TA 140/90 en consulta", fechaDiagnostico: "2024-03-12" }
+      ],
+
+      medicamentosActuales: [
+        { nombre: "Paracetamol", dosis: "500 mg", frecuencia: "Cada 8 horas", fechaInicio: "2026-08-10", fechaFin: null }
+      ],
+
+      vacunas: [
+        { nombre: "Influenza", fechaAplicacion: "2025-04-20", dosis: 1 }
+      ],
+
+      cirugias: [
+        { nombre: "Extracción dental", fecha: "2025-11-05", hospital: "Clínica MediSalud" }
+      ]
+    },
+
     vistasDoc: {
       Todos: { tipo: null, titulo: "Mis documentos", subtitulo: "Tus recetas, exámenes e informes en un solo lugar." },
       Recetas: { tipo: "Receta", titulo: "Recetas médicas", subtitulo: "Recetas indicadas por tus médicos." },
