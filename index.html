@@ -14,33 +14,33 @@
     <div class="nav-container">
       <div class="logo"><strong>MediQR</strong></div>
       <nav class="nav-links">
-        <a id="nav-inicio" class="active" onclick="switchSection('inicio')">Inicio</a>
+        <a id="nav-inicio" class="active"  data-action="nav:ir" data-ruta="inicio">Inicio</a>
         <div class="nav-dropdown">
           <a id="nav-citas" class="nav-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false"
-             onclick="MediModules.toggleMenu(event, this)">Citas ▾</a>
+              data-action="nav:toggle">Citas ▾</a>
           <div class="nav-submenu">
             <div class="nav-submenu-list">
-              <button type="button" data-menu="citas" data-vista="calendario" onclick="MediModules.irCitas('calendario')">Calendario</button>
-              <button type="button" data-menu="citas" data-vista="proximas" onclick="MediModules.irCitas('proximas')">Próximas citas</button>
-              <button type="button" data-menu="citas" data-vista="historial" onclick="MediModules.irCitas('historial')">Historial de citas</button>
-              <button type="button" data-menu="citas" data-vista="agendar" onclick="MediModules.irCitas('agendar')">Agendar cita</button>
+              <button type="button" data-menu="citas" data-vista="calendario"  data-action="citas:ir" data-vista="calendario">Calendario</button>
+              <button type="button" data-menu="citas" data-vista="proximas"  data-action="citas:ir" data-vista="proximas">Próximas citas</button>
+              <button type="button" data-menu="citas" data-vista="historial"  data-action="citas:ir" data-vista="historial">Historial de citas</button>
+              <button type="button" data-menu="citas" data-vista="agendar"  data-action="citas:ir" data-vista="agendar">Agendar cita</button>
             </div>
           </div>
         </div>
         <div class="nav-dropdown">
           <a id="nav-documentos" class="nav-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false"
-             onclick="MediModules.toggleMenu(event, this)">Documentos ▾</a>
+              data-action="nav:toggle">Documentos ▾</a>
           <div class="nav-submenu">
             <div class="nav-submenu-list">
-              <button type="button" data-menu="documentos" data-vista="Todos" onclick="MediModules.irDocumentos('Todos')">Todos</button>
-              <button type="button" data-menu="documentos" data-vista="Recetas" onclick="MediModules.irDocumentos('Recetas')">Recetas</button>
-              <button type="button" data-menu="documentos" data-vista="Exámenes" onclick="MediModules.irDocumentos('Exámenes')">Exámenes</button>
-              <button type="button" data-menu="documentos" data-vista="Informes" onclick="MediModules.irDocumentos('Informes')">Informes</button>
-              <button type="button" data-menu="documentos" data-vista="Otros" onclick="MediModules.irDocumentos('Otros')">Otros</button>
+              <button type="button" data-menu="documentos" data-vista="Todos"  data-action="documentos:ir" data-vista="Todos">Todos</button>
+              <button type="button" data-menu="documentos" data-vista="Recetas"  data-action="documentos:ir" data-vista="Recetas">Recetas</button>
+              <button type="button" data-menu="documentos" data-vista="Exámenes"  data-action="documentos:ir" data-vista="Exámenes">Exámenes</button>
+              <button type="button" data-menu="documentos" data-vista="Informes"  data-action="documentos:ir" data-vista="Informes">Informes</button>
+              <button type="button" data-menu="documentos" data-vista="Otros"  data-action="documentos:ir" data-vista="Otros">Otros</button>
             </div>
           </div>
         </div>
-        <a id="nav-perfil" onclick="switchSection('perfil')">Perfil</a>
+        <a id="nav-perfil"  data-action="nav:ir" data-ruta="perfil">Perfil</a>
       </nav>
     </div>
   </header>
@@ -75,7 +75,7 @@
 
     <button
       class="btn btn-primary"
-      onclick="MediModules.documentForm()"
+       data-action="documentos:form"
     >
       + Subir documento
     </button>
@@ -93,7 +93,7 @@
         id="doc-search"
         type="search"
         placeholder="Nombre, médico o especialidad"
-        oninput="MediModules.documents()"
+         data-action="documentos:filtrar"
       >
     </label>
 
@@ -101,7 +101,7 @@
       Tipo
       <select
         id="doc-type"
-        onchange="MediModules.documents()"
+         data-action="documentos:filtrar"
       >
         <option>Todos</option>
         <option>Receta</option>
@@ -116,7 +116,7 @@
       <input
         id="doc-from"
         type="date"
-        onchange="MediModules.documents()"
+         data-action="documentos:filtrar"
       >
     </label>
 
@@ -125,7 +125,7 @@
       <input
         id="doc-to"
         type="date"
-        onchange="MediModules.documents()"
+         data-action="documentos:filtrar"
       >
     </label>
   </div>
@@ -161,7 +161,7 @@
             <button
               class="btn btn-outline"
               aria-label="Cerrar ventana"
-              onclick="MediModules.close()"
+               data-action="modal:cerrar"
             >
               ✕
             </button>
@@ -178,6 +178,7 @@
         ></div>
 
      <script src="js/icons.js"></script>
+<script src="js/core/acciones.js"></script>
 <script src="js/router.js"></script>
 <script src="js/modules/inicio.js"></script>
 <script src="js/modules/perfil.js"></script>

@@ -155,9 +155,9 @@ window.MediPartes.documentos = {
         ${this.filas(this.filasDocumento(doc))}
 
         <div class="module-actions">
-          <button type="button" class="btn btn-outline" onclick="MediModules.verDocumento(${doc.id})">Ver</button>
-          <button type="button" class="btn btn-secondary" onclick="MediModules.descargarDocumento(${doc.id})">Descargar</button>
-          <button type="button" class="btn btn-danger" onclick="MediModules.pedirEliminar(${doc.id})">Eliminar</button>
+          <button type="button" class="btn btn-outline"  data-action="documentos:ver" data-id="${doc.id}">Ver</button>
+          <button type="button" class="btn btn-secondary"  data-action="documentos:descargar" data-id="${doc.id}">Descargar</button>
+          <button type="button" class="btn btn-danger"  data-action="documentos:pedir-eliminar" data-id="${doc.id}">Eliminar</button>
         </div>
       </article>
     `;
@@ -203,8 +203,8 @@ window.MediPartes.documentos = {
 
       <div class="module-actions">
         ${doc.url ? `<a class="btn btn-primary" href="${doc.url}" target="_blank" rel="noopener">Abrir archivo</a>` : ""}
-        <button type="button" class="btn btn-secondary" onclick="MediModules.descargarDocumento(${doc.id})">Descargar</button>
-        <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cerrar</button>
+        <button type="button" class="btn btn-secondary"  data-action="documentos:descargar" data-id="${doc.id}">Descargar</button>
+        <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cerrar</button>
       </div>
     `);
   },
@@ -242,8 +242,8 @@ window.MediPartes.documentos = {
       ])}
 
       <div class="module-actions">
-        <button type="button" class="btn btn-outline" onclick="MediModules.close()">Volver</button>
-        <button type="button" class="btn btn-danger" onclick="MediModules.eliminarDocumento(${id})">Eliminar</button>
+        <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Volver</button>
+        <button type="button" class="btn btn-danger"  data-action="documentos:eliminar" data-id="${id}">Eliminar</button>
       </div>
     `, true);
   },
@@ -312,7 +312,7 @@ window.MediPartes.documentos = {
 
         <div class="module-actions wide">
           <button type="submit" class="btn btn-primary">Subir archivo</button>
-          <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cancelar</button>
+          <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cancelar</button>
         </div>
       </form>
     `);
@@ -381,8 +381,8 @@ window.MediPartes.documentos = {
         ])}
 
         <div class="module-actions">
-          <button type="button" class="btn btn-primary" onclick="MediModules.irDocumentos('Todos')">Ir a Todos los documentos</button>
-          <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cerrar</button>
+          <button type="button" class="btn btn-primary"  data-action="documentos:ir" data-vista="Todos">Ir a Todos los documentos</button>
+          <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cerrar</button>
         </div>
       `, true);
 

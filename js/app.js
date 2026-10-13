@@ -10,18 +10,9 @@
   "use strict";
 
   // DOC_SLUG y DOC_VISTA se definen en js/components/navbar.js, que es
-  // donde se usan. Se exponen en window para compartirlos con el router.
+  // donde se usan.
 
-  // Fachada de compatibilidad: el marcado usa onclick inline. Migrarlos a
-  // eventos delegados es trabajo de una etapa posterior.
-  function switchSection(section) {
-    if (typeof Router === "undefined") return;
-
-    const sub = { citas: "calendario", documentos: "todos" }[section];
-
-    Router.ir(sub ? section + "/" + sub : section);
-  }
-
+  // Marcas de arranque.
   function routerAlEntrar(base, sub) {
     if (typeof MediModules === "undefined") return;
 
@@ -66,8 +57,10 @@
     // 2. Menus del navbar.
     registrarMenus();
 
-    // 3. Fachada global y router.
-    window.switchSection = switchSection;
+    // 3. Listeners delegados: un unico punto para click, submit, input y change.
+    MediAcciones.conectar(document);
+
+    // 4. Router.
     Router.iniciar(routerAlEntrar);
   }
 

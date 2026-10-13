@@ -82,7 +82,7 @@ window.MediPartes.citas = {
           class="calendar-day ${seleccionado ? "selected" : ""} ${fecha === hoy ? "today" : ""}"
           aria-pressed="${seleccionado}"
           aria-label="${this.fechaTexto(fecha)}, ${citasDia.length} cita(s)"
-          onclick="MediModules.selectDay('${fecha}')"
+           data-action="citas:seleccionar-dia" data-fecha="${fecha}"
         >
           <span class="calendar-num">${dia}</span>
           ${evento}
@@ -119,7 +119,7 @@ window.MediPartes.citas = {
               <button
                 type="button"
                 class="btn btn-outline"
-                onclick="MediModules.detail(${cita.id})"
+                 data-action="citas:detalle" data-id="${cita.id}"
               >
                 Ver detalle
               </button>
@@ -134,15 +134,15 @@ window.MediPartes.citas = {
 
         <div class="calendar-controls">
           <button type="button" class="btn btn-outline" aria-label="Mes anterior"
-            onclick="MediModules.moveMonth(-1)">‹</button>
+             data-action="citas:mes" data-paso="-1">‹</button>
 
           <strong class="calendar-title">${tituloMes}</strong>
 
           <button type="button" class="btn btn-outline" aria-label="Mes siguiente"
-            onclick="MediModules.moveMonth(1)">›</button>
+             data-action="citas:mes" data-paso="1">›</button>
 
           <button type="button" class="btn btn-secondary"
-            onclick="MediModules.irHoy()">Hoy</button>
+             data-action="citas:hoy">Hoy</button>
         </div>
       </div>
 
@@ -230,12 +230,12 @@ window.MediPartes.citas = {
 
     const acciones = conAcciones
       ? `
-        <button type="button" class="btn btn-outline" onclick="MediModules.detail(${cita.id})">Ver detalle</button>
-        <button type="button" class="btn btn-secondary" onclick="MediModules.pedirReprogramar(${cita.id})">Reprogramar</button>
-        <button type="button" class="btn btn-danger" onclick="MediModules.pedirCancelar(${cita.id})">Cancelar</button>
+        <button type="button" class="btn btn-outline"  data-action="citas:detalle" data-id="${cita.id}">Ver detalle</button>
+        <button type="button" class="btn btn-secondary"  data-action="citas:pedir-reprogramar" data-id="${cita.id}">Reprogramar</button>
+        <button type="button" class="btn btn-danger"  data-action="citas:pedir-cancelar" data-id="${cita.id}">Cancelar</button>
       `
       : `
-        <button type="button" class="btn btn-outline" onclick="MediModules.detail(${cita.id})">Ver detalle</button>
+        <button type="button" class="btn btn-outline"  data-action="citas:detalle" data-id="${cita.id}">Ver detalle</button>
       `;
 
     return `
@@ -261,13 +261,13 @@ window.MediPartes.citas = {
 
     if (cita.estado === "Próxima") {
       botones = `
-        <button type="button" class="btn btn-primary" onclick="MediModules.pedirReprogramar(${cita.id})">Reprogramar</button>
-        <button type="button" class="btn btn-secondary" onclick="MediModules.pedirFinalizar(${cita.id})">Marcar como atendida</button>
-        <button type="button" class="btn btn-danger" onclick="MediModules.pedirCancelar(${cita.id})">Cancelar</button>
+        <button type="button" class="btn btn-primary"  data-action="citas:pedir-reprogramar" data-id="${cita.id}">Reprogramar</button>
+        <button type="button" class="btn btn-secondary"  data-action="citas:pedir-finalizar" data-id="${cita.id}">Marcar como atendida</button>
+        <button type="button" class="btn btn-danger"  data-action="citas:pedir-cancelar" data-id="${cita.id}">Cancelar</button>
       `;
     } else if (cita.estado === "Atendida") {
       botones = `
-        <button type="button" class="btn btn-primary" onclick="MediModules.documentForm(${cita.id})">Subir documento</button>
+        <button type="button" class="btn btn-primary"  data-action="documentos:form" data-id="${cita.id}">Subir documento</button>
       `;
     }
 
@@ -302,7 +302,7 @@ window.MediPartes.citas = {
 
       <div class="module-actions">
         ${botones}
-        <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cerrar</button>
+        <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cerrar</button>
       </div>
     `);
   },
@@ -325,8 +325,8 @@ window.MediPartes.citas = {
       ${this.resumenCompacto(cita)}
 
       <div class="module-actions">
-        <button type="button" class="btn btn-outline" onclick="MediModules.close()">Volver</button>
-        <button type="button" class="btn btn-danger" onclick="MediModules.cancelar(${id})">Cancelar cita</button>
+        <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Volver</button>
+        <button type="button" class="btn btn-danger"  data-action="citas:cancelar" data-id="${id}">Cancelar cita</button>
       </div>
     `, true);
   },
@@ -354,8 +354,8 @@ window.MediPartes.citas = {
       ])}
 
       <div class="module-actions">
-        <button type="button" class="btn btn-primary" onclick="MediModules.irCitas('historial')">Ver historial</button>
-        <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cerrar</button>
+        <button type="button" class="btn btn-primary"  data-action="citas:ir" data-vista="historial">Ver historial</button>
+        <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cerrar</button>
       </div>
     `, true);
   },
@@ -369,8 +369,8 @@ window.MediPartes.citas = {
       ${this.resumenCompacto(cita)}
 
       <div class="module-actions">
-        <button type="button" class="btn btn-outline" onclick="MediModules.close()">Volver</button>
-        <button type="button" class="btn btn-primary" onclick="MediModules.reprogramarForm(${id})">Continuar</button>
+        <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Volver</button>
+        <button type="button" class="btn btn-primary"  data-action="citas:reprogramar-form" data-id="${id}">Continuar</button>
       </div>
     `, true);
   },
@@ -404,7 +404,7 @@ window.MediPartes.citas = {
 
         <div class="module-actions wide">
           <button type="submit" class="btn btn-primary">Confirmar cambio</button>
-          <button type="button" class="btn btn-outline" onclick="MediModules.close()">Volver</button>
+          <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Volver</button>
         </div>
       </form>
     `);
@@ -461,8 +461,8 @@ window.MediPartes.citas = {
         ])}
 
         <div class="module-actions">
-          <button type="button" class="btn btn-primary" onclick="MediModules.irCitas('proximas')">Ver próximas citas</button>
-          <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cerrar</button>
+          <button type="button" class="btn btn-primary"  data-action="citas:ir" data-vista="proximas">Ver próximas citas</button>
+          <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cerrar</button>
         </div>
       `, true);
     };
@@ -749,8 +749,8 @@ window.MediPartes.citas = {
       ])}
 
       <div class="module-actions">
-        <button type="button" class="btn btn-outline" onclick="MediModules.close()">Volver / Modificar</button>
-        <button type="button" class="btn btn-primary" onclick="MediModules.confirmarCita()">Confirmar cita</button>
+        <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Volver / Modificar</button>
+        <button type="button" class="btn btn-primary"  data-action="citas:confirmar">Confirmar cita</button>
       </div>
     `, true);
   },
@@ -788,8 +788,8 @@ window.MediPartes.citas = {
       ])}
 
       <div class="module-actions">
-        <button type="button" class="btn btn-primary" onclick="MediModules.irCitas('proximas')">Ver próximas citas</button>
-        <button type="button" class="btn btn-outline" onclick="MediModules.close()">Agendar otra</button>
+        <button type="button" class="btn btn-primary"  data-action="citas:ir" data-vista="proximas">Ver próximas citas</button>
+        <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Agendar otra</button>
       </div>
     `, true);
   },
@@ -803,8 +803,8 @@ window.MediPartes.citas = {
       ${this.resumenCompacto(cita)}
 
       <div class="module-actions">
-        <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cancelar</button>
-        <button type="button" class="btn btn-primary" onclick="MediModules.finalizar(${id})">Finalizar</button>
+        <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cancelar</button>
+        <button type="button" class="btn btn-primary"  data-action="citas:finalizar" data-id="${id}">Finalizar</button>
       </div>
     `, true);
   },
@@ -824,8 +824,8 @@ window.MediPartes.citas = {
       </div>
 
       <div class="module-actions">
-        <button type="button" class="btn btn-primary" onclick="MediModules.documentForm(${id})">Subir archivo</button>
-        <button type="button" class="btn btn-outline" onclick="MediModules.omitirDocumento()">Omitir</button>
+        <button type="button" class="btn btn-primary"  data-action="documentos:form" data-id="${id}">Subir archivo</button>
+        <button type="button" class="btn btn-outline"  data-action="citas:omitir-documento">Omitir</button>
       </div>
     `, true);
   },

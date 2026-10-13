@@ -25,10 +25,10 @@
             <p class="text-muted"><small>DNI: 00000000</small></p>
           </div>
           <nav class="sidebar-nav mt-1">
-            <button class="sb-btn active" onclick="switchProfileTab('info-personal', this)"><i data-icon="user"></i> Información Personal</button>
-            <button class="sb-btn" onclick="switchProfileTab('info-medica', this)"><i data-icon="heart-pulse"></i> Información Médica</button>
-            <button class="sb-btn" onclick="switchProfileTab('contactos', this)"><i data-icon="phone"></i> Contactos de Emergencia</button>
-            <button class="sb-btn" onclick="switchProfileTab('configuracion', this)"><i data-icon="gear"></i> Configuración</button>
+            <button class="sb-btn active"  data-action="perfil:pestana" data-tab="info-personal"><i data-icon="user"></i> Información Personal</button>
+            <button class="sb-btn"  data-action="perfil:pestana" data-tab="info-medica"><i data-icon="heart-pulse"></i> Información Médica</button>
+            <button class="sb-btn"  data-action="perfil:pestana" data-tab="contactos"><i data-icon="phone"></i> Contactos de Emergencia</button>
+            <button class="sb-btn"  data-action="perfil:pestana" data-tab="configuracion"><i data-icon="gear"></i> Configuración</button>
           </nav>
         </aside>
 
@@ -39,7 +39,7 @@
           <article id="ptab-info-personal" class="card card-full profile-tab-content">
             <div class="card-header">
               <h3><i data-icon="user"></i> Información Personal</h3>
-              <button class="btn btn-outline-sm" id="btn-edit-personal" onclick="enablePersonalEdit()">Editar</button>
+              <button class="btn btn-outline-sm" id="btn-edit-personal"  data-action="perfil:editar-personal">Editar</button>
             </div>
 
             <!-- Vista Lectura -->
@@ -53,7 +53,7 @@
             </div>
 
             <!-- Formulario Edición (Convertible visualmente) -->
-            <form id="personal-edit-form" class="form-grid hidden" onsubmit="savePersonalEdit(event)">
+            <form id="personal-edit-form" class="form-grid hidden"  data-action="perfil:guardar-personal">
               <label>Nombres: <input type="text" id="inp-name" value="Paciente" required></label>
               <label>Apellidos: <input type="text" id="inp-lastname" value="Demo" required></label>
               <label>DNI: <input type="text" id="inp-dni" value="00000000" required></label>
@@ -62,7 +62,7 @@
               <label>Teléfono: <input type="text" id="inp-phone" value="+51 000 000 000" required></label>
               <div class="form-actions mt-1" style="grid-column: span 2;">
                 <button type="submit" class="btn btn-primary">Guardar</button>
-                <button type="button" class="btn btn-outline" onclick="cancelPersonalEdit()">Cancelar</button>
+                <button type="button" class="btn btn-outline"  data-action="perfil:cancelar-personal">Cancelar</button>
               </div>
             </form>
           </article>
@@ -71,7 +71,7 @@
           <article id="ptab-info-medica" class="card card-full profile-tab-content hidden">
             <div class="card-header">
               <h3><i data-icon="heart-pulse"></i> Información Médica</h3>
-              <button class="btn btn-outline-sm" id="btn-edit-medical" onclick="enableMedicalEdit()">Editar</button>
+              <button class="btn btn-outline-sm" id="btn-edit-medical"  data-action="perfil:editar-medica">Editar</button>
             </div>
 
             <div id="medical-read-view" class="data-grid">
@@ -81,14 +81,14 @@
               <p><strong>Información Relevante:</strong> <span id="val-notes">Chequeo cardiológico anual recomendado.</span></p>
             </div>
 
-            <form id="medical-edit-form" class="form-grid hidden" onsubmit="saveMedicalEdit(event)">
+            <form id="medical-edit-form" class="form-grid hidden"  data-action="perfil:guardar-medica">
               <label>Grupo Sanguíneo: <input type="text" id="inp-blood" value="O+" required></label>
               <label>Alergias: <input type="text" id="inp-allergies" value="Penicilina, Aspirina"></label>
               <label>Condiciones: <input type="text" id="inp-conditions" value="Hipertensión leve"></label>
               <label>Información Relevante: <input type="text" id="inp-notes" value="Chequeo cardiológico anual recomendado."></label>
               <div class="form-actions mt-1" style="grid-column: span 2;">
                 <button type="submit" class="btn btn-primary">Guardar</button>
-                <button type="button" class="btn btn-outline" onclick="cancelMedicalEdit()">Cancelar</button>
+                <button type="button" class="btn btn-outline"  data-action="perfil:cancelar-medica">Cancelar</button>
               </div>
             </form>
           </article>
@@ -97,7 +97,7 @@
           <article id="ptab-contactos" class="card card-full profile-tab-content hidden">
             <div class="card-header">
               <h3><i data-icon="phone"></i> Contactos de Emergencia</h3>
-              <button class="btn btn-primary-sm" onclick="PerfilModales.agregarContacto()">+ Agregar contacto</button>
+              <button class="btn btn-primary-sm"  data-action="perfil:agregar-contacto">+ Agregar contacto</button>
             </div>
 
             <div class="contacts-grid mt-1">
@@ -106,8 +106,8 @@
                 <p><strong>Parentesco:</strong> Hermana</p>
                 <p><strong>Teléfono:</strong> +51 000 000 001</p>
                 <div class="contact-actions mt-1">
-                  <button class="btn btn-outline-sm" onclick="PerfilModales.agregarContacto()">Editar</button>
-                  <button class="btn btn-danger-sm" onclick="PerfilModales.eliminarContacto()">Eliminar</button>
+                  <button class="btn btn-outline-sm"  data-action="perfil:agregar-contacto">Editar</button>
+                  <button class="btn btn-danger-sm"  data-action="perfil:eliminar-contacto">Eliminar</button>
                 </div>
               </div>
             </div>
@@ -136,8 +136,8 @@
 
             <h3 class="mt-2"><i data-icon="shield-halved"></i> Seguridad</h3>
             <div class="security-actions mt-1">
-              <button class="btn btn-outline" onclick="PerfilModales.cambiarPassword()"><i data-icon="key"></i> Cambiar contraseña</button>
-              <button class="btn btn-danger" onclick="PerfilModales.cerrarSesion()"><i data-icon="right-from-bracket"></i> Cerrar sesión</button>
+              <button class="btn btn-outline"  data-action="perfil:cambiar-password"><i data-icon="key"></i> Cambiar contraseña</button>
+              <button class="btn btn-danger"  data-action="perfil:cerrar-sesion"><i data-icon="right-from-bracket"></i> Cerrar sesión</button>
             </div>
           </article>
 
@@ -222,29 +222,24 @@
     },
     agregarContacto() {
       MediModules.modal('Contacto de Emergencia', `
-        <form id="contacto-form" class="module-form" novalidate>
+        <form id="contacto-form" class="module-form" novalidate data-action="perfil:guardar-contacto">
           <label class="wide">Nombre: <input name="nombre" type="text" placeholder="Ej. Juan Pérez" required></label>
           <label class="wide">Parentesco: <input name="parentesco" type="text" placeholder="Ej. Padre" required></label>
           <label class="wide">Teléfono: <input name="telefono" type="tel" placeholder="+51 900 000 000" required></label>
           <p id="contacto-error" class="error-msg wide" role="alert"></p>
           <div class="module-actions wide">
             <button type="submit" class="btn btn-primary">Guardar</button>
-            <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cancelar</button>
+            <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cancelar</button>
           </div>
         </form>
       `);
-      document.getElementById('contacto-form').onsubmit = (evento) => {
-        evento.preventDefault();
-        MediModules.close();
-        MediModules.aviso('Contacto guardado visualmente.');
-      };
-    },
+        },
     eliminarContacto() {
       MediModules.modal('¿Deseas eliminar este contacto?', `
         <p class="text-muted"><small>Esta acción es una simulación visual.</small></p>
         <div class="module-actions">
-          <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cancelar</button>
-          <button type="button" class="btn btn-danger" onclick="PerfilModales.confirmarEliminar()">Eliminar</button>
+          <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cancelar</button>
+          <button type="button" class="btn btn-danger"  data-action="perfil:confirmar-eliminar">Eliminar</button>
         </div>
       `, true);
     },
@@ -254,14 +249,14 @@
     },
     cambiarPassword() {
       MediModules.modal('Cambiar contraseña', `
-        <form id="password-form" class="module-form" novalidate onsubmit="handlePasswordChange(event)">
+        <form id="password-form" class="module-form" novalidate  data-action="perfil:password">
           <label class="wide">Contraseña actual: <input type="password" id="pass-curr" autocomplete="current-password"></label>
           <label class="wide">Nueva contraseña: <input type="password" id="pass-new" autocomplete="new-password"></label>
           <label class="wide">Confirmar nueva contraseña: <input type="password" id="pass-conf" autocomplete="new-password"></label>
           <p id="pass-error" class="error-msg wide" role="alert"></p>
           <div class="module-actions wide">
             <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
-            <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cancelar</button>
+            <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cancelar</button>
           </div>
         </form>
       `);
@@ -270,8 +265,8 @@
       MediModules.modal('¿Deseas cerrar sesión?', `
         <p class="text-muted"><small>Saldrás de la demostración visual del portal.</small></p>
         <div class="module-actions">
-          <button type="button" class="btn btn-outline" onclick="MediModules.close()">Cancelar</button>
-          <button type="button" class="btn btn-danger" onclick="PerfilModales.confirmarCierre()">Cerrar sesión</button>
+          <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cancelar</button>
+          <button type="button" class="btn btn-danger"  data-action="perfil:confirmar-cierre">Cerrar sesión</button>
         </div>
       `, true);
     },
@@ -309,20 +304,31 @@
 
   function iniciar() {
     render();
-
-    // Fachada de compatibilidad: los onclick inline del marcado y las
-    // pruebas siguen invocando estos nombres. Migrarlos a eventos
-    // delegados es trabajo de una etapa posterior.
-    window.switchProfileTab = switchProfileTab;
-    window.enablePersonalEdit = enablePersonalEdit;
-    window.cancelPersonalEdit = cancelPersonalEdit;
-    window.savePersonalEdit = savePersonalEdit;
-    window.enableMedicalEdit = enableMedicalEdit;
-    window.cancelMedicalEdit = cancelMedicalEdit;
-    window.saveMedicalEdit = saveMedicalEdit;
-    window.handlePasswordChange = handlePasswordChange;
-    window.PerfilModales = PerfilModales;
   }
+
+  // Las funciones quedan privadas al modulo: el markup las invoca por
+  // data-action y MediAcciones las conecta. No hay manejadores globales.
+  MediAcciones.definirVarias({
+    "perfil:pestana": function (el) { switchProfileTab(el.dataset.tab, el); },
+    "perfil:editar-personal": function () { enablePersonalEdit(); },
+    "perfil:cancelar-personal": function () { cancelPersonalEdit(); },
+    "perfil:guardar-personal": function (el, evento) { savePersonalEdit(evento); },
+    "perfil:editar-medica": function () { enableMedicalEdit(); },
+    "perfil:cancelar-medica": function () { cancelMedicalEdit(); },
+    "perfil:guardar-medica": function (el, evento) { saveMedicalEdit(evento); },
+    "perfil:password": function (el, evento) { handlePasswordChange(evento); },
+    "perfil:guardar-contacto": function () {
+      MediModules.close();
+      MediModules.aviso('Contacto guardado visualmente.');
+    },
+    "perfil:ver-qr": function () { PerfilModales.verQr(); },
+    "perfil:agregar-contacto": function () { PerfilModales.agregarContacto(); },
+    "perfil:eliminar-contacto": function () { PerfilModales.eliminarContacto(); },
+    "perfil:confirmar-eliminar": function () { PerfilModales.confirmarEliminar(); },
+    "perfil:cambiar-password": function () { PerfilModales.cambiarPassword(); },
+    "perfil:cerrar-sesion": function () { PerfilModales.cerrarSesion(); },
+    "perfil:confirmar-cierre": function () { PerfilModales.confirmarCierre(); }
+  });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", iniciar);

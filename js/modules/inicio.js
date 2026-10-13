@@ -40,8 +40,8 @@
             </div>
           </div>
           <div class="card-actions mt-1">
-            <button class="btn btn-outline" onclick="PerfilModales.verQr()">Ver QR</button>
-            <button class="btn btn-primary" onclick="alert('Descargando QR visual...')">Descargar QR</button>
+            <button class="btn btn-outline"  data-action="perfil:ver-qr">Ver QR</button>
+            <button class="btn btn-primary"  data-action="demo:aviso" data-mensaje="Descargando QR visual...">Descargar QR</button>
           </div>
         </article>
 
@@ -56,7 +56,7 @@
           <p><strong>Fecha:</strong> 25 de septiembre</p>
           <p><strong>Hora:</strong> 10:30 AM</p>
           <p><strong>Lugar:</strong> Clínica MediSalud</p>
-          <button class="btn btn-secondary full-width mt-1" onclick="switchSection('citas')">Ver cita</button>
+          <button class="btn btn-secondary full-width mt-1"  data-action="nav:ir" data-ruta="citas">Ver cita</button>
         </article>
 
         <!-- 4. ÚLTIMA CONSULTA -->
@@ -67,7 +67,7 @@
           <p><strong>Fecha:</strong> 10 de agosto</p>
           <p><strong>Diagnóstico:</strong> Rinitis Alérgica</p>
           <p class="text-muted"><small>Se receta antihistamínico. Control en caso de persistencia.</small></p>
-          <button class="btn btn-secondary full-width mt-1" onclick="alert('Dirigiendo visualmente a Detalle de Consulta...')">Ver consulta</button>
+          <button class="btn btn-secondary full-width mt-1"  data-action="demo:aviso" data-mensaje="Dirigiendo visualmente a Detalle de Consulta...">Ver consulta</button>
         </article>
 
         <!-- 5. MEDICAMENTOS -->
@@ -81,28 +81,28 @@
             <strong>18:00</strong>
           </div>
           <p class="mt-1"><small>Recordatorio: <strong>Activado</strong></small></p>
-          <button class="btn btn-secondary full-width mt-1" onclick="alert('Dirigiendo visualmente a Medicamentos...')">Ver medicamentos</button>
+          <button class="btn btn-secondary full-width mt-1"  data-action="demo:aviso" data-mensaje="Dirigiendo visualmente a Medicamentos...">Ver medicamentos</button>
         </article>
 
         <!-- 6. ACCESOS RÁPIDOS -->
         <article class="card card-full">
           <h3><i data-icon="bolt"></i> Accesos Rápidos</h3>
           <div class="quick-access-grid mt-1">
-            <button class="qa-btn" onclick="alert('Dirigiendo a Historial clínico')">
+            <button class="qa-btn"  data-action="demo:aviso" data-mensaje="Dirigiendo a Historial clínico">
               <span class="qa-icon"><i data-icon="file-medical"></i></span>
               <span>Historial clínico</span>
             </button>
-            <button class="qa-btn" onclick="alert('Dirigiendo a Medicamentos')">
+            <button class="qa-btn"  data-action="demo:aviso" data-mensaje="Dirigiendo a Medicamentos">
               <span class="qa-icon"><i data-icon="capsules"></i></span>
               <span>Medicamentos</span>
             </button>
-           <button class="qa-btn" onclick="switchSection('citas')">
+           <button class="qa-btn"  data-action="nav:ir" data-ruta="citas">
             <span class="qa-icon">
               <i data-icon="calendar-days"></i>
             </span>
             <span>Citas</span>
           </button>
-            <button class="qa-btn" onclick="switchSection('documentos')">
+            <button class="qa-btn"  data-action="nav:ir" data-ruta="documentos">
               <span class="qa-icon"><i data-icon="folder-open"></i></span>
               <span>Documentos</span>
             </button>
