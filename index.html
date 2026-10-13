@@ -4,48 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MediQR - Portal del Paciente</title>
+<link rel="stylesheet" href="css/design-system.css">
+<link rel="stylesheet" href="css/app-shell.css">
 <link rel="stylesheet" href="css/main.css">
 <link rel="stylesheet" href="css/citasDocumentos.css">
 </head>
 <body>
 
   <!-- NAVBAR PRINCIPAL -->
-  <header class="navbar">
-    <div class="nav-container">
-      <div class="logo"><strong>MediQR</strong></div>
-      <nav class="nav-links">
-        <a id="nav-inicio" class="active"  data-action="nav:ir" data-ruta="inicio">Inicio</a>
-        <a id="nav-salud" data-action="nav:ir" data-ruta="salud">Salud</a>
-        <div class="nav-dropdown">
-          <a id="nav-citas" class="nav-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false"
-              data-action="nav:toggle">Citas ▾</a>
-          <div class="nav-submenu">
-            <div class="nav-submenu-list">
-              <button type="button" data-menu="citas" data-vista="calendario"  data-action="citas:ir" data-vista="calendario">Calendario</button>
-              <button type="button" data-menu="citas" data-vista="proximas"  data-action="citas:ir" data-vista="proximas">Próximas citas</button>
-              <button type="button" data-menu="citas" data-vista="historial"  data-action="citas:ir" data-vista="historial">Historial de citas</button>
-              <button type="button" data-menu="citas" data-vista="agendar"  data-action="citas:ir" data-vista="agendar">Agendar cita</button>
-            </div>
-          </div>
-        </div>
-        <div class="nav-dropdown">
-          <a id="nav-documentos" class="nav-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false"
-              data-action="nav:toggle">Documentos ▾</a>
-          <div class="nav-submenu">
-            <div class="nav-submenu-list">
-              <button type="button" data-menu="documentos" data-vista="Todos"  data-action="documentos:ir" data-vista="Todos">Todos</button>
-              <button type="button" data-menu="documentos" data-vista="Recetas"  data-action="documentos:ir" data-vista="Recetas">Recetas</button>
-              <button type="button" data-menu="documentos" data-vista="Exámenes"  data-action="documentos:ir" data-vista="Exámenes">Exámenes</button>
-              <button type="button" data-menu="documentos" data-vista="Informes"  data-action="documentos:ir" data-vista="Informes">Informes</button>
-              <button type="button" data-menu="documentos" data-vista="Otros"  data-action="documentos:ir" data-vista="Otros">Otros</button>
-            </div>
-          </div>
-        </div>
-        <a id="nav-perfil"  data-action="nav:ir" data-ruta="perfil">Perfil</a>
-      </nav>
-    </div>
+<!-- Barra superior: marca. En movil cede el sitio a la barra inferior. -->
+  <header class="app-bar">
+    <a class="app-brand" data-action="nav:ir" data-ruta="inicio">
+      <span class="app-brand-mark" aria-hidden="true"></span>
+      <span class="app-brand-name">MediQR</span>
+    </a>
+    <div class="app-bar-crumb" aria-live="polite" id="app-crumb"></div>
   </header>
 
+  <!-- Navegacion principal.
+       Se comporta como barra inferior en celular, como riel lateral en
+       tablet y como menu lateral completo en escritorio. Las cuatro
+       secciones siguen la app movil; Documentos se conserva como seccion
+       propia porque la web tambien lo ofrece. -->
+  <nav class="app-nav" aria-label="Navegación principal">
+    <a id="nav-inicio" class="nav-item" data-action="nav:ir" data-ruta="inicio">
+      <span class="nav-item-icon"><i data-icon="home"></i></span>
+      <span class="nav-item-label">Inicio</span>
+    </a>
+    <a id="nav-salud" class="nav-item" data-action="nav:ir" data-ruta="salud">
+      <span class="nav-item-icon"><i data-icon="heart-pulse"></i></span>
+      <span class="nav-item-label">Salud</span>
+    </a>
+    <a id="nav-citas" class="nav-item" data-action="nav:ir" data-ruta="citas">
+      <span class="nav-item-icon"><i data-icon="calendar-days"></i></span>
+      <span class="nav-item-label">Citas</span>
+    </a>
+    <a id="nav-documentos" class="nav-item" data-action="nav:ir" data-ruta="documentos">
+      <span class="nav-item-icon"><i data-icon="folder-open"></i></span>
+      <span class="nav-item-label">Documentos</span>
+    </a>
+    <a id="nav-perfil" class="nav-item" data-action="nav:ir" data-ruta="perfil">
+      <span class="nav-item-icon"><i data-icon="user"></i></span>
+      <span class="nav-item-label">Perfil</span>
+    </a>
+  </nav>
+
+  <main class="app-main">
   <div class="container">
 
     <!-- ========================================== -->
@@ -58,14 +62,21 @@
 <section id="view-salud" class="view-section hidden">
     </section>
 
-    <section id="view-citas" class="view-section hidden">
-  <p class="demo-note">
-    Vista de demostración · Los cambios se mantienen
-    mientras esta página esté abierta.
-  </p>
+<section id="view-citas" class="view-section hidden">
+      <div class="segmented" role="tablist" aria-label="Vistas de citas">
+        <button type="button" role="tab" class="segmented-item" data-menu="citas" data-vista="calendario" data-action="citas:ir">Calendario</button>
+        <button type="button" role="tab" class="segmented-item" data-menu="citas" data-vista="proximas" data-action="citas:ir">Próximas</button>
+        <button type="button" role="tab" class="segmented-item" data-menu="citas" data-vista="historial" data-action="citas:ir">Historial</button>
+        <button type="button" role="tab" class="segmented-item" data-menu="citas" data-vista="agendar" data-action="citas:ir">Agendar</button>
+      </div>
 
-  <div id="citas-content"></div>
-</section>
+      <p class="demo-note">
+        Vista de demostración · Los cambios se mantienen
+        mientras esta página esté abierta.
+      </p>
+
+      <div id="citas-content"></div>
+    </section>
 
 <!-- SECCIÓN: DOCUMENTOS (Todos, Recetas, Exámenes, Informes y Otros) -->
 <section id="view-documentos" class="view-section hidden">
@@ -85,10 +96,18 @@
     </button>
   </div>
 
-  <p class="demo-note">
-    Vista de demostración · Los archivos seleccionados
-    no se envían a un servidor.
-  </p>
+<p class="demo-note">
+        Vista de demostración · Los archivos seleccionados
+        no se envían a un servidor.
+      </p>
+
+      <div class="segmented" role="tablist" aria-label="Tipos de documento">
+        <button type="button" role="tab" class="segmented-item" data-menu="documentos" data-vista="Todos" data-action="documentos:ir">Todos</button>
+        <button type="button" role="tab" class="segmented-item" data-menu="documentos" data-vista="Recetas" data-action="documentos:ir">Recetas</button>
+        <button type="button" role="tab" class="segmented-item" data-menu="documentos" data-vista="Exámenes" data-action="documentos:ir">Exámenes</button>
+        <button type="button" role="tab" class="segmented-item" data-menu="documentos" data-vista="Informes" data-action="documentos:ir">Informes</button>
+        <button type="button" role="tab" class="segmented-item" data-menu="documentos" data-vista="Otros" data-action="documentos:ir">Otros</button>
+      </div>
 
   <div class="document-filters">
     <label>
@@ -198,5 +217,6 @@
 <script src="js/modules/documentos.js"></script>
 <script src="js/data/store.js"></script>
 <script src="js/app.js"></script>
+  </main>
 </body>
 </html>

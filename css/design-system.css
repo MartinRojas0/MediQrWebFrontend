@@ -1,0 +1,351 @@
+/* ==========================================================
+   MediQR · Sistema visual
+
+   Base unica del portal. Cualquier valor de color, radio, sombra,
+   espaciado o tipografia se declara aqui; el resto de hojas lo
+   consumen con var(). No se admiten literales sueltos.
+
+   Inspiracion: las superficies suaves y estratificadas de Samsung One UI
+   conviven con la identidad clinica de la app movil (azul medico,
+   acentos de severidad y degradado metalico para las zonas de riesgo).
+   ========================================================== */
+
+:root {
+  /* ---------- Marca y estado ---------- */
+  --primary: #2563eb;
+  --primary-dark: #1e40af;
+  --primary-light: #dbeafe;
+  --primary-soft: #eff6ff;
+  --accent: #10b981;
+  --danger: #ef4444;
+  --danger-dark: #dc2626;
+  --danger-soft: #fee2e2;
+  --danger-text: #991b1b;
+  --warning: #f59e0b;
+  --warning-soft: #fef3c7;
+  --warning-text: #92400e;
+  --info: #0ea5e9;
+  --success: #16a34a;
+  --success-soft: #dcfce7;
+  --success-text: #166534;
+
+  /* ---------- Superficies ----------
+     Tres niveles, como las capas de One UI: fondo, tarjeta y elevado. */
+  --bg-app: #f5f7fa;
+  --bg-surface: #ffffff;
+  --bg-raised: #fbfcfe;
+  --bg-sunken: #eef2f7;
+  --bg-inverse: #0f172a;
+  --border-subtle: #eef2f7;
+  --border-default: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  /* ---------- Texto ---------- */
+  --text-strong: #0f172a;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* ---------- Degradado premium (bg_premium_gradient) ---------- */
+  --metallic-start: #0f172a;
+  --metallic-mid: #1e293b;
+  --metallic-end: #334155;
+  --white: #ffffff;
+  --glass-fill: rgba(255, 255, 255, 0.1);
+  --glass-stroke: rgba(255, 255, 255, 0.2);
+  --btn-gradient-from: #3b82f6;
+  --btn-gradient-to: #2563eb;
+
+  /* ---------- Radios ----------
+     Generosos y consistentes; una sola escala, sin valores sueltos. */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-pill: 999px;
+
+  /* ---------- Elevacion ----------
+     Tres niveles. El uso alto queda reservado a superficies flotantes. */
+  --elevation-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --elevation-2: 0 2px 6px rgba(15, 23, 42, 0.07), 0 4px 12px rgba(15, 23, 42, 0.05);
+  --elevation-3: 0 8px 24px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06);
+  --elevation-accent: 0 6px 18px rgba(37, 99, 235, 0.28);
+  --elevation-danger: 0 8px 20px rgba(239, 68, 68, 0.42);
+
+  /* ---------- Espaciado ----------
+     Escala de 4 px. Los nombres describen el uso, no la medida. */
+  --space-2xs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 20px;
+  --space-2xl: 24px;
+  --space-3xl: 32px;
+  --space-4xl: 40px;
+
+  /* ---------- Tipografia ----------
+     Escala taken de los estilos del movil (Heading1 28sp, SectionTitle 20sp,
+     LabelSecondary 14sp, ValuePrimary 16sp) y ampliada hacia arriba. */
+  --font-sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --text-display: 2rem;      /* 32px */
+  --text-title: 1.5rem;      /* 24px */
+  --text-subtitle: 1.125rem; /* 18px */
+  --text-body: 1rem;         /* 16px */
+  --text-label: 0.875rem;    /* 14px */
+  --text-caption: 0.75rem;   /* 12px */
+
+  /* ---------- Movimiento ---------- */
+  --motion-fast: 140ms;
+  --motion-base: 240ms;
+  --motion-slow: 380ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---------- Interaccion ----------
+     48 px es el minimo comodo para el dedo (material y Apple coinciden). */
+  --touch-min: 48px;
+  --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.35);
+}
+
+/* ---------- Reset ---------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--text-primary);
+  background: var(--bg-app);
+  /* La barra inferior movil no debe quedar nunca bajo el contenido. */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+h1, h2, h3, h4 { margin: 0; font-weight: 700; color: var(--text-strong); }
+p { margin: 0; }
+button { font: inherit; }
+
+/* Foco visible y coherente en toda la app */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+.hidden { display: none !important; }
+
+/* ---------- Utilidades ---------- */
+.text-muted { color: var(--text-secondary); }
+.text-center { text-align: center; }
+.mt-1 { margin-top: var(--space-lg); }
+.mt-2 { margin-top: var(--space-3xl); }
+
+/* ---------- Iconos ---------- */
+.icon {
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.125em;
+  display: inline-block;
+  flex: none;
+}
+
+/* ---------- Tipografia ---------- */
+.heading-1 { font-size: var(--text-display); line-height: 1.25; }
+/* Icono decorativo dentro de un titular: se limita para que no crezca
+   con el tamano de letra. */
+.icon-wave {
+  font-size: 0.62em;
+  color: var(--warning);
+  vertical-align: 0.05em;
+}
+.heading-2 { font-size: var(--text-title); line-height: 1.3; }
+.section-title {
+  font-size: var(--text-subtitle);
+  font-weight: 700;
+  color: var(--text-strong);
+  margin: var(--space-2xl) 0 var(--space-md);
+}
+.label-secondary {
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.value-primary { font-size: var(--text-body); color: var(--text-primary); }
+.text-caption { font-size: var(--text-caption); color: var(--text-tertiary); }
+
+/* ---------- Botones ----------
+   Una sola clase base con variantes. Ningun otro lugar del codigo
+   define background, radio ni sombra de boton. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  min-height: var(--touch-min);
+  padding: 0 var(--space-xl);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  color: var(--text-primary);
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--motion-fast) var(--ease-standard),
+              box-shadow var(--motion-fast) var(--ease-standard),
+              transform var(--motion-fast) var(--ease-standard);
+}
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary { background: var(--primary); color: var(--text-inverse); }
+.btn-primary:hover:not(:disabled) { background: var(--primary-dark); box-shadow: var(--elevation-accent); }
+
+.btn-secondary { background: var(--bg-sunken); color: var(--text-primary); border-color: var(--border-default); }
+.btn-secondary:hover:not(:disabled) { background: var(--border-subtle); }
+
+.btn-outline { background: transparent; border-color: var(--border-strong); color: var(--text-primary); }
+.btn-outline:hover:not(:disabled) { background: var(--bg-sunken); }
+
+.btn-danger { background: var(--danger); color: var(--text-inverse); }
+.btn-danger:hover:not(:disabled) { background: var(--danger-dark); box-shadow: var(--elevation-danger); }
+
+.btn-gradient {
+  background: linear-gradient(90deg, var(--btn-gradient-from), var(--btn-gradient-to));
+  color: var(--text-inverse);
+}
+
+.btn-sm { min-height: 36px; padding: 0 var(--space-md); font-size: var(--text-caption); }
+.btn-block { width: 100%; }
+
+/* ---------- Campos ---------- */
+label { font-size: var(--text-label); font-weight: 600; color: var(--text-secondary); }
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+input[type="date"],
+input[type="search"],
+select,
+textarea {
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-body);
+  transition: border-color var(--motion-fast) var(--ease-standard),
+              box-shadow var(--motion-fast) var(--ease-standard);
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--primary);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+input:disabled, select:disabled { background: var(--bg-sunken); cursor: not-allowed; }
+
+.field { display: flex; flex-direction: column; gap: var(--space-sm); }
+.error-msg { color: var(--danger-text); font-size: var(--text-label); }
+
+/* ---------- Tarjetas ---------- */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-1);
+  padding: var(--space-xl);
+}
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+/* Superficie elevada translucida sobre fondo oscuro (bg_glass_card) */
+.glass-card {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(12px);
+}
+
+.premium-gradient {
+  background: linear-gradient(135deg,
+    var(--metallic-start) 0%,
+    var(--metallic-mid) 52%,
+    var(--metallic-end) 100%);
+  color: var(--text-inverse);
+}
+
+/* ---------- Distintivos ---------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-2xs) var(--space-md);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-primary { background: var(--primary-soft); color: var(--primary-dark); }
+.badge-success { background: var(--success-soft); color: var(--success-text); }
+.badge-danger { background: var(--danger-soft); color: var(--danger-text); }
+.badge-warning { background: var(--warning-soft); color: var(--warning-text); }
+
+/* ---------- Estados vacios ---------- */
+.empty-state {
+  padding: var(--space-4xl) var(--space-xl);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* ---------- Fila etiqueta/valor ---------- */
+.info-row-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  width: 100%;
+  min-height: var(--touch-min);
+  padding: var(--space-lg);
+  background: var(--bg-surface);
+  border:1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard),
+              transform var(--motion-fast) var(--ease-standard);
+}
+.info-row-item:hover { border-color: var(--primary); transform: translateX(2px); }
+.info-row-item .row-icon { color: var(--primary); font-size: 1.25rem; }
+/* El cuerpo crece para empujar el chevron al borde derecho de la fila. */
+.info-row-item .row-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.info-row-item .row-value { overflow-wrap: anywhere; }
+.info-row-item .row-chevron { color: var(--text-tertiary); font-size: 1rem; }
+
+/* ---------- Alerta clinica ---------- */
+.critical-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  background: var(--danger-soft);
+  color: var(--danger-text);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  font-weight: 700;
+  margin-bottom: var(--space-lg);
+}

@@ -58,7 +58,7 @@ async function comprobarEnlaceDirecto() {
     ? casos[caso]() : location.hash === '#/' + caso, location.hash);
   ok('D.2 La vista correspondiente se muestra', casos[caso](), caso);
   ok('D.3 Solo una vista visible', qa('.view-section:not(.hidden)').length === 1);
-  ok('D.4 Hay un enlace activo', qa('.nav-links a[aria-current="page"]').length === 1);
+  ok('D.4 Hay un enlace activo', qa('.app-nav [aria-current="page"]').length === 1);
   ok('D.5 El titulo del documento no es el generico',
     !/Portal del Paciente$/.test(document.title), document.title);
   ok('D.6 Sin errores JavaScript', (window.__errs || []).length === 0, JSON.stringify(window.__errs || []));
@@ -85,7 +85,7 @@ async function run() {
   var hashInicial = location.hash;
   var recs = performance.getEntriesByType('resource').map(function (r) { return r.name; });
   ok('R.1 Entrada en la raiz del sitio', location.pathname === '/' || location.pathname === '/index.html', location.pathname);
-  ok('R.2 CSS cargados desde /css', recs.filter(function (u) { return /\.css$/.test(u); }).length === 2);
+  ok('R.2 CSS cargados desde /css', recs.filter(function (u) { return /\.css$/.test(u); }).length === 4, recs.filter(function (u) { return /\.css$/.test(u); }).length + ' hojas');
   ok('R.3 Todos los scripts de la app se sirven desde /js', recs.filter(function (u) { return /\.js$/.test(u); })
     .filter(function (u) { return u.indexOf('/__test__/') === -1; })
     .every(function (u) { return /\/js\//.test(u); }));
@@ -109,8 +109,8 @@ async function run() {
   // ---------- NAVEGACION ----------
   // "Salud" dejo de ser un enlace muerto: abre el expediente clinico,
   // igual que en la app movil.
-  var enlaceSalud = Array.prototype.filter.call(qa('.nav-links a'), function (a) {
-    return a.textContent.trim().indexOf('Salud') === 0;
+  var enlaceSalud = Array.prototype.filter.call(qa('.app-nav .nav-item'), function (a) {
+    return a.querySelector('.nav-item-label').textContent.trim() === 'Salud';
   })[0];
 
   ok('N.1 El enlace Salud existe', !!enlaceSalud);
@@ -127,7 +127,7 @@ async function run() {
        qa('#view-salud .info-row-item').length === 6, qa('#view-salud .info-row-item').length + ' filas');
   }
   q('#nav-inicio').click(); await tick();
-  ok('N.2 Perfil sin caret enganoso', q('#nav-perfil') && q('#nav-perfil').textContent.trim() === 'Perfil');
+  ok('N.2 El item de Perfil es solo icono y etiqueta', q('#nav-perfil') && q('#nav-perfil').querySelector('.nav-item-label').textContent.trim() === 'Perfil');
   ok('N.3 Router disponible sin funciones globales', typeof Router === 'object' && typeof window.switchSection === 'undefined');
   ok('N.4 Iconos SVG renderizados', qa('svg.icon').length >= 23, qa('svg.icon').length);
   ok('N.5 Sin placeholders de icono sin renderizar', qa('[data-icon]').length === 0);
@@ -289,7 +289,7 @@ async function run() {
   ok('RT.3 switchSection actualiza el hash', location.hash === '#/perfil', location.hash);
   ok('RT.4 Vista de perfil visible', vis(q('#view-perfil')));
   ok('RT.5 aria-current en el enlace activo', q('#nav-perfil').getAttribute('aria-current') === 'page');
-  ok('RT.6 Solo un aria-current activo', qa('.nav-links a[aria-current="page"]').length === 1, qa('.nav-links a[aria-current="page"]').length);
+  ok('RT.6 Solo un aria-current activo', qa('.app-nav [aria-current="page"]').length === 1, qa('.app-nav [aria-current="page"]').length);
   ok('RT.7 Titulo del documento actualizado', /Perfil/.test(document.title), document.title);
 
   Router.ir('citas/agendar'); await tick();

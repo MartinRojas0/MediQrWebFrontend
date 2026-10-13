@@ -117,7 +117,10 @@ const Router = {
     });
     vista.classList.remove("hidden");
 
-    document.querySelectorAll(".nav-links a").forEach((enlace) => {
+    // Quita el estado anterior de la navegacion principal. El selector
+// apunta a .app-nav porque la barra inferior en movil y el menu lateral
+    // en escritorio son el mismo marcado.
+    document.querySelectorAll(".app-nav .nav-item").forEach((enlace) => {
       enlace.classList.remove("active");
       enlace.removeAttribute("aria-current");
     });

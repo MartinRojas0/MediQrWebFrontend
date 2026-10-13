@@ -39,13 +39,14 @@
     "history": { w: 512, h: 512, d: "M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z" },
     "chevron-right": { w: 320, h: 512, d: "M310.6 233.4c12.5 12.5 12.5 32.8 0 45.3l-192 192c-12.5 12.5-32.8 12.5-45.3 0s-12.5-32.8 0-45.3L242.7 256 73.4 86.6c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0l192 192z" },
     "clipboard-list": { w: 384, h: 512, d: "M192 0c-41.8 0-77.4 26.7-90.5 64H64C28.7 64 0 92.7 0 128V448c0 35.3 28.7 64 64 64H320c35.3 0 64-28.7 64-64V128c0-35.3-28.7-64-64-64H282.5C269.4 26.7 233.8 0 192 0zm0 64a32 32 0 1 1 0 64 32 32 0 1 1 0-64zM72 272a24 24 0 1 1 48 0 24 24 0 1 1 -48 0zm104-16H304c8.8 0 16 7.2 16 16s-7.2 16-16 16H176c-8.8 0-16-7.2-16-16s7.2-16 16-16zM72 368a24 24 0 1 1 48 0 24 24 0 1 1 -48 0zm88 0c0-8.8 7.2-16 16-16H304c8.8 0 16 7.2 16 16s-7.2 16-16 16H176c-8.8 0-16-7.2-16-16z" },
+    "home": { w: 576, h: 512, d: "M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z" },
   };
 
   var MediIcons = {
     // Devuelve el marcado <svg> de un icono.
     //   name  -> clave de RUTAS
     //   label -> texto accesible. Si se omite, el icono es decorativo.
-    svg: function (name, label) {
+    svg: function (name, label, extra) {
       var icono = RUTAS[name];
 
       if (!icono) return "";
@@ -54,8 +55,12 @@
         ? 'role="img" aria-label="' + label + '"'
         : 'aria-hidden="true" focusable="false"';
 
+      // Se respetan las clases del marcador para poder ajustar tamano o
+      // color desde CSS: el svg las hereda y no las pisa.
+      var clases = extra ? "icon " + extra : "icon";
+
       return (
-        '<svg class="icon" viewBox="0 0 ' + icono.w + " " + icono.h + '" ' + a11y + ">" +
+        '<svg class="' + clases + '" viewBox="0 0 ' + icono.w + " " + icono.h + '" ' + a11y + ">" +
         '<path fill="currentColor" d="' + icono.d + '"/>' +
         "</svg>"
       );
@@ -68,7 +73,7 @@
       Array.prototype.forEach.call(nodos, function (nodo) {
         var nombre = nodo.getAttribute("data-icon");
 
-        nodo.outerHTML = this.svg(nombre, nodo.getAttribute("data-label") || null);
+        nodo.outerHTML = this.svg(nombre, nodo.getAttribute("data-label") || null, nodo.className || null);
       }.bind(this));
     }
   };

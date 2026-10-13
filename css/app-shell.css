@@ -1,0 +1,320 @@
+/* ==========================================================
+   MediQR · Cascarón de la aplicación
+   Barra superior, navegación adaptativa y zonas de contenido.
+   ========================================================== */
+
+/* ---------- Barra superior ---------- */
+.app-bar {
+  position: sticky;
+  top: 0;
+  z-index: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  height: 56px;
+  padding: 0 var(--space-lg);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  text-decoration: none;
+  color: var(--text-strong);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+/* Marca: el azul medico como la app movil */
+.app-brand-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  background: linear-gradient(135deg, var(--btn-gradient-from), var(--btn-gradient-to));
+  box-shadow: var(--elevation-accent);
+}
+
+.app-brand-name { font-size: 1.05rem; }
+
+.app-bar-crumb {
+  margin-left: auto;
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ---------- Navegación ----------
+   Un solo marcado, tres comportamientos:
+     movil    -> barra inferior
+     tablet   -> riel lateral de iconos
+     escritorio -> menu lateral con etiquetas
+   ---------- */
+
+.app-nav {
+  display: flex;
+  z-index: 800;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-height: var(--touch-min);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: background var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard);
+}
+
+.nav-item-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.nav-item-label { font-size: var(--text-label); }
+
+/* Estado activo: color y fondo propios, no solo negrita */
+.nav-item[aria-current="page"],
+.nav-item.active {
+  color: var(--primary-dark);
+  background: var(--primary-soft);
+}
+
+.nav-item:hover { color: var(--text-strong); }
+
+/* ---------- Contenido ---------- */
+.app-main {
+  min-height: 100vh;
+}
+
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg) var(--space-4xl);
+}
+
+/* Vista oculta: la gestiona el router, aqui solo se declara */
+.view-section { display: block; }
+
+/* ---------- Control segmentado ----------
+   Sustituye a los desplegables del navbar para las sub-vistas.
+   Es lo que One UI usa para cambiar de pestana dentro de una seccion.
+   ---------- */
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs);
+  background: var(--bg-sunken);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-lg);
+  max-width: 100%;
+}
+
+.segmented-item {
+  flex: 0 0 auto;
+  min-height: 40px;
+  padding: 0 var(--space-lg);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-label);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--motion-fast) var(--ease-standard),
+              color var(--motion-fast) var(--ease-standard),
+              box-shadow var(--motion-fast) var(--ease-standard);
+}
+
+.segmented-item:hover { color: var(--text-strong); }
+
+.segmented-item.active {
+  background: var(--bg-surface);
+  color: var(--primary-dark);
+  box-shadow: var(--elevation-1);
+}
+
+/* ==========================================================
+   BOTON SOS FLOTANTE
+   Vive en el cascarón porque su posicion depende de la navegacion:
+   en movil debe quedar por encima de la barra inferior.
+   ========================================================== */
+.sos-boton {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.5rem;
+  z-index: 900;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  border: none;
+  background: var(--danger);
+  color: var(--text-inverse);
+  box-shadow: var(--elevation-danger);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: transform var(--motion-base) var(--ease-out),
+              opacity var(--motion-base) var(--ease-out);
+}
+.sos-boton:hover { transform: scale(1.05); }
+.sos-boton .icon { width: 1.5rem; height: 1.5rem; }
+/* Se oculta al bajar y reaparece al subir, como en la app movil. */
+.sos-boton.sos-oculto { opacity: 0; transform: translateY(140%); pointer-events: none; }
+
+/* Panel del dialogo SOS */
+.sos-panel { text-align: center; }
+.sos-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--danger-soft);
+  color: var(--danger);
+  margin-bottom: var(--space-md);
+}
+.sos-icon .icon { width: 1.75rem; height: 1.75rem; }
+.sos-timer { font-weight: 700; color: var(--danger); margin-bottom: var(--space-sm); }
+.sos-actions { justify-content: center; }
+.sos-actions .btn { flex: 1 1 100%; }
+
+/* ==========================================================
+   MOVIL  (< 768px)
+   Barra inferior fija, como la BottomNavigationView del movil.
+   ========================================================== */
+@media (max-width: 767px) {
+  .app-bar { height: 52px; }
+
+  .app-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    flex-direction: row;
+    justify-content: space-around;
+    gap: 0;
+    padding: var(--space-xs) var(--space-2xs) calc(var(--space-xs) + env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(16px);
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .nav-item {
+    flex: 1 1 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    min-height: 56px;
+    padding: var(--space-xs) 0;
+    border-radius: var(--radius-md);
+  }
+
+  .nav-item-icon { font-size: 1.3rem; }
+  .nav-item-label { font-size: 0.68rem; font-weight: 600; }
+
+  /* Activo con pastilla, como el ripple del movil */
+  .nav-item[aria-current="page"],
+  .nav-item.active {
+    background: var(--primary-soft);
+  }
+
+  /* El SOS flotante no debe quedar bajo la barra inferior */
+  .sos-boton {
+    bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+    width: 58px;
+    height: 58px;
+  }
+  .sos-boton .icon { width: 1.3rem; height: 1.3rem; }
+  .sos-boton span { font-size: 0.7rem; }
+
+  /* El contenido deja hueco para la barra inferior mas el boton SOS */
+  .container {
+    padding-bottom: calc(164px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ==========================================================
+   TABLET  (768px - 1023px)
+   Riel lateral de iconos: aprovecha el ancho sin robar altura.
+   ========================================================== */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .app-nav {
+    position: fixed;
+    top: 56px;
+    bottom: 0;
+    left: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+    width: 76px;
+    padding: var(--space-xl) var(--space-md);
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border-subtle);
+  }
+
+  .nav-item {
+    flex-direction: column;
+    justify-content: center;
+    gap: var(--space-xs);
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+  }
+
+  .nav-item-label { font-size: 0.62rem; }
+  .nav-item-icon { font-size: 1.35rem; }
+
+  .app-main { padding-left: 76px; }
+}
+
+/* ==========================================================
+   ESCRITORIO  (>= 1024px)
+   Menu lateral con etiquetas, la estructura habitual en escritorio.
+   ========================================================== */
+@media (min-width: 1024px) {
+  .app-nav {
+    position: fixed;
+    top: 56px;
+    bottom: 0;
+    left: 0;
+    flex-direction: column;
+    gap: var(--space-xs);
+    width: 248px;
+    padding: var(--space-xl) var(--space-lg);
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border-subtle);
+  }
+
+  .app-bar { padding-left: var(--space-2xl); }
+
+  .nav-item {
+    padding: 0 var(--space-lg);
+    font-size: var(--text-body);
+  }
+
+  .nav-item[aria-current="page"],
+  .nav-item.active {
+    box-shadow: inset 3px 0 0 var(--primary);
+  }
+
+  .app-main { padding-left: 248px; }
+
+  .container { padding-top: var(--space-2xl); }
+}

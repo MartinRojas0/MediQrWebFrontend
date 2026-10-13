@@ -53,7 +53,7 @@
           <span class="label-secondary">${etiqueta}</span>
           <span class="value-primary row-value">${MediPartes.dom.escapar(valor)}</span>
         </span>
-        <span class="row-icon" aria-hidden="true"><i data-icon="chevron-right"></i></span>
+        <span class="row-icon row-chevron" aria-hidden="true"><i data-icon="chevron-right"></i></span>
       </button>`;
   }
 

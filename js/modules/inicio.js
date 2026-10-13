@@ -8,7 +8,7 @@
   "use strict";
 
   var MARCADO = `      <div class="header-welcome">
-        <h1>Hola, Paciente Demo <i data-icon="hand" style="color: #f59e0b;"></i></h1>
+        <h1>Hola, Paciente Demo <i data-icon="hand" class="icon-wave"></i></h1>
         <p class="text-muted">Esto es lo más importante de tu salud hoy.</p>
       </div>
 

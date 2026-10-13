@@ -87,9 +87,19 @@ document.getElementById('f').addEventListener('load', function () {
     var sw = doc.documentElement.scrollWidth;
     var out = ['vp=' + vp, 'sw=' + sw, 'desborde=' + (sw - vp), 'culpables=0'];
     var vistos = {};
+    // Un elemento dentro de un contenedor con scroll propio no desborda
+    // la pagina: se ignora para no marcar falsos positivos.
+    function enScroll(el) {
+      for (var p = el.parentElement; p && p !== doc.body; p = p.parentElement) {
+        var ov = p.style.overflowX || getComputedStyle(p).overflowX;
+        if (ov === 'auto' || ov === 'scroll') return true;
+      }
+      return false;
+    }
     Array.prototype.forEach.call(doc.querySelectorAll('body *'), function (el) {
       var r = el.getBoundingClientRect();
       if (r.width === 0 || r.right <= vp + 1) return;
+      if (enScroll(el)) return;
       var sel = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') +
         (typeof el.className === 'string' && el.className.trim()
           ? '.' + el.className.trim().split(/\\s+/)[0] : '');
