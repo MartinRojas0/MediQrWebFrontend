@@ -94,7 +94,7 @@ a.btn {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 0.35rem;
-  box-shadow: 0 10px 30px #0f172a1f;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
 }
 
 .nav-submenu-list button {
@@ -113,7 +113,7 @@ a.btn {
 
 .nav-submenu-list button:hover,
 .nav-submenu-list button.active {
-  background: #e0f2fe;
+  background: var(--primary-light);
   color: var(--primary);
 }
 
@@ -189,7 +189,7 @@ a.btn {
 }
 
 .calendar-day.selected {
-  background: #e0f2fe;
+  background: var(--primary-light);
   border: 2px solid var(--primary);
   color: var(--primary-dark);
 }
@@ -203,7 +203,7 @@ a.btn {
 }
 
 .calendar-day:hover {
-  background: #f1f5f9;
+  background: var(--surface-alt);
 }
 
 .calendar-num {
@@ -236,7 +236,7 @@ a.btn {
 
 .calendar-event.ev-cancelada .calendar-event-name {
   text-decoration: line-through;
-  color: #b91c1c;
+  color: var(--danger-text);
 }
 
 .calendar-more {
@@ -259,11 +259,11 @@ a.btn {
 }
 
 .calendar-dot.dot-atendida {
-  background: #16a34a;
+  background: var(--success);
 }
 
 .calendar-dot.dot-cancelada {
-  background: #dc2626;
+  background: var(--danger-strong);
 }
 
 .calendar-title {
@@ -345,13 +345,13 @@ a.btn {
 }
 
 .result-ok {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .result-danger {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--severity-high);
+  color: var(--danger-text);
 }
 
 /* Formularios */
@@ -459,18 +459,18 @@ a.btn {
 }
 
 .choice span:hover {
-  background: #f1f5f9;
+  background: var(--surface-alt);
 }
 
 .choice input:checked + span {
-  background: #e0f2fe;
+  background: var(--primary-light);
   border-color: var(--primary);
   color: var(--primary-dark);
   font-weight: 700;
 }
 
 .choice input:focus-visible + span {
-  outline: 3px solid #38bdf8;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -482,7 +482,7 @@ a.btn {
   max-height: 90vh;
   margin: auto;
   color: var(--text-main);
-  box-shadow: 0 20px 80px #0f172a30;
+  box-shadow: 0 20px 80px rgba(15, 23, 42, 0.19);
 }
 
 .module-dialog.compact {
@@ -494,7 +494,7 @@ a.btn {
 }
 
 .module-dialog::backdrop {
-  background: #0f172a70;
+  background: rgba(15, 23, 42, 0.44);
 }
 
 .module-notice {
@@ -502,7 +502,7 @@ a.btn {
   bottom: 1.5rem;
   left: 50%;
   transform: translateX(-50%);
-  background: #0f172a;
+  background: var(--metallic-start);
   color: white;
   padding: 1rem 1.5rem;
   border-radius: 12px;
@@ -513,18 +513,18 @@ a.btn {
 /* Estados de las citas */
 .status-confirmada,
 .status-proxima {
-  background: #e0f2fe;
-  color: #0369a1;
+  background: var(--primary-light);
+  color: var(--primary-dark);
 }
 
 .status-atendida {
-  background: #dcfce7;
-  color: #166534;
+  background: var(--success-bg);
+  color: var(--success-text);
 }
 
 .status-cancelada {
-  background: #fee2e2;
-  color: #b91c1c;
+  background: var(--severity-high);
+  color: var(--danger-text);
 }
 
 .empty-state {
@@ -547,7 +547,7 @@ a.btn {
 }
 
 .document-icon {
-  background: #e0f2fe;
+  background: var(--primary-light);
   color: var(--primary-dark);
   width: 3.1rem;
   height: 3.1rem;
@@ -579,7 +579,7 @@ a.btn {
   gap: 0.5rem;
   padding: 1.5rem;
   margin-bottom: 0.75rem;
-  background: #f8fafc;
+  background: var(--bg-main);
   border: 1px dashed var(--border);
   border-radius: 10px;
   color: var(--text-muted);
@@ -620,7 +620,7 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid #38bdf8;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 3px;
 }
 
@@ -630,7 +630,7 @@ select:focus-visible {
 }
 
 input:disabled {
-  background: #f1f5f9;
+  background: var(--surface-alt);
   cursor: not-allowed;
 }
 
