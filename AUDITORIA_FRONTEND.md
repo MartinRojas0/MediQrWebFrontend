@@ -30,7 +30,7 @@
 ```
 css/citasDocumentos.css     12.1 KB   Estilos de calendario, documentos, modales
 css/main.css                 6.4 KB   Tokens de diseño, layout base, formularios
-html/index.html             28.4 KB   Única página; 610 líneas; incluye un <script> inline de 110 líneas
+index.html             28.4 KB   Única página; 610 líneas; incluye un <script> inline de 110 líneas
 img/avatar.png              23.0 KB   NO REFERENCIADO
 img/qr-sample.png           12.3 KB   NO REFERENCIADO
 js/citasDocumentos.js       52.6 KB   1601 líneas; módulo Citas + Documentos
@@ -119,7 +119,7 @@ Estos ítems del alcance funcional que mencionaste **no tienen ninguna implement
 
 | Ubicación | Línea | Implementación |
 |---|---|---|
-| `html/index.html` (inline) | 470 | Solo maneja `inicio` y `perfil` |
+| `index.html` (inline) | 470 | Solo maneja `inicio` y `perfil` |
 | `js/citasDocumentos.js` | 6 | Conmutador genérico de `view-*` |
 
 Verificado empíricamente replicando el orden de carga real:
@@ -162,7 +162,7 @@ Cada carga de la página **envía el nombre completo del paciente a un servidor 
 `index.html:2`. Afecta lectores de pantalla, pronunciación de synthesized speech y SEO. Debería ser `lang="es-PE"` o `lang="es"`.
 
 **A5. Despliegue bloqueado por la estructura de carpetas.**
-Las rutas son `../css/main.css` desde `html/index.html`. Esto obliga a que **la raíz del sitio web sea la raíz del repositorio**, con el entry point en `/html/`.
+Las rutas son `../css/main.css` desde `index.html`. Esto obliga a que **la raíz del sitio web sea la raíz del repositorio**, con el entry point en `/html/`.
 
 Consecuencia: si configuras el directorio de publicación como `html/` (lo natural en Netlify/Vercel/GitHub Pages), `../css/main.css` resuelve fuera de la raíz publicada → **404 en todos los estilos**. El sitio se ve sin estilos.
 
@@ -473,7 +473,7 @@ Cada etapa es pequeña y revisable. **Cada etapa es un commit.** Ninguna etapa e
 - **Validación:** navegación por teclado completa; "+ Agregar contacto" con estilo correcto; Citas y Documentos siguen navegables.
 
 ### Etapa 3 — Estructura de raíz y despliegue (0.5 h) · Bajo
-- Mover `html/index.html` → `index.html`.
+- Mover `index.html` → `index.html`.
 - Ajustar rutas a `css/…` y `js/…` (sin `..`).
 - **Validación:** servir la raíz y comprobar `/` funciona; publicar con `html/` como raíz ya no es necesario. **Cierra A5.**
 

@@ -54,6 +54,8 @@ body { background-color: var(--bg-main); color: var(--text-main); }
 .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
 .btn-outline:hover { background: #f8fafc; }
 .btn-danger { background: var(--danger); color: white; }
+.btn-primary-sm { padding: 0.3rem 0.6rem; background: var(--primary); color: white; border: none; font-size: 0.8rem; font-weight: 600; border-radius: 6px; cursor: pointer; }
+.btn-primary-sm:hover { background: var(--primary-dark); }
 .btn-outline-sm { padding: 0.3rem 0.6rem; border: 1px solid var(--border); background: transparent; font-size: 0.8rem; border-radius: 6px; cursor: pointer; }
 .btn-danger-sm { padding: 0.3rem 0.6rem; background: #fee2e2; color: var(--danger); border: none; font-size: 0.8rem; border-radius: 6px; cursor: pointer; }
 .full-width { width: 100%; display: block; text-align: center; }

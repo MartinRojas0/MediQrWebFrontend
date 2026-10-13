@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MediQR - Portal del Paciente</title>
-<link rel="stylesheet" href="../css/main.css">
-<link rel="stylesheet" href="../css/citasDocumentos.css">
+<link rel="stylesheet" href="css/main.css">
+<link rel="stylesheet" href="css/citasDocumentos.css">
 </head>
 <body>
 
@@ -15,7 +15,6 @@
       <div class="logo"><strong>MediQR</strong></div>
       <nav class="nav-links">
         <a id="nav-inicio" class="active" onclick="switchSection('inicio')">Inicio</a>
-        <a>Salud ▾</a>
         <div class="nav-dropdown">
           <a id="nav-citas" class="nav-trigger" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false"
              onclick="MediModules.toggleMenu(event, this)">Citas ▾</a>
@@ -41,7 +40,7 @@
             </div>
           </div>
         </div>
-        <a id="nav-perfil" onclick="switchSection('perfil')">Perfil ▾</a>
+        <a id="nav-perfil" onclick="switchSection('perfil')">Perfil</a>
       </nav>
     </div>
   </header>
@@ -254,7 +253,7 @@
         <aside class="profile-sidebar">
           <div class="avatar-box">
             <!-- Avatar local: no se solicita a servicios de terceros -->
-            <img src="../img/avatar.png" alt="Foto de perfil del paciente" class="avatar-img">
+            <img src="img/avatar.png" alt="Foto de perfil del paciente" class="avatar-img">
             <h3>Paciente Demo</h3>
             <p class="text-muted"><small>DNI: 00000000</small></p>
           </div>
@@ -464,21 +463,8 @@
 
   <!-- LÓGICA JAVASCRIPT COMPLETA E INTEGRADA -->
   <script>
-    // 1. Navegación entre Vistas (Inicio / Perfil)
-    function switchSection(section) {
-      document.getElementById('view-inicio').classList.add('hidden');
-      document.getElementById('view-perfil').classList.add('hidden');
-      document.getElementById('nav-inicio').classList.remove('active');
-      document.getElementById('nav-perfil').classList.remove('active');
-
-      if (section === 'inicio') {
-        document.getElementById('view-inicio').classList.remove('hidden');
-        document.getElementById('nav-inicio').classList.add('active');
-      } else if (section === 'perfil') {
-        document.getElementById('view-perfil').classList.remove('hidden');
-        document.getElementById('nav-perfil').classList.add('active');
-      }
-    }
+    // La navegación entre vistas vive en js/citasDocumentos.js (switchSection).
+    // Aquí solo queda lo específico de Inicio y Perfil.
 
     // 2. Navegación por pestañas del Perfil
     function switchProfileTab(tabId, btn) {
@@ -603,7 +589,7 @@
           role="status"
         ></div>
 
-     <script src="../js/icons.js"></script>
-     <script src="../js/citasDocumentos.js"></script>
+     <script src="js/icons.js"></script>
+     <script src="js/citasDocumentos.js"></script>
 </body>
 </html>
