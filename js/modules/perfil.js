@@ -48,7 +48,7 @@
               <p><strong>Nombres:</strong> <span id="val-name">Paciente</span></p>
               <p><strong>Apellidos:</strong> <span id="val-lastname">Demo</span></p>
               <p><strong>DNI:</strong> <span id="val-dni">00000000</span></p>
-              <p><strong>Fecha de Nacimiento:</strong> <span id="val-birth">1990-01-01</span></p>
+              <p><strong>Fecha de Nacimiento:</strong> <span id="val-birth" data-iso="1990-01-01">01/01/1990</span></p>
               <p><strong>Edad:</strong> <span id="val-age">35 años</span></p>
               <p><strong>Correo electrónico:</strong> <span id="val-email">paciente.demo@ejemplo.invalid</span></p>
               <p><strong>Teléfono:</strong> <span id="val-phone">+51 000 000 000</span></p>
@@ -168,6 +168,24 @@
     if (destino && !destino.dataset.renderizado) {
       destino.innerHTML = MARCADO;
       destino.dataset.renderizado = "1";
+      pintarDerivados();
+    }
+  }
+
+  // La edad y la fecha de nacimiento no se escriben en el marcado: se derivan
+  // de la fecha guardada. Escribirlas a mano las dejaba desactualizadas (un
+  // "35 años" fijo que envejecia con el tiempo y ya no cuadraba).
+  function pintarDerivados() {
+    var nodo = document.getElementById('val-birth');
+    var nacimiento = nodo.dataset.iso || '';
+    var edad = MediPartes.fechas.edad(nacimiento);
+
+    document.getElementById('val-age').textContent = edad === null
+      ? 'Sin registrar'
+      : edad + (edad === 1 ? ' año' : ' años');
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(nacimiento)) {
+      nodo.textContent = MediPartes.fechas.fechaCorta(nacimiento);
     }
   }
 
@@ -186,7 +204,7 @@
     document.getElementById('inp-name').value = document.getElementById('val-name').textContent;
     document.getElementById('inp-lastname').value = document.getElementById('val-lastname').textContent;
     document.getElementById('inp-dni').value = document.getElementById('val-dni').textContent;
-    document.getElementById('inp-birth').value = document.getElementById('val-birth').textContent;
+    document.getElementById('inp-birth').value = document.getElementById('val-birth').dataset.iso || '';
     document.getElementById('inp-email').value = document.getElementById('val-email').textContent;
     document.getElementById('inp-phone').value = document.getElementById('val-phone').textContent;
 
@@ -246,12 +264,10 @@
     document.getElementById('val-name').textContent = valores.nombre;
     document.getElementById('val-lastname').textContent = valores.apellido;
     document.getElementById('val-dni').textContent = valores.dni;
-    document.getElementById('val-birth').textContent = valores.nacimiento;
 
-    // La edad se calcula con la misma regla del movil: se birthday-correcta
-    // para que el aniversario ya cumplido no reste un ano de mas.
-    document.getElementById('val-age').textContent =
-      resultado.edad + (resultado.edad === 1 ? ' año' : ' años');
+    // El ISO se guarda aparte; lo que se ve es la fecha del portal.
+    document.getElementById('val-birth').dataset.iso = valores.nacimiento;
+    pintarDerivados();
 
     document.getElementById('val-email').textContent = valores.email;
     document.getElementById('val-phone').textContent = valores.telefono;

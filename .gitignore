@@ -30,6 +30,11 @@ dist/
 build/
 .output/
 
+# --- Salidas de pruebas y revision visual ---
+# .capturas/ son PNG generados por tests/capturar.js: se revisan en local
+# y se vuelven a generar, asi que no se versionan.
+.capturas/
+
 # --- Secretos y variables de entorno ---
 # Ningun archivo .env debe llegar al repositorio.
 .env

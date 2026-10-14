@@ -36,6 +36,14 @@
     return typeof a === "string" ? a : a.nombre;
   }
 
+  // Los antecedentes se guardan en ISO, que no es un formato para leer. Se
+  // muestra como el resto del portal (DD/MM/AAAA) y se deja intacto si el
+  // dato no es una fecha completa.
+  function fechaLegible(fecha) {
+    if (!fecha || !/^\d{4}-\d{2}-\d{2}$/.test(String(fecha))) return fecha || "";
+    return MediPartes.fechas.fechaCorta(fecha);
+  }
+
   function listaTexto(lista, construir) {
     if (!lista || lista.length === 0) return "No especificado";
     return lista.map(construir).join(", ");
@@ -67,7 +75,7 @@
       ? `
         <div class="critical-alert" role="alert">
           <i data-icon="triangle-exclamation"></i>
-          <span>¡ALERTA!: ${MediPartes.dom.escapar(listaTexto(salud.alergias, (a) =>
+          <span>Alergia crítica: ${MediPartes.dom.escapar(listaTexto(salud.alergias, (a) =>
             (a.severidad ? a.nombre + " (" + a.severidad + ")" : a.nombre)))}</span>
         </div>`
       : "";
@@ -97,7 +105,7 @@
         listaTexto(salud.vacunas, (v) => v.nombre + " (" + v.dosis + ")"),
         "salud:editar", { campo: "vacunas" })}
       ${fila("folder-open", "Cirugías",
-        listaTexto(salud.cirugias, (c) => c.nombre + " · " + c.fecha),
+        listaTexto(salud.cirugias, (c) => c.nombre + " · " + fechaLegible(c.fecha)),
         "salud:editar", { campo: "cirugias" })}
     `;
 

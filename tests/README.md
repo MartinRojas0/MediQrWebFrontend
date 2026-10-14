@@ -1,7 +1,7 @@
 # ==========================================================
 # MediQR - Pruebas funcionales
 #
-# Ejecuta 181 comprobaciones funcionales, 10 cargas por enlace directo y 35 mediciones responsive en un navegador real
+# Ejecuta 203 comprobaciones funcionales, 10 cargas por enlace directo y 35 mediciones responsive en un navegador real
 # (Microsoft Edge o Google Chrome) en modo headless.
 #
 # REQUISITOS
@@ -36,6 +36,9 @@
 #   V.*   validaciones de datos (nombre, DNI, telefono, email, contrasena, edad)
 #   H.*   historial de consultas: orden, buscador, vacio y adjuntos
 #   S.*   flujo SOS: cuenta atras, cancelar, Escape y veracidad del aviso
+#   G.*   estado global: iconos dibujados, formatos de fecha y hora unicos,
+#          ausencia de peticiones a la red y de promesas de guardado
+#   N.*   paridad con el movil (Salud, Perfil, alertas, validaciones)
 #
 # Y una tercera pasada mide cada vista dentro de un iframe de ancho fijo
 # (360, 390, 430, 540, 768, 1024 y 1440 px) para detectar desbordamiento
@@ -54,3 +57,14 @@
 #   - El codigo del sitio usa alert(); en el harness se sustituye por un
 #     registro porque un dialogo nativo bloquearia la pagina en headless.
 # ==========================================================
+
+## Capturas para revision visual
+
+    node tests/capturar.js
+
+Genera las seis vistas en movil (390), tablet (768) y escritorio (1400) en
+`.capturas/`. La app se renderiza dentro de un iframe del ancho exacto
+porque `--window-size` no baja de ~492 px en Windows y una captura
+directa sale recortada, haciendo creer que la pagina se desborda.
+Cada captura usa su propio perfil de navegador para evitar que el
+siguiente proceso compita por el bloqueo del anterior.

@@ -84,7 +84,7 @@
             ${insignia(cita.estado)}
           </div>
 
-          <p class="hist-when">${esc(MediPartes.fechas.fechaTexto(cita.fecha))} · ${esc(MediPartes.fechas.horaTexto(cita.hora))}</p>
+          <p class="hist-when">${esc(MediPartes.fechas.fechaCorta(cita.fecha))} · ${esc(MediPartes.fechas.horaTexto(cita.hora))}</p>
 
           <dl class="hist-facts">
             <div><dt>Médico</dt><dd>${esc(cita.medico)}</dd></div>

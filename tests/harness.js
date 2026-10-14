@@ -19,6 +19,27 @@ window.addEventListener('unhandledrejection', function (e) {
 window.alert = function (m) { window.__alerts.push(String(m)); };
 window.confirm = function () { return true; };
 
+// Red: el portal es una demo sin backend. Ningun flujo debe intentar hablar
+// con un servidor, y menos aun fingir que una operacion se guardo en linea.
+// Se anotan las salidas a la red en lugar de ejecutarlas.
+window.__red = [];
+window.__servidor = location.origin;
+(function () {
+  var fetchReal = window.fetch;
+  window.fetch = function (entrada) {
+    var url = typeof entrada === 'string' ? entrada : (entrada && entrada.url) || '';
+    window.__red.push(url);
+    return Promise.reject(new Error('red bloqueada en pruebas: ' + url));
+  };
+  window.__fetchReal = fetchReal;
+
+  var abrirReal = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function (metodo, url) {
+    window.__red.push(String(url));
+    return abrirReal.apply(this, arguments);
+  };
+})();
+
 window.addEventListener('DOMContentLoaded', function () {
   setTimeout(function () {
     // Modo enlace directo: el ejecutor pide una ruta concreta y solo se
@@ -125,8 +146,14 @@ async function run() {
        location.hash === '#/salud' && vis(q('#view-salud')), location.hash);
     ok('N.1c El expediente muestra las tres secciones',
        qa('#view-salud .section-title').length === 3, qa('#view-salud .section-title').length + ' secciones');
-    ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
-       !!q('#view-salud .critical-alert') && /ALERTA/.test(q('#view-salud .critical-alert').textContent));
+ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
+    !!q('#view-salud .critical-alert') && /Alergia crítica/.test(q('#view-salud .critical-alert').textContent),
+    q('#view-salud .critical-alert') ? q('#view-salud .critical-alert').textContent.trim().slice(0, 50) : '(sin tarjeta)');
+
+  // La misma alerta se nombra igual en Inicio y en Salud.
+  ok('N.1f La alerta se nombra igual en Inicio y en Salud',
+    /Alergia crítica/.test(q('#view-inicio').textContent),
+    q('#view-inicio').textContent.match(/Alergia crítica[^|]{0,30}/)[0].trim());
     ok('N.1e Las seis filas del expediente estan',
        qa('#view-salud .info-row-item').length === 6, qa('#view-salud .info-row-item').length + ' filas');
   }
@@ -658,6 +685,66 @@ async function run() {
   ok('G.2 Una sola vista visible', qa('.view-section:not(.hidden)').length === 1, qa('.view-section:not(.hidden)').length);
   ok('G.3 Datos intactos', MediModules.citas.length === 9 && MediModules.documentos.length === 9);
   ok('G.4 Sin errores JavaScript', (window.__errs || []).length === 0, JSON.stringify(window.__errs || []));
+
+  // Iconos: render() sustituye cada <i data-icon> por su <svg>. Si queda
+  // alguno sin sustituir, es un nombre de icono desconocido y el hueco se
+  // ve en pantalla. El boton SOS se crea tras el arranque, asi que es el
+  // que mas se escapaba del dibujado.
+  var sinDibujar = qa('i[data-icon]');
+  ok('G.5 No queda ningun marcador de icono sin dibujar',
+     sinDibujar.length === 0,
+     sinDibujar.length + ' sin dibujar' +
+     (sinDibujar.length ? ' -> ' + sinDibujar.slice(0, 5).map(function (n) {
+       return n.getAttribute('data-icon');
+     }).join(',') : ''));
+
+  var fab = q('#sos-boton');
+  var fabSvg = fab && fab.querySelector('svg');
+  var fabTexto = fab && fab.querySelector('span');
+  ok('G.6 El boton SOS tiene icono y etiqueta visibles',
+     !!fabSvg && !!fabTexto && fabTexto.textContent.trim() === 'SOS' &&
+     fabTexto.getBoundingClientRect().height > 0 &&
+     fabSvg.getBoundingClientRect().width > 0,
+     fab ? 'svg=' + !!fabSvg + ' span=' + JSON.stringify(fabTexto && fabTexto.textContent) : '(no existe)');
+
+  // La edad se deriva de la fecha guardada, no de un texto fijo que envejece.
+  var isoNac = q('#val-birth').dataset.iso;
+  ok('G.7 La edad coincide con la fecha de nacimiento mostrada',
+     isoNac === '1990-06-15' &&
+     q('#val-age').textContent.trim() === (function () {
+       var p = isoNac.split('-').map(Number), h = new Date();
+       var e = h.getFullYear() - p[0];
+       if (h.getMonth() + 1 < p[1] || (h.getMonth() + 1 === p[1] && h.getDate() < p[2])) e -= 1;
+       return e + ' años';
+     })(),
+     isoNac + ' -> ' + q('#val-age').textContent.trim());
+
+  // La fecha se muestra en el formato del portal, nunca en ISO crudo.
+  ok('G.8 La fecha de nacimiento no se muestra en ISO',
+     q('#val-birth').textContent.trim() === '15/06/1990',
+     q('#val-birth').textContent.trim());
+
+  // Una sola forma de hora en todo el portal: 24 h, sin "p. m.".
+  var horas = [];
+  ['#/citas', '#/historial', '#/perfil', '#/inicio', '#/documentos'].forEach(function () {});
+  var cuerpo = document.body.textContent;
+  ok('G.9 Ninguna hora usa el formato de 12 horas',
+     /\d{1,2}:\d{2}\s*(a\. m\.|p\. m\.)/i.test(cuerpo) === false,
+     (cuerpo.match(/\d{1,2}:\d{2}\s*(a\. m\.|p\. m\.)/i) || ['sin 12 h'])[0]);
+  ok('G.10 Ninguna fecha se muestra en ISO crudo',
+     /(19|20)\d{2}-\d{2}-\d{2}/.test(cuerpo) === false,
+     (cuerpo.match(/(19|20)\d{2}-\d{2}-\d{2}/) || ['sin ISO'])[0]);
+
+  // Red: ningun flujo debe salirse del servidor local.
+  ok('G.11 Ningun flujo intenta salir del servidor local',
+     window.__red.length === 0,
+     window.__red.length ? window.__red.slice(0, 3).join(' | ') : 'sin peticiones a la red');
+
+  // Y ningun boton debe prometer que guardo algo en un servidor.
+  ok('G.12 Ningun boton promete un envio a un servidor',
+     /guardado en (el |nuestro )?(servidor|nube)|enviado (al|a) servidor|subido correctamente|guardado en la nube/i
+       .test(cuerpo) === false,
+     'ninguno');
 
   var pass = R.filter(function (r) { return r.p; }).length;
   var out = '==RESULTADO==\nTOTAL=' + R.length + ' OK=' + pass + ' FALLOS=' + (R.length - pass) + '\n';

@@ -115,7 +115,7 @@
           ultima ? "Última: " + ultima.especialidad + " · " + ultima.medico : "Última: sin historial",
           "accent")}
         ${filaResumen(riesgo ? "triangle-exclamation" : "heart-pulse",
-          riesgo ? "Alerta: " + alergias : "Sin alertas críticas",
+          riesgo ? "Alergia crítica: " + alergias : "Sin alertas críticas",
           riesgo ? "danger" : "muted")}
       </div>
 

@@ -216,14 +216,14 @@ window.MediPartes.citas = {
     const filas = conAcciones
       ? [
           ["Médico", cita.medico],
-          ["Fecha", this.fechaTexto(cita.fecha)],
+          ["Fecha", this.fechaCorta(cita.fecha)],
           ["Hora", this.horaTexto(cita.hora)],
           ["Clínica", cita.lugar],
           ["Dirección", cita.direccion]
         ]
       : [
           ["Médico", cita.medico],
-          ["Fecha", this.fechaTexto(cita.fecha)],
+          ["Fecha", this.fechaCorta(cita.fecha)],
           ["Hora", this.horaTexto(cita.hora)],
           ["Lugar", cita.lugar]
         ];
@@ -278,7 +278,7 @@ window.MediPartes.citas = {
           ${this.filas([
             ["Especialidad", cita.especialidad],
             ["Médico", cita.medico],
-            ["Fecha", this.fechaTexto(cita.fecha)],
+            ["Fecha", this.fechaCorta(cita.fecha)],
             ["Hora", this.horaTexto(cita.hora)],
             ["Estado", this.insignia(cita.estado), true]
           ])}
@@ -311,7 +311,7 @@ window.MediPartes.citas = {
     return this.filas([
       ["Especialidad", cita.especialidad],
       ["Médico", cita.medico],
-      ["Fecha", this.fechaTexto(cita.fecha)],
+      ["Fecha", this.fechaCorta(cita.fecha)],
       ["Hora", this.horaTexto(cita.hora)]
     ]);
   },
@@ -348,7 +348,7 @@ window.MediPartes.citas = {
       ${this.filas([
         ["Especialidad", cita.especialidad],
         ["Médico", cita.medico],
-        ["Fecha", this.fechaTexto(cita.fecha)],
+        ["Fecha", this.fechaCorta(cita.fecha)],
         ["Hora", this.horaTexto(cita.hora)],
         ["Estado", this.insignia(cita.estado), true]
       ])}
@@ -455,7 +455,7 @@ window.MediPartes.citas = {
         ${this.filas([
           ["Especialidad", cita.especialidad],
           ["Médico", cita.medico],
-          ["Nueva fecha", this.fechaTexto(cita.fecha)],
+          ["Nueva fecha", this.fechaCorta(cita.fecha)],
           ["Nueva hora", this.horaTexto(cita.hora)],
           ["Lugar", cita.lugar]
         ])}
@@ -780,7 +780,7 @@ window.MediPartes.citas = {
       ${this.filas([
         ["Especialidad", nueva.especialidad],
         ["Médico", nueva.medico],
-        ["Fecha", this.fechaTexto(nueva.fecha)],
+        ["Fecha", this.fechaCorta(nueva.fecha)],
         ["Hora", this.horaTexto(nueva.hora)],
         ["Lugar", nueva.lugar],
         ["Dirección", nueva.direccion],

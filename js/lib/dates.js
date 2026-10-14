@@ -36,12 +36,25 @@ window.MediPartes.fechas = {
     return `${dia}/${mes}/${año}`;
   },
 
+  // Formato 24 h. El movil guarda y muestra la hora tal cual ("10:30") y en
+  // Peru se usa 24 h; "4:00 p. m." solo aparecia por heredar el formato
+  // anglosajon y chocaba con el resto del portal.
   horaTexto(hora) {
     const [h, m] = hora.split(":").map(Number);
-    const sufijo = h >= 12 ? "p. m." : "a. m.";
-    const h12 = h % 12 || 12;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  },
 
-    return `${h12}:${String(m).padStart(2, "0")} ${sufijo}`;
+  // Edad cumplida a dia de hoy, con el mismo criterio que Validaciones.kt:
+  // se descuenta un ano si el aniversario aun no ha llegado.
+  edad(fechaISO) {
+    if (!fechaISO) return null;
+    const [anio, mes, dia] = fechaISO.split("-").map(Number);
+    if (!anio) return null;
+
+    const hoy = new Date();
+    let edad = hoy.getFullYear() - anio;
+    if (hoy.getMonth() + 1 < mes || (hoy.getMonth() + 1 === mes && hoy.getDate() < dia)) edad -= 1;
+    return edad >= 0 ? edad : null;
   },
 
   normalizar(texto) {
