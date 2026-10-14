@@ -109,6 +109,8 @@ body { background-color: var(--bg-app); color: var(--text-primary); }
 
 /* FORMULARIOS */
 .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  /* Ocupa toda la fila: evita repetir "grid-column: span 2" en el marcado. */
+  .data-grid-full { grid-column: 1 / -1; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
 .form-grid label { font-size: 0.85rem; font-weight: 600; }
 .form-grid input, .form-grid textarea { width: 100%; padding: 0.5rem; margin-top: 0.25rem; border: 1px solid var(--border-default); border-radius: 6px; }

@@ -91,9 +91,27 @@ window.MediPartes.documentos = {
     contador.textContent =
       `${resultados.length} documento` + (resultados.length === 1 ? "" : "s");
 
+    // El movil distingue el biblioteca vacia de un filtro sin resultados.
+    // El web tambien: un filtro sin coincidencias no debe sugerir que el
+    // paciente no tiene documentos.
+    const hayFiltro = !!(busqueda.trim() || tipo !== "Todos" || desde || hasta);
     contenido.innerHTML = resultados.length > 0
       ? resultados.map((doc) => this.tarjetaDocumento(doc)).join("")
-      : '<p class="empty-state">No hay documentos que coincidan con tu búsqueda.</p>';
+      : hayFiltro
+        ? '<div class="empty-state">'
+          + '<i data-icon="folder-open"></i>'
+          + '<p><strong>Sin coincidencias</strong></p>'
+          + '<p class="text-muted">Ningún documento cumple los filtros actuales.</p>'
+          + '<button class="btn btn-outline-sm" data-action="documentos:limpiar-filtros">'
+          + '<i data-icon="circle-xmark"></i> Limpiar filtros</button>'
+          + '</div>'
+        : '<div class="empty-state">'
+          + '<i data-icon="folder-open"></i>'
+          + '<p><strong>No hay documentos subidos</strong></p>'
+          + '<p class="text-muted">Aquí verás tus recetas, exámenes e informes.</p>'
+          + '</div>';
+
+    if (hayFiltro) MediIcons.render(contenido);
 
     this.marcarMenu();
   },
@@ -391,6 +409,6 @@ window.MediPartes.documentos = {
         this.limpiarFiltrosDoc();
         this.documents();
       }
-    };
+    }
   }
 };

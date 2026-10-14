@@ -201,7 +201,32 @@ async function run() {
   q('#doc-search').value = 'receta'; MediModules.documents(); await tick();
   var nb = qa('#documents-content .doc-card').length;
   ok('V3.5 Filtro por texto reduce resultados', nb > 0 && nb < 9, nb + ' resultados');
-  q('#doc-search').value = ''; MediModules.documents(); await tick();
+
+  // Un filtro sin coincidencias no debe sugerir que no hay documentos:
+  // el movil distingue biblioteca vacia de filtro sin resultados.
+  q('#doc-search').value = 'zzzzsinresultado'; MediModules.documents(); await tick();
+  ok('V3.6 Filtro sin coincidencias ofrece limpiar',
+     !!q('#documents-content [data-action="documentos:limpiar-filtros"]'),
+     q('#documents-content').textContent.trim().slice(0, 60));
+  ok('V3.7 No afirma que no hay documentos',
+     /no hay documentos subidos/i.test(q('#documents-content').textContent) === false &&
+     /coincidan con tu b/i.test(q('#documents-content').textContent) === false,
+     q('#documents-content').textContent.trim().slice(0, 60));
+  q('#documents-content [data-action="documentos:limpiar-filtros"]').click(); await tick();
+  ok('V3.8 Limpiar filtros restaura la lista y el foco',
+     qa('#documents-content .doc-card').length === 9 &&
+     q('#doc-search').value === '' &&
+     document.activeElement === q('#doc-search'),
+     qa('#documents-content .doc-card').length + ' docs, foco=' +
+     (document.activeElement === q('#doc-search')));
+
+  // El rango de fechas invertido es un error, no un estado vacio.
+  q('#doc-from').value = '2026-05-01'; q('#doc-to').value = '2026-01-01';
+  MediModules.documents(); await tick();
+  ok('V3.9 Rango de fechas invertido explica el error',
+     /anterior o igual/i.test(q('#documents-content').textContent),
+     q('#documents-content').textContent.trim().slice(0, 60));
+  q('#doc-from').value = ''; q('#doc-to').value = ''; MediModules.documents(); await tick();
 
   // ---------- VISTA 4: PERFIL ----------
   q('#nav-perfil').click(); await tick();
@@ -225,7 +250,81 @@ async function run() {
   ok('V4.7 Modo edicion medica se activa', vis(q('#medical-edit-form')));
   q('#medical-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
   ok('V4.8 Vuelve a la vista de lectura', vis(q('#medical-read-view')));
+
+  // El movil muestra Edad y Direccion, y exporta el expediente. El portal
+  // no tenia ninguno de los tres.
+  ok('V4.9 La ficha muestra Edad', !!q('#val-age') && /\d+/.test(q('#val-age').textContent),
+     q('#val-age') ? q('#val-age').textContent : '(falta)');
+  ok('V4.10 La ficha muestra Direccion', !!q('#val-address'),
+     q('#val-address') ? q('#val-address').textContent : '(falta)');
+
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="info-personal"]').click();
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+  q('#inp-street').value = 'Av. Siempreviva 742';
+  q('#inp-district').value = 'Springfield';
+  q('#inp-birth').value = '1990-06-15';
+  q('#personal-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
+  ok('V4.11 La direccion guardada se compone calle y distrito',
+     q('#val-address').textContent === 'Av. Siempreviva 742, Springfield',
+     q('#val-address').textContent);
+
+  // La edad debe calcularse, no escribiendo un numero fijo en el HTML.
+  var edadMostrada = parseInt(q('#val-age').textContent, 10);
+  var edadReal = (function () {
+    var n = new Date(), f = new Date(1990, 5, 15);
+    var e = n.getFullYear() - f.getFullYear();
+    if (n.getMonth() < f.getMonth() || (n.getMonth() === f.getMonth() && n.getDate() < f.getDate())) e -= 1;
+    return e;
+  })();
+  ok('V4.12 La edad se calcula desde la fecha de nacimiento',
+     edadMostrada === edadReal, edadMostrada + ' vs ' + edadReal);
+
+  // Cancelar debe descartar lo escrito: al volver a editar, el formulario se
+// rellena con lo guardado, no con el intento fallido.
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+  q('#inp-street').value = 'Calle descartada';
+  q('#inp-district').value = 'Distrito descartado';
+  q('#personal-edit-form [data-action="perfil:cancelar-personal"]').click(); await tick();
+  ok('V4.13 Cancelar descarta lo escrito y vuelve a lectura',
+     vis(q('#personal-read-view')) && q('#val-address').textContent === 'Av. Siempreviva 742, Springfield',
+     q('#val-address').textContent);
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+  ok('V4.13b Reabrir edicion recarga lo guardado, no lo descartado',
+     q('#inp-street').value === 'Av. Siempreviva 742' &&
+     q('#inp-district').value === 'Springfield',
+     q('#inp-street').value + ' / ' + q('#inp-district').value);
+
+  // Exportacion: genera un HTML real en el navegador, sin red.
   q('.sidebar-nav [data-action="perfil:pestana"][data-tab="configuracion"]').click(); await tick();
+  var descargado = null;
+  var crearOriginal = document.createElement;
+  var crearOriginalURL = URL.createObjectURL;
+  var originalClick = HTMLAnchorElement.prototype.click;
+  HTMLAnchorElement.prototype.click = function () { descargado = this.download; };
+  URL.createObjectURL = function (blob) { window.__blob = blob; return 'blob:test'; };
+  var creados = [];
+  document.createElement = function (et) {
+    var n = et === 'a' ? document.createElementNS('http://www.w3.org/1999/xhtml', 'a')
+                        : crearOriginal.call(document, et);
+    if (et === 'a') { creados.push(n); }
+    return n;
+  };
+  q('[data-action="perfil:exportar"]').click(); await tick();
+  document.createElement = crearOriginal;
+  HTMLAnchorElement.prototype.click = originalClick;
+  URL.createObjectURL = crearOriginalURL;
+
+  ok('V4.14 Exportar descarga un archivo HTML', descargado === 'expediente-mediqr.html',
+     descargado || '(sin descarga)');
+  ok('V4.15 El archivo se genera con Blob, sin pedir nada por red',
+     !!window.__blob && window.__blob.type === 'text/html;charset=utf-8',
+     window.__blob ? window.__blob.type : '(sin blob)');
+  var texto = '';
+  try { texto = window.__blob && window.__blob.textSync ? window.__blob.textSync() : ''; } catch (e) { texto = ''; }
+  ok('V4.16 El aviso no promete un PDF ya generado',
+     /impr[ií]melo|guarda.*PDF/i.test(q('#module-notice').textContent),
+     q('#module-notice').textContent);
+  window.__blob = null;
 
   // ---------- MODALES UNIFICADOS (sistema <dialog> nativo) ----------
   ok('M.0 Sistema antiguo eliminado', qa('.modal-backdrop').length === 0 && typeof window.openModal === 'undefined');

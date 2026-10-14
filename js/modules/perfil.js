@@ -49,8 +49,10 @@
               <p><strong>Apellidos:</strong> <span id="val-lastname">Demo</span></p>
               <p><strong>DNI:</strong> <span id="val-dni">00000000</span></p>
               <p><strong>Fecha de Nacimiento:</strong> <span id="val-birth">1990-01-01</span></p>
+              <p><strong>Edad:</strong> <span id="val-age">35 años</span></p>
               <p><strong>Correo electrónico:</strong> <span id="val-email">paciente.demo@ejemplo.invalid</span></p>
               <p><strong>Teléfono:</strong> <span id="val-phone">+51 000 000 000</span></p>
+              <p class="data-grid-full"><strong>Dirección:</strong> <span id="val-address">Sin registrar</span></p>
             </div>
 
             <!-- Formulario Edición (Convertible visualmente) -->
@@ -61,8 +63,16 @@
               <label>Fecha Nacimiento: <input type="date" id="inp-birth" value="1990-01-01" required></label>
               <label>Correo: <input type="email" id="inp-email" value="paciente.demo@ejemplo.invalid" required></label>
               <label>Teléfono: <input type="text" id="inp-phone" value="+51 000 000 000" required></label>
-              <p id="personal-error" class="error-msg" style="grid-column: span 2;" role="alert"></p>
-              <div class="form-actions mt-1" style="grid-column: span 2;">
+              <label class="data-grid-full">Dirección:
+                <input type="text" id="inp-street" value="" placeholder="Calle y número"
+                       aria-describedby="address-error">
+              </label>
+              <label class="data-grid-full">Distrito:
+                <input type="text" id="inp-district" value="" placeholder="Distrito">
+              </label>
+              <p id="address-error" class="error-msg" role="alert"></p>
+              <p id="personal-error" class="error-msg data-grid-full" role="alert"></p>
+              <div class="form-actions mt-1 data-grid-full">
                 <button type="submit" class="btn btn-primary">Guardar</button>
                 <button type="button" class="btn btn-outline"  data-action="perfil:cancelar-personal">Cancelar</button>
               </div>
@@ -88,7 +98,7 @@
               <label>Alergias: <input type="text" id="inp-allergies" value="Penicilina, Aspirina"></label>
               <label>Condiciones: <input type="text" id="inp-conditions" value="Hipertensión leve"></label>
               <label>Información Relevante: <input type="text" id="inp-notes" value="Chequeo cardiológico anual recomendado."></label>
-              <div class="form-actions mt-1" style="grid-column: span 2;">
+              <div class="form-actions mt-1 data-grid-full">
                 <button type="submit" class="btn btn-primary">Guardar</button>
                 <button type="button" class="btn btn-outline"  data-action="perfil:cancelar-medica">Cancelar</button>
               </div>
@@ -136,6 +146,12 @@
             <h3 class="mt-2"><i data-icon="sliders"></i> Preferencias Generales</h3>
             <p class="text-muted"><small>Preferencias de la aplicación (Idioma: Español / Modo Claro).</small></p>
 
+            <h3 class="mt-2"><i data-icon="file-pdf"></i> Tu expediente</h3>
+            <p class="text-muted"><small>Se genera en tu propio dispositivo, sin enviar nada a ningún servidor.</small></p>
+            <div class="security-actions mt-1">
+              <button class="btn btn-outline"  data-action="perfil:exportar"><i data-icon="file-pdf"></i> Exportar historial</button>
+            </div>
+
             <h3 class="mt-2"><i data-icon="shield-halved"></i> Seguridad</h3>
             <div class="security-actions mt-1">
               <button class="btn btn-outline"  data-action="perfil:cambiar-password"><i data-icon="key"></i> Cambiar contraseña</button>
@@ -163,7 +179,23 @@
     btn.classList.add('active');
   }
   // 3. Edición visual de Información Personal
+  // Al entrar en edicion el formulario se rellena con lo guardado. Sin esto,
+  // cancelar y volver a editar resucita valores que el paciente ya habia
+  // descartado en el intento anterior.
   function enablePersonalEdit() {
+    document.getElementById('inp-name').value = document.getElementById('val-name').textContent;
+    document.getElementById('inp-lastname').value = document.getElementById('val-lastname').textContent;
+    document.getElementById('inp-dni').value = document.getElementById('val-dni').textContent;
+    document.getElementById('inp-birth').value = document.getElementById('val-birth').textContent;
+    document.getElementById('inp-email').value = document.getElementById('val-email').textContent;
+    document.getElementById('inp-phone').value = document.getElementById('val-phone').textContent;
+
+    const direccion = document.getElementById('val-address').textContent;
+    const esSinRegistrar = direccion === 'Sin registrar';
+    const partes = esSinRegistrar ? ['', ''] : direccion.split(', ');
+    document.getElementById('inp-street').value = partes[0] || '';
+    document.getElementById('inp-district').value = partes[1] || '';
+
     document.getElementById('personal-read-view').classList.add('hidden');
     document.getElementById('personal-edit-form').classList.remove('hidden');
     document.getElementById('btn-edit-personal').classList.add('hidden');
@@ -182,7 +214,9 @@
       dni: document.getElementById('inp-dni').value,
       nacimiento: document.getElementById('inp-birth').value,
       email: document.getElementById('inp-email').value,
-      telefono: document.getElementById('inp-phone').value
+      telefono: document.getElementById('inp-phone').value,
+      calle: document.getElementById('inp-street').value.trim(),
+      distrito: document.getElementById('inp-district').value.trim()
     };
 
     // Reglas de utils/Validaciones.kt de la app movil. El telefono llega
@@ -213,8 +247,17 @@
     document.getElementById('val-lastname').textContent = valores.apellido;
     document.getElementById('val-dni').textContent = valores.dni;
     document.getElementById('val-birth').textContent = valores.nacimiento;
+
+    // La edad se calcula con la misma regla del movil: se birthday-correcta
+    // para que el aniversario ya cumplido no reste un ano de mas.
+    document.getElementById('val-age').textContent =
+      resultado.edad + (resultado.edad === 1 ? ' año' : ' años');
+
     document.getElementById('val-email').textContent = valores.email;
     document.getElementById('val-phone').textContent = valores.telefono;
+
+    const direccion = [valores.calle, valores.distrito].filter(Boolean).join(', ');
+    document.getElementById('val-address').textContent = direccion || 'Sin registrar';
 
     MediModules.aviso('Información personal actualizada.');
     cancelPersonalEdit();
@@ -239,6 +282,86 @@
     MediModules.aviso('Información médica actualizada.');
     cancelMedicalEdit();
   }
+
+  // 6. Exportacion del expediente
+  // Genera un HTML autonomo e imprimible, igual que
+  // exportarExpedienteHTML() en la app movil. Todo ocurre en el navegador:
+  // Blob + URL.createObjectURL, sin red ni servidor.
+  function exportarExpediente() {
+    const val = function (id, alt) {
+      const nodo = document.getElementById(id);
+      return nodo ? nodo.textContent : (alt || 'Sin registrar');
+    };
+
+    const esc = function (v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    };
+
+    const ahora = new Date();
+    const dosDig = function (n) { return String(n).padStart(2, '0'); };
+    const sello = dosDig(ahora.getDate()) + '/' + dosDig(ahora.getMonth() + 1) + '/'
+      + ahora.getFullYear() + ' ' + dosDig(ahora.getHours()) + ':' + dosDig(ahora.getMinutes());
+
+    const nombreCompleto = (val('val-name', '') + ' ' + val('val-lastname', '')).trim();
+
+    let html = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">'
+      + '<title>Expediente Medico MediQR</title><style>'
+      + 'body{font-family:sans-serif;color:#333;padding:20px;line-height:1.5}'
+      + '.header{text-align:center;border-bottom:2px solid #1E88E5;padding-bottom:10px;margin-bottom:20px}'
+      + 'h1{color:#1E88E5;margin:0}'
+      + '.header p{margin:4px 0 0;font-size:12px;color:#666}'
+      + 'h2{color:#EF4444;border-left:4px solid #EF4444;padding-left:10px;margin-top:30px;font-size:18px}'
+      + '.section{margin-bottom:20px}.field{font-weight:bold;color:#555}'
+      + '.item{background:#F8FAFC;padding:15px;border-radius:8px;margin-bottom:10px;border:1px solid #E2E8F0}'
+      + '</style></head><body>'
+      + '<div class="header"><h1>EXPEDIENTE MEDICO MEDIQR</h1>'
+      + '<p>Generado el ' + esc(sello) + '</p></div>'
+      + '<h2>1. INFORMACION PERSONAL</h2><div class="section">'
+      + '<p><span class="field">Nombre:</span> ' + esc(nombreCompleto) + '</p>'
+      + '<p><span class="field">DNI:</span> ' + esc(val('val-dni')) + ' | <span class="field">Edad:</span> ' + esc(val('val-age')) + '</p>'
+      + '<p><span class="field">Nacimiento:</span> ' + esc(val('val-birth')) + '</p>'
+      + '<p><span class="field">Correo:</span> ' + esc(val('val-email')) + ' | <span class="field">Telefono:</span> ' + esc(val('val-phone')) + '</p>'
+      + '<p><span class="field">Direccion:</span> ' + esc(val('val-address')) + '</p></div>'
+      + '<h2>2. INFORMACION CLINICA</h2><div class="section">'
+      + '<p><span class="field">Tipo de Sangre:</span> ' + esc(val('val-blood')) + '</p>'
+      + '<p><span class="field">Alergias:</span> ' + esc(val('val-allergies')) + '</p>'
+      + '<p><span class="field">Condiciones:</span> ' + esc(val('val-conditions')) + '</p>'
+      + '<p><span class="field">Notas:</span> ' + esc(val('val-notes')) + '</p></div>'
+      + '<h2>3. HISTORIAL DE CONSULTAS</h2><div class="section">';
+
+    // Los datos viven en MediModules; MediPartes.citas es el modulo de Citas.
+    const citas = (MediModules.citas || []).filter(function (c) {
+      return String(c.estado).toLowerCase() === 'atendida';
+    });
+
+    if (!citas.length) {
+      html += '<p class="item">Todavia no hay consultas atendidas registradas.</p>';
+    } else {
+      citas.forEach(function (c) {
+        html += '<div class="item">'
+          + '<p><span class="field">[' + esc(c.fecha) + '] ' + esc(c.especialidad) + '</span></p>'
+          + '<p><span class="field">Medico:</span> ' + esc(c.medico) + ' | <span class="field">Lugar:</span> ' + esc(c.lugar) + '</p>'
+          + '</div>';
+      });
+    }
+
+    html += '</div></body></html>';
+
+    const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = 'expediente-mediqr.html';
+    document.body.appendChild(enlace);
+    enlace.click();
+    document.body.removeChild(enlace);
+
+    // Libera el Blob para no retener memoria tras la descarga.
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+
+    MediModules.aviso('Expediente generado en tu dispositivo. Abre el archivo e imprímelo o guárdalo como PDF.');
+  }
+
   // 5. Modales de Perfil
   // Todos usan el <dialog> nativo a traves de MediModules.modal(),
   // que aporta foco atrapado, cierre con Escape y ::backdrop.
@@ -340,6 +463,7 @@
     "perfil:cancelar-medica": function () { cancelMedicalEdit(); },
     "perfil:guardar-medica": function (el, evento) { saveMedicalEdit(evento); },
     "perfil:password": function (el, evento) { handlePasswordChange(evento); },
+    "perfil:exportar": function () { exportarExpediente(); },
     "perfil:guardar-contacto": function () {
       MediModules.close();
       MediModules.aviso('Contacto guardado visualmente.');

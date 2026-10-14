@@ -101,12 +101,16 @@
     },
 
     // Ejecuta una lista de reglas y devuelve el primer fallo.
+    // Si todas pasan, conserva los datos que las reglas hayan calculado
+    // (por ejemplo nacimiento() deja {edad}), para no repetir el calculo.
     todo(reglas) {
+      const resumen = {};
       for (let i = 0; i < reglas.length; i++) {
         const resultado = reglas[i]();
         if (!resultado.ok) return resultado;
+        Object.assign(resumen, resultado);
       }
-      return { ok: true };
+      return Object.assign({ ok: true }, resumen);
     }
   };
 

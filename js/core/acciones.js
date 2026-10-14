@@ -124,6 +124,12 @@
 
     // ---- Documentos ----
     "documentos:filtrar": function () { global.MediModules.documents(); },
+  "documentos:limpiar-filtros": function () {
+    global.MediModules.limpiarFiltrosDoc();
+    global.MediModules.documents();
+    const campo = document.getElementById("doc-search");
+    if (campo) campo.focus();
+  },
     "documentos:form": function (el) { global.MediModules.documentForm(el.dataset.id ? Number(el.dataset.id) : null); },
     "documentos:ver": function (el) { global.MediModules.verDocumento(Number(el.dataset.id)); },
     "documentos:descargar": function (el) { global.MediModules.descargarDocumento(Number(el.dataset.id)); },
