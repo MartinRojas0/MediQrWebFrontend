@@ -154,9 +154,9 @@
     MediIcons.render(contenido);
   }
 
-  MediAcciones.definirVarias({
-    "historial:buscar": function () { render(); }
-  });
+  // El buscador filtra con un listener explicito sobre el campo, no con una
+// accion delegada: asi el filtrado ocurre en cuanto se escribe, sin depender
+// de que el markup lleve data-action en cada etiqueta.
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", render);

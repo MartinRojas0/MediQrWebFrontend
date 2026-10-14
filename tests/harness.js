@@ -40,6 +40,21 @@ window.__servidor = location.origin;
   };
 })();
 
+// Todo control que ha，县existido alguna vez en el DOM. Los dialogos se vacian
+// al cerrarse, asi que mirar solo el estado final daria falsos positivos.
+window.__visto = {};
+(function () {
+  function anotar() {
+    Array.prototype.forEach.call(document.querySelectorAll('[data-action]'), function (el) {
+      var a = el.getAttribute('data-action');
+      if (a && a.indexOf('${') === -1) window.__visto[a] = true;
+    });
+  }
+  new MutationObserver(anotar).observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener('DOMContentLoaded', anotar);
+  if (document.readyState !== 'loading') anotar();
+})();
+
 window.addEventListener('DOMContentLoaded', function () {
   setTimeout(function () {
     // Modo enlace directo: el ejecutor pide una ruta concreta y solo se
@@ -679,11 +694,269 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
        qa('#view-historial .hist-item').length === antes, qa('#view-historial .hist-item').length);
   }
 
-  // ---------- ESTADO GLOBAL ----------
+// ---------- FLUJOS COMPLETOS ----------
+  // Acciones que solo existen dentro de dialogos y por eso no se veian en un
+  // recorrido del DOM final. Se ejercitan aqui para que ningun flujo quede
+  // sin probar ni cubierto solo por un boton.
+
+  // La disponibilidad oculta los horarios que ya pasaron del dia en curso, asi
+  // que una prueba hecha a las 23 h no encontraria ninguno. Se elige siempre
+  // una fecha futura y laborable para que el resultado no dependa de la hora
+  // a la que se ejecute la suite.
+  function fechaConHorarios(diasAdelante) {
+    for (var d = diasAdelante || 7; d < (diasAdelante || 7) + 10; d++) {
+      var f = new Date(Date.now() + d * 86400000);
+      if (f.getDay() !== 0) return MediPartes.fechas.fechaISO(f);
+    }
+    return MediPartes.fechas.fechaISO(new Date(Date.now() + 7 * 86400000));
+  }
+
+  // --- Citas: reprogramar ---
+  // Los botones de ciclo de vida viven en la lista de Proximas, no en el
+  // calendario.
+  MediModules.irCitas('proximas'); await tick();
+  var citaProxima = MediModules.citas.filter(function (c) {
+    return String(c.estado).toLowerCase() === 'próxima';
+  })[0];
+  ok('F.1 Hay una cita proxima para reprogramar', !!citaProxima);
+
+  if (citaProxima) {
+    var fechaAntes = citaProxima.fecha, horaAntes = citaProxima.hora;
+
+    var btnReprogramar = q('[data-action="citas:pedir-reprogramar"][data-id="' + citaProxima.id + '"]');
+    ok('F.1b La cita ofrece reprogramar', !!btnReprogramar);
+    btnReprogramar.click();
+    await tick();
+    ok('F.2 Pedir reprogramar muestra un resumen con confirmacion',
+       q('#module-dialog').open === true && !!q('#module-dialog [data-action="citas:reprogramar-form"]'));
+
+    q('#module-dialog [data-action="citas:reprogramar-form"]').click(); await tick();
+    ok('F.2b El formulario se abre tras confirmar', q('#module-dialog').open === true && !!q('#rp-fecha'));
+
+    var campoFecha = q('#rp-fecha');
+    var fechaInicial = campoFecha.value;
+    ok('F.3 No permite elegir una fecha pasada',
+       !!campoFecha && campoFecha.getAttribute('min') === MediPartes.fechas.hoyISO() &&
+       campoFecha.value >= MediPartes.fechas.hoyISO(),
+       campoFecha ? 'min=' + campoFecha.getAttribute('min') + ' value=' + campoFecha.value : '(sin campo)');
+
+    var casillas = qa('#rp-slots input[name="hora"]');
+    ok('F.4 Ofrece horarios concretos para elegir', casillas.length > 0, casillas.length + ' horarios');
+    ok('F.5 Los horarios se muestran en 24 h',
+       !/\d{1,2}:\d{2}\s*(a\. m\.|p\. m\.)/.test(q('#rp-slots').textContent));
+
+    // Cambiar la fecha repinta los horarios disponibles.
+    campoFecha.value = fechaConHorarios(8);
+    campoFecha.dispatchEvent(new Event('change', { bubbles: true }));
+    await tick();
+    ok('F.4b Cambiar la fecha repinta los horarios',
+       qa('#rp-slots input[name="hora"]').length > 0,
+       qa('#rp-slots input[name="hora"]').length + ' horarios');
+
+    // Volver a la fecha que tenia la cita y trabajar sobre ella.
+    if (casillas.length === 0) {
+      campoFecha.value = fechaConHorarios(8);
+      campoFecha.dispatchEvent(new Event('change', { bubbles: true }));
+      await tick();
+    }
+    casillas = qa('#rp-slots input[name="hora"]');
+    ok('F.4c La fecha elegida conserva horarios', casillas.length > 0, casillas.length + ' horarios');
+
+    // Sin elegir hora no debe confirmar nada.
+    q('#reschedule-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await tick();
+    ok('F.6 No reprograma sin elegir hora', q('#module-dialog').open === true &&
+       MediModules.citas.filter(function (c) { return c.id === citaProxima.id; })[0].fecha === fechaAntes);
+
+    casillas[0].checked = true;
+    q('#reschedule-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await tick();
+    var reprogramada = MediModules.citas.filter(function (c) { return c.id === citaProxima.id; })[0];
+    ok('F.7 Reprograma con la fecha y hora elegidas',
+       reprogramada.fecha === campoFecha.value && reprogramada.hora === casillas[0].value,
+       reprogramada.fecha + ' ' + reprogramada.hora);
+    ok('F.8 Informa del resultado sin prometer una reserva en linea',
+       /cambiada|cambio|reprogramad/i.test(q('#module-dialog').textContent),
+       q('#module-dialog-title').textContent.trim());
+    q('#module-dialog [data-action="modal:cerrar"]').click(); await tick();
+
+    // Volver a la fecha original deja los datos como estaban.
+    citaProxima.fecha = fechaAntes;
+    citaProxima.hora = horaAntes;
+    MediModules.render();
+  }
+
+  // --- Citas: finalizar ---
+  // "Marcar como atendida" vive en el dialogo de detalle, no en la tarjeta.
+  var citaAtender = MediModules.citas.filter(function (c) {
+    return String(c.estado).toLowerCase() === 'próxima';
+  })[0];
+  if (citaAtender) {
+    MediModules.detail(citaAtender.id); await tick();
+    var btnAtender = q('#module-dialog [data-action="citas:pedir-finalizar"]');
+    ok('F.9 El detalle ofrece marcar la cita como atendida', !!btnAtender);
+    btnAtender.click(); await tick();
+    ok('F.9b Finalizar pide confirmar antes de cambiar el estado',
+       q('#module-dialog').open === true && !!q('#module-dialog [data-action="citas:finalizar"]'));
+
+    q('#module-dialog [data-action="citas:finalizar"]').click(); await tick();
+    ok('F.9c Tras finalizar ofrece adjuntar documento o continuar',
+       q('#module-dialog').open === true &&
+       !!q('#module-dialog [data-action="documentos:form"]') &&
+       !!q('#module-dialog [data-action="citas:omitir-documento"]'));
+
+    q('#module-dialog [data-action="citas:omitir-documento"]').click(); await tick();
+    var atendida = MediModules.citas.filter(function (c) { return c.id === citaAtender.id; })[0];
+    ok('F.10 Omitir documento marca la cita como atendida',
+       String(atendida.estado).toLowerCase() === 'atendida', atendida.estado);
+    if (q('#module-dialog').open) q('#module-dialog').close();
+    await tick();
+  }
+
+  // --- Citas: cancelar ---
+  var citaCancelar = MediModules.citas.filter(function (c) {
+    return String(c.estado).toLowerCase() === 'próxima';
+  })[0];
+  if (citaCancelar) {
+    var btnCancelar = q('[data-action="citas:pedir-cancelar"][data-id="' + citaCancelar.id + '"]');
+    ok('F.11 La tarjeta ofrece cancelar', !!btnCancelar);
+    btnCancelar.click(); await tick();
+    ok('F.11b Cancelar pide confirmacion antes de actuar',
+       q('#module-dialog').open === true && !!q('#module-dialog [data-action="citas:cancelar"]'));
+
+    q('#module-dialog [data-action="citas:cancelar"]').click(); await tick();
+    var cancelada = MediModules.citas.filter(function (c) { return c.id === citaCancelar.id; })[0];
+    ok('F.12 La cita queda cancelada', String(cancelada.estado).toLowerCase() === 'cancelada', cancelada.estado);
+    if (q('#module-dialog').open) q('#module-dialog').close();
+    await tick();
+  }
+
+  // --- Salud: editar un campo ---
+  q('#nav-salud').click(); await tick();
+  q('#view-salud [data-action="salud:editar"]').click(); await tick();
+  ok('F.13 Editar Salud abre el formulario con Guardar y Cancelar',
+     q('#module-dialog').open === true && !!q('#salud-form') &&
+     !!q('#salud-form button[type="submit"]') &&
+     !!q('#salud-form [data-action="modal:cerrar"]'));
+
+  // Un campo vacio debe explicar el error sin cerrar ni perder lo escrito.
+  var campoValor = q('#salud-form [name="valor"]');
+  var originalValor = campoValor.value;
+  campoValor.value = '   ';
+  q('#salud-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  ok('F.14 Un campo vacio se explica y no se guarda',
+     q('#salud-error').textContent.length > 0 && campoValor.value === '   ',
+     q('#salud-error').textContent);
+  campoValor.value = originalValor;
+  q('#salud-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  ok('F.15 Guardar pide confirmacion antes de escribir en el expediente',
+     q('#module-dialog').open === true && !!q('#module-dialog [data-action="salud:aplicar"]'));
+  q('#module-dialog [data-action="salud:aplicar"]').click(); await tick();
+  ok('F.16 Confirmar aplica el cambio y cierra',
+     q('#module-dialog').open === false && MediModules.salud.alergias.length > 0);
+  await tick();
+
+  // --- Salud: grupo sanguineo ---
+  // La fila de Grupo Sangreo abre el selector directamente, no el formulario
+  // de texto: son dos caminos distintos hacia el mismo dato.
+  q('#view-salud [data-action="salud:elegir-sangre"]').click(); await tick();
+  ok('F.17 Elegir grupo sanguineo ofrece confirmar',
+     q('#module-dialog').open === true && !!q('#module-dialog [data-action="salud:confirmar-sangre"]'));
+  q('#module-dialog [data-action="salud:confirmar-sangre"]').click(); await tick();
+  if (q('#module-dialog').open) q('#module-dialog').close();
+  await tick();
+
+  // --- SOS: la llamada pasa por confirmacion y se puede anular ---
+  var fab = q('#sos-boton');
+  fab.click(); await tick();
+  q('#module-dialog [data-action="sos:ambulancia"]').click(); await tick();
+  ok('F.16 Llamar a ambulancia pide confirmar antes de marcar',
+     !!q('#module-dialog [data-action="sos:confirmar-llamada"]') &&
+     !!q('#module-dialog [data-action="sos:reanudar"]'));
+
+  q('#module-dialog [data-action="sos:reanudar"]').click(); await tick();
+  ok('F.17 Anular la llamada devuelve al panel SOS con la cuenta atras',
+     !!q('#sos-timer') && !q('#module-dialog [data-action="sos:reanudar"]'),
+     q('#sos-timer') ? q('#sos-timer').textContent : '(sin cuenta atras)');
+  q('#module-dialog [data-action="sos:cancelar"]').click(); await tick();
+
+  // --- Citas: agendar una nueva ---
+  MediModules.irCitas('agendar'); await tick();
+  var antesDeAgendar = MediModules.citas.length;
+
+  // Elegir especialidad -> medico -> fecha -> hora, como en el movil.
+  function elegir(etiqueta) {
+    var entrada = etiqueta.matches('input') ? etiqueta : etiqueta.querySelector('input');
+    if (entrada) { entrada.click(); return true; }
+    return false;
+  }
+
+  var esp = qa('#ag-esp .choice')[0];
+  ok('F.18 El formulario ofrece especialidades', !!esp, esp ? esp.textContent.trim() : '(ninguna)');
+  if (esp && elegir(esp)) {
+    await tick();
+
+    var med = qa('#ag-medicos .choice')[0];
+    ok('F.19 Al elegir especialidad aparecen los medicos', !!med,
+       q('#ag-medicos').textContent.trim().slice(0, 40));
+    if (med && elegir(med)) await tick();
+
+    var campoFechaAgenda = q('#ag-fecha');
+    ok('F.20 La fecha no admite el pasado',
+       !!campoFechaAgenda && campoFechaAgenda.getAttribute('min') === MediPartes.fechas.hoyISO(),
+       campoFechaAgenda ? campoFechaAgenda.getAttribute('min') : '(sin campo)');
+
+    if (campoFechaAgenda) {
+      campoFechaAgenda.value = fechaConHorarios(9);
+      campoFechaAgenda.dispatchEvent(new Event('change', { bubbles: true }));
+      await tick();
+    }
+
+    var slotsAgenda = qa('#ag-slots input[name="hora"]');
+    ok('F.21 Se ofrecen horarios concretos', slotsAgenda.length > 0, slotsAgenda.length + ' horarios');
+
+    if (slotsAgenda.length) {
+      // Marcar la casilla no dispara change por si solo: hay que avisar al
+        // formulario, igual que haria el navegador con un clic real.
+        slotsAgenda[0].checked = true;
+        slotsAgenda[0].dispatchEvent(new Event('change', { bubbles: true }));
+        await tick();
+        q('#schedule-form [type="submit"]').click(); await tick();
+      ok('F.22 Muestra un resumen antes de crear la cita',
+         q('#module-dialog').open === true && !!q('#module-dialog [data-action="citas:confirmar"]') &&
+         MediModules.citas.length === antesDeAgendar,
+         !q('#module-dialog').open
+           ? 'error: ' + (q('#schedule-error') ? q('#schedule-error').textContent : '(sin error)')
+           : MediModules.citas.length + ' citas todavia');
+
+if (q('#module-dialog [data-action="citas:confirmar"]')) {
+          q('#module-dialog [data-action="citas:confirmar"]').click(); await tick();
+          ok('F.23 Confirmar crea la cita en este dispositivo',
+             MediModules.citas.length === antesDeAgendar + 1,
+             MediModules.citas.length + ' citas');
+          ok('F.24 Informa del resultado sin prometer una reserva confirmada',
+             /registrad|guardad/i.test(q('#module-dialog').textContent),
+             q('#module-dialog-title').textContent.trim());
+          if (q('#module-dialog').open) q('#module-dialog').close();
+        }
+      }
+    }
+  await tick();
+
+  // --- ESTADO GLOBAL ---
+  q('#nav-inicio').click(); await tick();
   q('#nav-inicio').click(); await tick();
   ok('G.1 Vuelta a Inicio', vis(q('#view-inicio')));
   ok('G.2 Una sola vista visible', qa('.view-section:not(.hidden)').length === 1, qa('.view-section:not(.hidden)').length);
-  ok('G.3 Datos intactos', MediModules.citas.length === 9 && MediModules.documentos.length === 9);
+  // Las pruebas de flujo crean y modifican citas a proposito, asi que no se
+  // comprueba el total: se comprueba que los datos de partida siguen ahi.
+  ok('G.3 Datos de partida intactos',
+     MediModules.documentos.length === 9 &&
+     MediModules.citas.length >= 9 &&
+     MediModules.citas.some(function (c) { return String(c.estado).toLowerCase() === 'atendida'; }),
+     MediModules.documentos.length + ' documentos, ' + MediModules.citas.length + ' citas');
   ok('G.4 Sin errores JavaScript', (window.__errs || []).length === 0, JSON.stringify(window.__errs || []));
 
   // Iconos: render() sustituye cada <i data-icon> por su <svg>. Si queda
@@ -745,6 +1018,32 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
      /guardado en (el |nuestro )?(servidor|nube)|enviado (al|a) servidor|subido correctamente|guardado en la nube/i
        .test(cuerpo) === false,
      'ninguno');
+
+  // Registro de acciones: todas las vistas viven en el DOM (solo ocultas),
+  // asi que un recorrido del documento cubre el marcado completo. Un control
+  // sin accion registrada es un boton que no hace nada.
+  var registro = MediAcciones.registro;
+  var controles = Array.prototype.slice.call(qa('[data-action]')).filter(function (el) {
+    return el.getAttribute('data-action').indexOf('${') === -1;
+  });
+  var sinAccion = [];
+  controles.forEach(function (el) {
+    var a = el.getAttribute('data-action');
+    if (typeof registro[a] !== 'function' && sinAccion.indexOf(a) === -1) sinAccion.push(a);
+  });
+  ok('G.13 Todo control tiene su accion registrada',
+     controles.length > 0 && sinAccion.length === 0,
+     controles.length + ' controles; sin accion: ' + (sinAccion.join(', ') || 'ninguno'));
+
+  // Y al reves: una accion registrada que nunca aparece en el DOM es codigo
+  // muerto. Se consulta el registro de todo lo que ha existido, no solo el
+  // estado final, porque los dialogos se vacian al cerrarse.
+  var muertas = Object.keys(registro).filter(function (a) { return !window.__visto[a]; });
+  ok('G.14 No hay acciones registradas sin usar', muertas.length === 0,
+     muertas.length ? muertas.join(', ') : 'ninguna');
+  ok('G.15 Se han visto acciones de todo el portal',
+     Object.keys(window.__visto).length >= 45,
+     Object.keys(window.__visto).length + ' acciones vistas');
 
   var pass = R.filter(function (r) { return r.p; }).length;
   var out = '==RESULTADO==\nTOTAL=' + R.length + ' OK=' + pass + ' FALLOS=' + (R.length - pass) + '\n';

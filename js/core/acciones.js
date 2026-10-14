@@ -101,7 +101,6 @@
   // ---- Navegacion ----
   MediAcciones.definirVarias({
     "nav:ir": function (el) { global.Router.ir(el.dataset.ruta); },
-    "nav:toggle": function (el, evento) { global.MediModules.toggleMenu(evento, el); },
 
     "citas:ir": function (el) { global.MediModules.irCitas(el.dataset.vista); },
     "documentos:ir": function (el) { global.MediModules.irDocumentos(el.dataset.vista); },
@@ -137,15 +136,7 @@
     "documentos:eliminar": function (el) { global.MediModules.eliminarDocumento(Number(el.dataset.id)); },
 
     // ---- Ventana modal ----
-    "modal:cerrar": function () { global.MediModules.close(); },
-    "qr:ver": function () { global.MediModules.verQr(); },
-
-    // ---- Accesorios todavia no implementados ----
-    // Avisan con el toast accesible en lugar de alert(), que bloquea la
-    // pagina y no lo anuncia un lector de pantalla de forma fiable.
-    "demo:aviso": function (el) {
-      global.MediModules.aviso(el.dataset.mensaje + " (funcion pendiente).");
-    }
+    "modal:cerrar": function () { global.MediModules.close(); }
   });
 
   global.MediAcciones = MediAcciones;

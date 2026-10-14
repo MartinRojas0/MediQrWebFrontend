@@ -544,11 +544,15 @@ window.MediPartes.citas = {
     return { especialidad: "", medico: "", fecha: "", hora: "", lugar: "" };
   },
 
-  agendar() {
+agendar() {
     const b = this.borrador;
     const hoy = this.hoyISO();
-
-    const lugares = Object.keys(this.lugares)
+    const disponibles = Object.keys(this.lugares);
+    // El navegador marca la primera opcion aunque ninguna tenga selected, asi
+    // que el paciente ve un lugar elegido y el modelo seguia vacio: al enviar
+    // sin tocar el selector fallaba con "Completa: lugar".
+    if (!b.lugar || !this.lugares[b.lugar]) b.lugar = disponibles[0];
+    const lugares = disponibles
       .map((lugar) => `
         <option value="${this.atributo(lugar)}" ${b.lugar === lugar ? "selected" : ""}>
           ${this.escapar(lugar)}
