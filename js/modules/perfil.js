@@ -155,8 +155,10 @@
             <h3 class="mt-2"><i data-icon="shield-halved"></i> Seguridad</h3>
             <div class="security-actions mt-1">
               <button class="btn btn-outline"  data-action="perfil:cambiar-password"><i data-icon="key"></i> Cambiar contraseña</button>
+              <button class="btn btn-outline"  data-action="perfil:ir-acceso"><i data-icon="right-from-bracket"></i> Iniciar sesión</button>
               <button class="btn btn-danger"  data-action="perfil:cerrar-sesion"><i data-icon="right-from-bracket"></i> Cerrar sesión</button>
             </div>
+            <p class="text-muted mt-1"><small>El acceso está pendiente de integración: todavía no hay servidor que verifique las credenciales.</small></p>
           </article>
 
         </main>
@@ -201,6 +203,7 @@
   // cancelar y volver a editar resucita valores que el paciente ya habia
   // descartado en el intento anterior.
   function enablePersonalEdit() {
+    const formulario = document.getElementById('personal-edit-form');
     document.getElementById('inp-name').value = document.getElementById('val-name').textContent;
     document.getElementById('inp-lastname').value = document.getElementById('val-lastname').textContent;
     document.getElementById('inp-dni').value = document.getElementById('val-dni').textContent;
@@ -217,8 +220,19 @@
     document.getElementById('personal-read-view').classList.add('hidden');
     document.getElementById('personal-edit-form').classList.remove('hidden');
     document.getElementById('btn-edit-personal').classList.add('hidden');
+
+    // La foto se toma al abrir, no al cargar la vista: si no, compararíamos
+    // contra unos valores que el paciente ya habia cambiado.
+    MediFormularios.marcar(formulario);
   }
   function cancelPersonalEdit() {
+    // Si hay algo escrito que no se ha guardado, se pregunta antes de
+    // tirarlo: entrar y salir sin querer no debe costar los datos.
+    const formulario = document.getElementById('personal-edit-form');
+    if (!MediFormularios.confirmarDescarte(formulario,
+        'Tienes cambios en tus datos sin guardar. Si sales ahora, se perderán.')) {
+      return;
+    }
     document.getElementById('personal-read-view').classList.remove('hidden');
     document.getElementById('personal-edit-form').classList.add('hidden');
     document.getElementById('btn-edit-personal').classList.remove('hidden');
@@ -275,16 +289,24 @@
     const direccion = [valores.calle, valores.distrito].filter(Boolean).join(', ');
     document.getElementById('val-address').textContent = direccion || 'Sin registrar';
 
-    MediModules.aviso('Información personal actualizada.');
+    MediModules.avisoLocal('Información personal actualizada.');
     cancelPersonalEdit();
   }
   // 4. Edición visual de Información Médica
   function enableMedicalEdit() {
+    const formulario = document.getElementById('medical-edit-form');
     document.getElementById('medical-read-view').classList.add('hidden');
     document.getElementById('medical-edit-form').classList.remove('hidden');
     document.getElementById('btn-edit-medical').classList.add('hidden');
+
+    MediFormularios.marcar(formulario);
   }
   function cancelMedicalEdit() {
+    const formulario = document.getElementById('medical-edit-form');
+    if (!MediFormularios.confirmarDescarte(formulario,
+        'Tienes cambios en tu información médica sin guardar. Si sales ahora, se perderán.')) {
+      return;
+    }
     document.getElementById('medical-read-view').classList.remove('hidden');
     document.getElementById('medical-edit-form').classList.add('hidden');
     document.getElementById('btn-edit-medical').classList.remove('hidden');
@@ -295,7 +317,7 @@
     document.getElementById('val-allergies').textContent = document.getElementById('inp-allergies').value;
     document.getElementById('val-conditions').textContent = document.getElementById('inp-conditions').value;
     document.getElementById('val-notes').textContent = document.getElementById('inp-notes').value;
-    MediModules.aviso('Información médica actualizada.');
+    MediModules.avisoLocal('Información médica actualizada.');
     cancelMedicalEdit();
   }
 
@@ -407,61 +429,67 @@
     },
     confirmarEliminar() {
       MediModules.close();
-      MediModules.aviso('Contacto eliminado visualmente.');
+      MediModules.avisoLocal('Contacto eliminado.');
     },
+    // Sin servidor de autenticacion, cambiar la contrasena aqui no cambiaria
+    // nada: se guardaria en memoria y se perderia al recargar, dando la
+    // impresion de que la cuenta esta protegida cuando no lo esta. Se
+    // muestra el formulario con la accion desactivada y el motivo a la vista.
     cambiarPassword() {
       MediModules.modal('Cambiar contraseña', `
-        <form id="password-form" class="module-form" novalidate  data-action="perfil:password">
+        <div class="card pending-card" role="note" id="password-pendiente">
+          <p class="pending-head">
+            <i data-icon="shield-halved"></i> Cambio de contraseña pendiente
+          </p>
+          <p>No hay servidor de autenticación conectado, así que aquí no se puede
+             cambiar ninguna contraseña.</p>
+          <p class="text-muted">Escribirla aquí solo daría la impresión de que la
+             cuenta está protegida cuando no lo está.</p>
+        </div>
+        <form id="password-form" class="module-form" novalidate data-action="perfil:password">
           <label class="wide">Contraseña actual: <input type="password" id="pass-curr" autocomplete="current-password"></label>
           <label class="wide">Nueva contraseña: <input type="password" id="pass-new" autocomplete="new-password"></label>
           <label class="wide">Confirmar nueva contraseña: <input type="password" id="pass-conf" autocomplete="new-password"></label>
           <p id="pass-error" class="error-msg wide" role="alert"></p>
           <div class="module-actions wide">
-            <button type="submit" class="btn btn-primary">Cambiar contraseña</button>
-            <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cancelar</button>
+            <button type="submit" class="btn btn-primary" disabled aria-describedby="password-pendiente">
+              Cambiar contraseña
+            </button>
+            <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cerrar</button>
           </div>
         </form>
       `);
     },
+    // No hay sesion que cerrar: el acceso no esta integrado. Se ofrece ir a
+    // las pantallas de acceso, que es lo que el paciente buscaria.
     cerrarSesion() {
-      MediModules.modal('¿Deseas cerrar sesión?', `
-        <p class="text-muted"><small>Saldrás de la demostración visual del portal.</small></p>
+      MediModules.modal('Sesión de acceso', `
+        <p class="text-muted">Todavía no hay una sesión iniciada: el acceso al
+        portal aún no está integrado con un servidor.</p>
+        <p class="file-help">Los datos que ves son de demostración y están
+        disponibles sin ningún tipo de acceso.</p>
         <div class="module-actions">
-          <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cancelar</button>
-          <button type="button" class="btn btn-danger"  data-action="perfil:confirmar-cierre">Cerrar sesión</button>
+          <button type="button" class="btn btn-primary"  data-action="perfil:ir-acceso">Ir a iniciar sesión</button>
+          <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cerrar</button>
         </div>
       `, true);
     },
-    confirmarCierre() {
-      MediModules.close();
-      MediModules.aviso('Sesión cerrada visualmente.');
-    }
   };
-  // 6. Validación visual de Cambiar Contraseña (Punto 12)
+  // El envio esta deshabilitado, pero si alguien lo fuerza por teclado el
+  // formulario responde igual: explica el motivo y borra lo escrito para
+  // que ninguna contrasena quede en el DOM.
   function handlePasswordChange(e) {
     e.preventDefault();
-    const curr = document.getElementById('pass-curr').value;
-    const newP = document.getElementById('pass-new').value;
-    const confP = document.getElementById('pass-conf').value;
+
     const errBox = document.getElementById('pass-error');
-    if (!curr || !newP || !confP) {
-      errBox.textContent = "Campos vacíos: Todos los datos son obligatorios.";
-      errBox.classList.remove('hidden');
-      return;
-    }
-    if (newP.length < 6) {
-      errBox.textContent = "Contraseña insuficiente: Debe tener al menos 6 caracteres.";
-      errBox.classList.remove('hidden');
-      return;
-    }
-    if (newP !== confP) {
-      errBox.textContent = "Contraseñas diferentes: Las contraseñas no coinciden.";
-      errBox.classList.remove('hidden');
-      return;
-    }
-    errBox.classList.add('hidden');
-    MediModules.close();
-    MediModules.aviso('Contraseña actualizada visualmente con éxito.');
+    errBox.textContent =
+      'El cambio de contraseña todavía no está disponible: falta conectar el servidor de autenticación.';
+    errBox.classList.remove('hidden');
+
+    ['pass-curr', 'pass-new', 'pass-conf'].forEach(function (id) {
+      const campo = document.getElementById(id);
+      if (campo) campo.value = '';
+    });
   }
 
   function iniciar() {
@@ -480,17 +508,17 @@
     "perfil:guardar-medica": function (el, evento) { saveMedicalEdit(evento); },
     "perfil:password": function (el, evento) { handlePasswordChange(evento); },
     "perfil:exportar": function () { exportarExpediente(); },
+    "perfil:ir-acceso": function () { Router.ir("acceso"); },
     "perfil:guardar-contacto": function () {
       MediModules.close();
-      MediModules.aviso('Contacto guardado visualmente.');
+      MediModules.avisoLocal('Contacto guardado.');
     },
     
     "perfil:agregar-contacto": function () { PerfilModales.agregarContacto(); },
     "perfil:eliminar-contacto": function () { PerfilModales.eliminarContacto(); },
     "perfil:confirmar-eliminar": function () { PerfilModales.confirmarEliminar(); },
     "perfil:cambiar-password": function () { PerfilModales.cambiarPassword(); },
-    "perfil:cerrar-sesion": function () { PerfilModales.cerrarSesion(); },
-    "perfil:confirmar-cierre": function () { PerfilModales.confirmarCierre(); }
+    "perfil:cerrar-sesion": function () { PerfilModales.cerrarSesion(); }
   });
 
   if (document.readyState === "loading") {

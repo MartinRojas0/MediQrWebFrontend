@@ -125,7 +125,7 @@ async function run() {
   var hashInicial = location.hash;
   var recs = performance.getEntriesByType('resource').map(function (r) { return r.name; });
   ok('R.1 Entrada en la raiz del sitio', location.pathname === '/' || location.pathname === '/index.html', location.pathname);
-  ok('R.2 CSS cargados desde /css', recs.filter(function (u) { return /\.css$/.test(u); }).length === 6, recs.filter(function (u) { return /\.css$/.test(u); }).length + ' hojas');
+  ok('R.2 CSS cargados desde /css', recs.filter(function (u) { return /\.css$/.test(u); }).length === 7, recs.filter(function (u) { return /\.css$/.test(u); }).length + ' hojas');
   ok('R.3 Todos los scripts de la app se sirven desde /js', recs.filter(function (u) { return /\.js$/.test(u); })
     .filter(function (u) { return u.indexOf('/__test__/') === -1; })
     .every(function (u) { return /\/js\//.test(u); }));
@@ -377,7 +377,7 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
     ['+ Agregar contacto', 'Contacto de Emergencia', 'contactos'],
     ['Eliminar', 'eliminar este contacto', 'contactos'],
     ['Cambiar contraseña', 'Cambiar contraseña', 'configuracion'],
-    ['Cerrar sesión', 'cerrar sesión', 'configuracion']
+    ['Cerrar sesión', 'Sesión de acceso', 'configuracion']
   ];
 
   for (var i = 0; i < disparadores.length; i++) {
@@ -418,20 +418,36 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
   await tick();
   ok('M.7 Cierre con Escape', q('#module-dialog').open === false);
 
-  // Validacion de contrasena conservada
+  // Sin servidor de autenticacion no se cambia ninguna contrasena: el boton
+  // esta deshabilitado y un envio forzado lo explica y borra lo escrito.
   q('#ptab-configuracion [data-action="perfil:cambiar-password"]').click(); await tick();
-  q('#pass-curr').value = 'a'; q('#pass-new').value = '123'; q('#pass-conf').value = '456';
+  ok('M.8 Cambiar contrasena esta desactivado y lo explica',
+     q('#password-form [type="submit"]').disabled === true &&
+     !!q('#password-pendiente') &&
+     /pendiente/i.test(q('#password-pendiente').textContent),
+     q('#password-form [type="submit"]').disabled ? 'deshabilitado + aviso' : 'activo');
+
+  q('#pass-curr').value = 'actual'; q('#pass-new').value = 'abcdef'; q('#pass-conf').value = 'abcdef';
   q('#password-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
-  ok('M.8 Validacion de contrasena: minimo 6 caracteres', /6 caracteres/.test(q('#pass-error').textContent), q('#pass-error').textContent);
-  q('#pass-new').value = 'abcdef'; q('#pass-conf').value = 'abcdeg';
-  q('#password-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
-  ok('M.9 Validacion de contrasena: no coinciden', /coinciden/.test(q('#pass-error').textContent), q('#pass-error').textContent);
-  q('#pass-new').value = 'abcdef'; q('#pass-conf').value = 'abcdef';
-  q('#password-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
-  ok('M.10 Contrasena valida acepta y cierra', q('#module-dialog').open === false);
+  ok('M.9 Un envio forzado no finge cambiar la contrasena',
+     /todav[ií]a no est[aá] disponible|falta conectar el servidor/i.test(q('#pass-error').textContent),
+     q('#pass-error').textContent);
+  ok('M.10 Y borra las contrasenas del formulario',
+     q('#pass-curr').value === '' && q('#pass-new').value === '' && q('#pass-conf').value === '',
+     'campos vacios');
+  q('#module-dialog [data-action="modal:cerrar"]').click(); await tick();
 
   // Toast accesible
-  q('#ptab-configuracion [data-action="perfil:cerrar-sesion"]').click(); await tick(); q('#module-dialog [data-action="perfil:confirmar-cierre"]').click(); await tick();
+  q('#ptab-configuracion [data-action="perfil:cerrar-sesion"]').click(); await tick();
+  // No hay sesion que cerrar: el dialogo lo explica y lleva al acceso.
+  ok('V4.13 Cerrar sesion no finge cerrar nada',
+     q('#module-dialog').open === true &&
+     /no hay una sesi[oó]n iniciada|no est[aá] integrada/i.test(q('#module-dialog').textContent) &&
+     !q('#module-dialog [data-action="perfil:confirmar-cierre"]'),
+     q('#module-dialog').textContent.replace(/\s+/g, ' ').slice(0, 80));
+  q('#module-dialog [data-action="perfil:ir-acceso"]').click(); await tick();
+  ok('V4.14 Cerrar sesion ofrece ir al acceso', location.hash === '#/acceso', location.hash);
+  Router.ir('perfil'); await tick();
   ok('M.11 Aviso accesible role=status', q('#module-notice').getAttribute('role') === 'status');
   ok('M.12 Aviso visible', !q('#module-notice').classList.contains('hidden'), q('#module-notice').textContent);
 
@@ -936,16 +952,250 @@ if (q('#module-dialog [data-action="citas:confirmar"]')) {
           ok('F.23 Confirmar crea la cita en este dispositivo',
              MediModules.citas.length === antesDeAgendar + 1,
              MediModules.citas.length + ' citas');
-          ok('F.24 Informa del resultado sin prometer una reserva confirmada',
-             /registrad|guardad/i.test(q('#module-dialog').textContent),
-             q('#module-dialog-title').textContent.trim());
+ok('F.24 Informa del resultado sin prometer una reserva confirmada',
+         /este dispositivo/.test(q('#module-dialog').textContent) &&
+         /no se ha reservado|no hay servidor|sin conexión/i.test(q('#module-dialog').textContent),
+         q('#module-dialog-title').textContent.trim());
           if (q('#module-dialog').open) q('#module-dialog').close();
         }
       }
     }
   await tick();
 
-  // --- ESTADO GLOBAL ---
+  // ---------- ACCESO (sesion pendiente de backend) ----------
+  // No se protege nada, y el portal lo dice. Lo que se comprueba es que las
+  // tres pantallas existan, que el envio este deshabilitado y que no quede
+  // ninguna contrasena guardada ni ninguna peticion hecha.
+  Router.ir('acceso'); await tick();
+
+  ok('A.1 La pantalla de acceso existe', vis(q('#view-acceso')) &&
+     /Iniciar sesi/.test(q('#view-acceso h1').textContent), q('#view-acceso h1').textContent.trim());
+
+  ok('A.2 Respeta los campos del movil (correo y contrasena)',
+     !!q('#acc-correo') && !!q('#acc-contrasena') &&
+     q('#acc-correo').getAttribute('autocomplete') === 'email' &&
+     q('#acc-contrasena').getAttribute('type') === 'password',
+     'correo + contrasena');
+
+  ok('A.3 El boton de iniciar sesion esta deshabilitado',
+     !!q('#acceso-form [type="submit"]') && q('#acceso-form [type="submit"]').disabled === true);
+
+  ok('A.4 Explica que el acceso esta pendiente, con razon',
+     /pendiente de integraci/.test(q('#view-acceso').textContent) &&
+     /no est[aá]n protegidos/.test(q('#view-acceso').textContent),
+     q('.pending-head') ? q('.pending-head').textContent.trim() : '(sin aviso)');
+
+  // El enlace de registro del movil: "¿No tienes cuenta? Registrate aqui".
+  q('#view-acceso [data-action="acceso:ir"]').click(); await tick();
+  ok('A.5 El enlace lleva a crear una cuenta',
+     location.hash === '#/acceso/registro' && /Crear una cuenta/.test(q('#view-acceso h1').textContent),
+     location.hash);
+
+  ok('A.6 El registro pide confirmar la contrasena',
+     !!q('#acc-contrasena') && !!q('#acc-repetir') && q('#registro-form [type="submit"]').disabled === true);
+
+  // Contrasenas distintas: se explica sin enviar nada.
+  q('#acc-correo').value = 'paciente@ejemplo.invalid';
+  q('#acc-contrasena').value = 'clave-larga-1';
+  q('#acc-repetir').value = 'clave-larga-2';
+  q('#registro-form').dispatchEvent(new Event('input', { bubbles: true }));
+  await tick();
+  ok('A.7 Detecta que las contrasenas no coinciden',
+     /no coinciden/.test(q('#registro-error').textContent), q('#registro-error').textContent);
+
+  // Un envio forzado no guarda la contrasena ni sale a la red.
+  q('#acc-contrasena').value = 'clave-larga-1';
+  q('#acc-repetir').value = 'clave-larga-1';
+  var redAntes = window.__red.length;
+  q('#registro-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  ok('A.8 Un envio no deja la contrasena en el formulario',
+     q('#acc-contrasena').value === '' && q('#acc-repetir').value === '',
+     'correo conservado: ' + q('#acc-correo').value);
+  ok('A.9 Un envio no sale a la red', window.__red.length === redAntes, 'red: ' + window.__red.length);
+  ok('A.10 El aviso nombra lo que falta, sin fingir un fallo del servidor',
+     /falta conectar el servidor|todav[ií]a no est[aá] disponible/i.test(q('#registro-error').textContent),
+     q('#registro-error').textContent);
+
+  // Nada se guarda en almacenamiento persistente.
+  var guardado = [];
+  try { for (var k = 0; k < localStorage.length; k++) guardado.push(localStorage.key(k)); } catch (e) { }
+  try { for (var s = 0; s < sessionStorage.length; s++) guardado.push(sessionStorage.key(s)); } catch (e) { }
+  ok('A.11 No se guarda nada en el almacenamiento del navegador',
+     guardado.length === 0, guardado.join(', ') || 'vacio');
+  ok('A.12 No hay cookies de sesion',
+     document.cookie === '' || !/token|session|auth/i.test(document.cookie), document.cookie || 'sin cookies');
+
+  // Recuperacion de acceso: se vuelve al inicio de sesion y se toma el enlace.
+  Router.ir('acceso'); await tick();
+  q('#view-acceso [data-action="acceso:recuperar"]').click(); await tick();
+  ok('A.13 Existe la pantalla de recuperacion',
+     location.hash === '#/acceso/recuperar' && /Recuperar acceso/.test(q('#view-acceso h1').textContent),
+     location.hash);
+  ok('A.14 Recuperar tambien esta pendiente',
+     q('#recuperar-form [type="submit"]').disabled === true &&
+     /pendiente de integraci/.test(q('#view-acceso').textContent));
+
+  // La navegacion no desaparece en las pantallas de acceso: si no, el
+  // paciente se queda sin forma de volver al portal.
+  var rutasAcceso = ['acceso', 'acceso/registro', 'acceso/recuperar'];
+  var navVisible = true;
+  rutasAcceso.forEach(function (ruta) {
+    Router.ir(ruta);
+    var barra = q('.app-nav');
+    if (!barra || !barra.getBoundingClientRect().height > 0) navVisible = false;
+  });
+  ok('A.15 La navegacion sigue disponible en las pantallas de acceso', navVisible);
+
+  // Y se puede volver al portal desde ahi.
+  q('#nav-inicio').click(); await tick();
+  ok('A.16 Se vuelve al portal desde Acceso', vis(q('#view-inicio')) && !vis(q('#view-acceso')));
+
+  // ---------- EDICION Y GUARDADOS (Fase 3) ----------
+  // Un guardado local debe decir solo lo que ha pasado: que quedo en este
+  // dispositivo. Y cancelar con cambios escritos debe pedir permiso.
+  q('#nav-salud').click(); await tick();
+  q('#view-salud [data-action="salud:editar"]').click(); await tick();
+  q('#salud-form [name="valor"]').value = 'Penicilina (grave), Iberseno';
+  q('#salud-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  q('#module-dialog [data-action="salud:aplicar"]').click(); await tick();
+  ok('E.1 Un guardado local aclara que no se sincroniza',
+     /este dispositivo/.test(q('#module-notice').textContent) &&
+     /no se sincroniza/i.test(q('#module-notice').textContent),
+     q('#module-notice').textContent);
+
+  // El aviso tiene que durar lo suficiente para leerlo.
+  ok('E.2 El aviso permanece visible unos segundos',
+     !q('#module-notice').classList.contains('hidden'));
+
+  // Sin cambios escritos, cancelar no debe preguntar nada.
+  var preguntar = 0;
+  window.__ultimaPregunta = '';
+  const confirmarReal = window.confirm;
+  window.confirm = function (m) { window.__ultimaPregunta = String(m || ''); preguntar++; return true; };
+
+  q('#nav-perfil').click(); await tick();
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="info-personal"]').click();
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+  ok('E.3 Entrar en edicion no pregunta nada por si solo', preguntar === 0, preguntar + ' preguntass');
+
+// Con cambios escritos, cancelar avisa antes de tirarlos.
+  //
+  // El componente se prueba sobre un formulario recien creado: el de Perfil
+  // arrastra el estado de todas las veces que se ha abierto antes en la
+  // suite, y eso no dice nada de si la guarda funciona.
+  var hoja = document.createElement('div');
+  hoja.innerHTML = '<form id="probe-form"><input id="probe-a" value="uno">' +
+    '<input id="probe-b" value="dos"><select id="probe-c"><option value="x">x</option>' +
+    '<option value="y">y</option></select><textarea id="probe-d">t</textarea></form>';
+  document.body.appendChild(hoja);
+  var prueba = document.getElementById('probe-form');
+
+  MediFormularios.marcar(prueba);
+  ok('E.5a Un formulario recien marcado no tiene cambios pendientes',
+     MediFormularios.hayCambios(prueba) === false);
+
+  document.getElementById('probe-a').value = 'cambiado';
+  document.getElementById('probe-d').value = 'otro texto';
+  prueba.dispatchEvent(new Event('input', { bubbles: true }));
+  ok('E.5b Escribir en un input marca el formulario como modificado',
+     MediFormularios.hayCambios(prueba) === true);
+
+  document.getElementById('probe-a').value = 'uno';
+  document.getElementById('probe-d').value = 't';
+  prueba.dispatchEvent(new Event('input', { bubbles: true }));
+  ok('E.5c Volver al valor original lo deja limpio',
+     MediFormularios.hayCambios(prueba) === false);
+
+  document.getElementById('probe-b').value = 'otro';
+  prueba.dispatchEvent(new Event('input', { bubbles: true }));
+
+  var confirmaciones = [];
+  window.confirm = function (m) { confirmaciones.push(String(m || '')); return false; };
+  ok('E.6 Sin confirmar no se descarta',
+     MediFormularios.confirmarDescarte(prueba, 'Se perderán tus cambios.') === false &&
+     MediFormularios.hayCambios(prueba) === true);
+  ok('E.7 El aviso dice que se perderan',
+     confirmaciones.length === 1 && /se perder/i.test(confirmaciones[0]),
+     confirmaciones[0] || '(sin aviso)');
+
+  window.confirm = function () { confirmaciones.push('si'); return true; };
+  ok('E.8 Confirmando se descarta',
+     MediFormularios.confirmarDescarte(prueba) === true);
+  // Tras descartar, la foto se toma de nuevo: volver a cancelar no pregunta.
+  MediFormularios.marcar(prueba);
+  ok('E.8b Tras descartar, no queda nada que perder',
+     MediFormularios.hayCambios(prueba) === false);
+
+  // Un <select> no siempre emite input: change debe marcarlo tambien.
+  document.getElementById('probe-c').value = 'y';
+  prueba.dispatchEvent(new Event('change', { bubbles: true }));
+  ok('E.9 Cambiar un select tambien marca el formulario',
+     MediFormularios.hayCambios(prueba) === true);
+
+  // Sin cambios, cancelar no molesta.
+  var molesta = 0;
+  window.confirm = function () { molesta++; return true; };
+  document.getElementById('probe-c').value = 'x';
+  document.getElementById('probe-b').value = 'dos';
+  prueba.dispatchEvent(new Event('change', { bubbles: true }));
+  MediFormularios.marcar(prueba);
+  ok('E.10 Sin cambios no se pregunta nada', MediFormularios.hayCambios(prueba) === false);
+  MediFormularios.confirmarDescarte(prueba);
+  ok('E.10b Y sale sin preguntar', molesta === 0, molesta + ' pregunta(s)');
+
+  hoja.remove();
+  window.confirm = confirmarReal;
+
+  // El formulario de Perfil esta conectado a la guarda. Se marca como
+  // sucio a proposito para aislar el enlace con el componente.
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+  var personal = q('#personal-edit-form');
+  MediFormularios.marcar(personal);
+  q('#inp-street').value = 'Calle sin guardar';
+  personal.dispatchEvent(new Event('input', { bubbles: true }));
+  var preguntar = 0;
+  window.confirm = function () { preguntar++; return true; };
+  q('#personal-edit-form [data-action="perfil:cancelar-personal"]').click(); await tick();
+  ok('E.11 Cancelar un formulario con cambios pregunta antes de descartarlos',
+     preguntar === 1 && vis(q('#personal-read-view')),
+     preguntar + ' pregunta(s), cerrado=' + vis(q('#personal-read-view')));
+  window.confirm = confirmarReal;
+
+  // Guardar y cerrar sin cambios pendientes no vuelve a preguntar.
+  preguntar = 0;
+  window.confirm = function () { preguntar++; return true; };
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+  q('#personal-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  ok('E.12 Guardar no pide confirmacion adicional', preguntar === 0, preguntar + ' pregunta(s)');
+  ok('E.13 Guardar tambien aclara que es local',
+     /este dispositivo/i.test(q('#module-notice').textContent), q('#module-notice').textContent);
+  window.confirm = confirmarReal;
+
+  // Guardar y cerrar sin cambios pendientes no vuelve a preguntar.
+  preguntar = 0;
+  window.confirm = function () { preguntar++; return true; };
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+  q('#personal-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  ok('E.9 Guardar no pide confirmacion adicional', preguntar === 0, preguntar + ' pregunta(s)');
+  ok('E.10 Guardar tambien aclara que es local',
+     /este dispositivo/i.test(q('#module-notice').textContent), q('#module-notice').textContent);
+  window.confirm = confirmarReal;
+
+  // Un error de validacion conserva lo escrito.
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+  q('#inp-email').value = 'correo-invalido';
+  q('#personal-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  ok('E.11 Un error de validacion conserva lo introducido',
+     q('#inp-email').value === 'correo-invalido' && vis(q('#personal-edit-form')) &&
+     /e-?mail|correo/i.test(q('#personal-error').textContent),
+     q('#personal-error').textContent);
+
+  // ---------- ESTADO GLOBAL ----------
   q('#nav-inicio').click(); await tick();
   q('#nav-inicio').click(); await tick();
   ok('G.1 Vuelta a Inicio', vis(q('#view-inicio')));

@@ -339,11 +339,15 @@ window.MediPartes.citas = {
     cita.estado = "Cancelada";
     this.render();
 
-    this.modal("Cita cancelada", `
+    this.modal("Cita cancelada en este dispositivo", `
       <div class="result-box result-danger">
         <i data-icon="circle-xmark"></i>
-        <p>La cita fue cancelada.</p>
+        <p>La cita se quitó de tu dispositivo.</p>
       </div>
+      <p class="file-help">
+        La cita no se ha cancelado en ningún centro: sigue sin conexión a un
+        servidor. Si necesitas anularla de verdad, llámate al centro.
+      </p>
 
       ${this.filas([
         ["Especialidad", cita.especialidad],
@@ -775,11 +779,17 @@ agendar() {
 
     this.render();
 
-    this.modal("¡Cita agendada correctamente!", `
+    // Sin servidor de reservas no se puede decir que la cita este reservada:
+    // se confirmo una seleccion guardada en este dispositivo.
+    this.modal("Cita añadida a tu dispositivo", `
       <div class="result-box result-ok">
         <i data-icon="circle-check"></i>
-        <p>Tu cita fue registrada.</p>
+        <p>Tu cita se guardó en este dispositivo.</p>
       </div>
+      <p class="file-help">
+        No se ha reservado en ningún centro: la disponibilidad todavía no está
+        conectada a un servidor. Confírmala por teléfono antes de ir.
+      </p>
 
       ${this.filas([
         ["Especialidad", nueva.especialidad],
@@ -824,7 +834,7 @@ agendar() {
     this.modal("¿Deseas agregar un documento a esta consulta?", `
       <div class="result-box result-ok">
         <i data-icon="circle-check"></i>
-        <p>La cita fue marcada como atendida.</p>
+        <p>La consulta quedó marcada como atendida en este dispositivo.</p>
       </div>
 
       <div class="module-actions">
@@ -836,7 +846,7 @@ agendar() {
 
   omitirDocumento() {
     this.close();
-    this.aviso("Cita marcada como atendida. Puedes verla en el historial.");
+    this.avisoLocal("Cita marcada como atendida. Ya aparece en el historial.");
   },
 
   buscarCita(id) {

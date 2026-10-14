@@ -1,0 +1,79 @@
+/* ==========================================================
+   MediQR · Pantallas de acceso
+   ==========================================================
+   Inicio de sesion, registro y recuperacion. No hay servidor, asi
+   que el formulario se presenta pero no envia: el boton queda
+   deshabilitado y la tarjeta explica el motivo. El diseno reutiliza
+   las tarjetas y los botones del sistema visual para que la pantalla
+   no parezca un añadido.
+   ========================================================== */
+
+.auth-card {
+  max-width: 30rem;
+  margin: 0 auto var(--space-lg);
+}
+
+.auth-card .module-form {
+  margin: 0;
+}
+
+/* Aviso de función pendiente de backend. */
+.pending-card {
+  max-width: 30rem;
+  margin: 0 auto var(--space-lg);
+  background: var(--warning-soft);
+  border: 1px solid var(--border-subtle);
+}
+
+.pending-card p {
+  margin: 0 0 var(--space-xs);
+}
+
+.pending-card p:last-child {
+  margin-bottom: 0;
+}
+
+.pending-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  font-weight: 700;
+  color: var(--warning-text);
+}
+
+.pending-head .icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  flex: none;
+}
+
+.auth-alt {
+  max-width: 30rem;
+  margin: 0 auto;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.auth-alt a {
+  color: var(--primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-alt a:hover,
+.auth-alt a:focus-visible {
+  text-decoration: underline;
+}
+
+/* Un boton deshabilitado tiene que explicar por que, no solo verse apagado. */
+button[disabled] {
+  cursor: not-allowed;
+}
+
+@media (max-width: 767px) {
+  .auth-card,
+  .pending-card,
+  .auth-alt {
+    max-width: none;
+  }
+}

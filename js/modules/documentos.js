@@ -277,7 +277,7 @@ window.MediPartes.documentos = {
 
     this.close();
     this.documents();
-    this.aviso("Documento eliminado.");
+    this.avisoLocal("Documento eliminado.");
   },
 
   documentForm(citaId = null) {

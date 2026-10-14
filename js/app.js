@@ -27,6 +27,9 @@
       MediModules.docVista = DOC_VISTA[sub] || "Todos";
       MediModules.documents();
     }
+    if (base === "acceso" && window.AccesoModulo) {
+      window.AccesoModulo.render(sub || "acceso");
+    }
   }
 
   function registrarMenus() {

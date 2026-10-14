@@ -25,7 +25,10 @@ const RUTAS = {
   historial: { vista: "historial" },
   citas: { vista: "citas" },
   documentos: { vista: "documentos" },
-  perfil: { vista: "perfil" }
+  perfil: { vista: "perfil" },
+  // Acceso no es una seccion con boton en la barra: se llega desde
+  // Perfil > Configuracion y desde los enlaces entre sus pantallas.
+  acceso: { vista: "acceso" }
 };
 
 const RUTA_INICIAL = "inicio";
@@ -44,7 +47,10 @@ const TITULOS = {
   "documentos/examenes": "MediQR - Exámenes médicos",
   "documentos/informes": "MediQR - Informes médicos",
   "documentos/otros": "MediQR - Otros documentos",
-  perfil: "MediQR - Perfil del paciente"
+  perfil: "MediQR - Perfil del paciente",
+  acceso: "MediQR - Iniciar sesión",
+  "acceso/registro": "MediQR - Crear una cuenta",
+  "acceso/recuperar": "MediQR - Recuperar acceso"
 };
 
 const TITULO_GENERICO = "MediQR - Portal del Paciente";

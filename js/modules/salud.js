@@ -214,7 +214,7 @@
     // Tras confirmar, el dialogo se cierra: si se dejaba abierto el
     // paciente quedaba atrapado en una pantalla ya cumplida.
     MediModules.close();
-    MediModules.aviso("Información médica actualizada en este dispositivo.");
+    MediModules.avisoLocal("Información médica actualizada.");
   }
 
   function confirmarSangre(tipo) {
@@ -223,7 +223,7 @@
     // Tras confirmar, el dialogo se cierra: si se dejaba abierto el
     // paciente quedaba atrapado en una pantalla ya cumplida.
     MediModules.close();
-    MediModules.aviso("Información médica actualizada en este dispositivo.");
+    MediModules.avisoLocal("Información médica actualizada.");
   }
 
   function refrescar() {

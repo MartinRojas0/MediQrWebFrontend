@@ -9,7 +9,8 @@
 <link rel="stylesheet" href="css/main.css">
 <link rel="stylesheet" href="css/citasDocumentos.css">
 <link rel="stylesheet" href="css/views/inicio.css">
-<link rel="stylesheet" href="css/views/historial.css">
+  <link rel="stylesheet" href="css/views/historial.css">
+  <link rel="stylesheet" href="css/views/acceso.css">
 </head>
 <body>
 
@@ -170,6 +171,16 @@
     <section id="view-perfil" class="view-section hidden">
     </section>
 
+    <!-- ========================================== -->
+    <!-- 8. ACCESO: INICIAR SESION / REGISTRO      -->
+    <!-- ========================================== -->
+    <!-- No cuelga de la barra: se llega desde      -->
+    <!-- Perfil > Configuracion. No protege nada    -->
+    <!-- porque no hay servidor; lo explica la propia -->
+    <!-- pantalla.                                   -->
+    <section id="view-acceso" class="view-section hidden">
+    </section>
+
   </div>
 
   <!-- ========================================== -->
@@ -211,10 +222,13 @@
 <script src="js/modules/historial.js"></script>
 <script src="js/modules/sos.js"></script>
 <script src="js/modules/perfil.js"></script>
-     <script src="js/lib/validaciones.js"></script>
+<script src="js/lib/validaciones.js"></script>
 <script src="js/lib/dates.js"></script>
 <script src="js/lib/dom.js"></script>
 <script src="js/lib/format.js"></script>
+<!-- acceso.js construye su marcado al cargar y usa MediPartes.dom.escapar,
+     asi que tiene que venir despues de las librerias. -->
+<script src="js/modules/acceso.js"></script>
 <script src="js/components/navbar.js"></script>
 <script src="js/components/modal.js"></script>
 <script src="js/modules/citas.js"></script>
