@@ -105,6 +105,30 @@ document.getElementById('f').addEventListener('load', function () {
           ? '.' + el.className.trim().split(/\\s+/)[0] : '');
       if (!vistos[sel]) { vistos[sel] = 1; out.push('culpable ' + sel + ' right=' + Math.round(r.right)); }
     });
+
+    // La navegacion principal tiene que verse en TODA vista y a TODO ancho.
+    // Antes solo se media el desbordamiento, asi que una barra que
+    // desaparecia en una sola ruta pasaba desapercibida.
+    var nav = doc.querySelector('.app-nav');
+    if (!nav) {
+      out.push('nav=ausente');
+    } else {
+      var rn = nav.getBoundingClientRect();
+      var csn = window.getComputedStyle(nav);
+      // Se comprueba que la barra se vea de verdad: con tamano y, sobre
+      // todo, que se solape con la ventana. Comparar el borde inferior
+      // con innerHeight es fragil dentro de un iframe, donde la altura
+      // declarada y la real no coinciden exactamente.
+      var visible = csn.display !== 'none' && csn.visibility !== 'hidden' &&
+        rn.height > 0 && rn.width > 0 &&
+        rn.top < innerHeight && rn.bottom > 0 &&
+        rn.left < vp && rn.right > 0;
+      if (!visible) {
+        out.push('nav=invisible top=' + Math.round(rn.top) + ' bottom=' + Math.round(rn.bottom) +
+          ' h=' + Math.round(rn.height) + ' w=' + Math.round(rn.width) +
+          ' display=' + csn.display + ' innerH=' + innerHeight);
+      }
+    }
     document.getElementById('MEDIDA').textContent = out.join('\\n');
   }, 250);
 });
@@ -154,7 +178,7 @@ document.getElementById('f').addEventListener('load', function () {
 // Tercera pasada: cada vista dentro de un marco de ancho fijo, para
 // detectar desbordamiento horizontal. --window-sizeno baja de 492 px,
 // asi que la medicion se hace con iframes de ancho exacto.
-const VISTAS_RESPONSIVE = ['inicio', 'salud', 'historial', 'citas', 'documentos', 'perfil'];
+const VISTAS_RESPONSIVE = ['inicio', 'salud', 'historial', 'citas', 'documentos', 'perfil', 'acceso'];
 const ANCHOS = [360, 390, 430, 540, 768, 1024, 1440];
 
 function medir(navegador, url) {
@@ -194,10 +218,12 @@ async function faseResponsive(navegador) {
       // Ojo: la cabecera es 'culpables=0'; los culpables reales empiezan por 'culpable ' con espacio.
       const culpables = texto.split('\n').filter((l) => l.startsWith('culpable '));
 
-      if (desborde > 1 || culpables.length > 0) {
+      if (desborde > 1 || culpables.length > 0 || texto.indexOf('nav=') !== -1) {
         fallos++;
         linea.push(w + ':DESBORDA');
         culpables.slice(0, 3).forEach((c) => console.log('        ' + v + ' ' + w + 'px -> ' + c));
+        texto.split('\n').filter((l) => l.indexOf('nav=') === 0)
+          .forEach((l) => console.log('        ' + v + ' ' + w + 'px -> ' + l));
       } else {
         linea.push(String(w));
       }

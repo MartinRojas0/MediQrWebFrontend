@@ -1048,15 +1048,19 @@ ok('F.24 Informa del resultado sin prometer una reserva confirmada',
      /pendiente de integraci/.test(q('#view-acceso').textContent));
 
   // La navegacion no desaparece en las pantallas de acceso: si no, el
-  // paciente se queda sin forma de volver al portal.
+  // paciente se queda sin forma de volver al portal. Se comprueba que
+  // ademas este dentro de la ventana, no solo que tenga alto.
   var rutasAcceso = ['acceso', 'acceso/registro', 'acceso/recuperar'];
-  var navVisible = true;
+  var navVisible = true, navFuera = '';
   rutasAcceso.forEach(function (ruta) {
     Router.ir(ruta);
     var barra = q('.app-nav');
-    if (!barra || !barra.getBoundingClientRect().height > 0) navVisible = false;
+    if (!barra) { navVisible = false; return; }
+    var r = barra.getBoundingClientRect();
+    var dentro = r.height > 0 && r.bottom <= window.innerHeight + 2 && r.top >= 0;
+    if (!dentro) { navVisible = false; navFuera = ruta + ' alto=' + Math.round(r.height) + ' top=' + Math.round(r.top) + ' vh=' + window.innerHeight; }
   });
-  ok('A.15 La navegacion sigue disponible en las pantallas de acceso', navVisible);
+  ok('A.15 La navegacion sigue disponible en las pantallas de acceso', navVisible, navFuera || 'visible en las tres');
 
   // Y se puede volver al portal desde ahi.
   q('#nav-inicio').click(); await tick();
