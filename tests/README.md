@@ -1,7 +1,7 @@
 # ==========================================================
 # MediQR - Pruebas funcionales
 #
-# Ejecuta 315 comprobaciones funcionales, 10 cargas por enlace directo y 49 mediciones responsive en un navegador real
+# Ejecuta 331 comprobaciones funcionales, 10 cargas por enlace directo y 49 mediciones responsive en un navegador real
 # (Microsoft Edge o Google Chrome) en modo headless.
 #
 # REQUISITOS
@@ -38,6 +38,8 @@
 #   S.*   flujo SOS: cuenta atras, cancelar, Escape y veracidad del aviso
 #   F.*   flujos completos: reprogramar, finalizar, cancelar, agendar,
 #          editar Salud, grupo sanguineo y panel SOS con su confirmacion
+#   X.*   editar el perfil como una persona: abrir, pinchar en cada campo,
+#          escribir, guardar, cancelar, reabrir y descartar sin guardar
 #   K.*   controles que antes solo estaban registrados y se pulsan de verdad
 #   A.*   acceso: pending de backend, sin contrasena guardada ni red
 #   E.*   edicion: guardados locales y aviso antes de descartar cambios

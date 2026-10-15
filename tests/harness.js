@@ -1521,6 +1521,156 @@ ok('P.4 Hay una regla de foco visible con contorno',
        location.hash.indexOf('historial') !== -1, location.hash);
   }
 
+  // ---------- EDIQUIPAR EL PERFIL COMO UNA PERSONA (regresion) ----------
+// Estas pruebas hacen lo mismo que un paciente: pinchar Editar, pinchar
+// DENTRO de cada campo para escribir, guardar y cancelar. Ni una sola
+// comprueba el estado del formulario por dentro.
+//
+// El bloqueo que corrigio esto: los formularios llevan data-action, asi que
+// el clic delegado en document encontraba el <form> como ancestro del
+// campo pinchado y ejecutaba el guardado. El primer clic para escribir
+// guardaba y cerraba el editor.
+  q('#nav-perfil').click(); await tick();
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="info-personal"]').click();
+  await tick();
+
+  const formP = q('#personal-edit-form');
+  const lecturaP = q('#personal-read-view');
+  const guardadoAntes = () => window.__ejecutado['perfil:guardar-personal'] || 0;
+
+  // --- Abrir ---
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+  ok('X.1 Al pulsar Editar se abre el formulario y se oculta la lectura',
+     !formP.classList.contains('hidden') && lecturaP.classList.contains('hidden'));
+
+  ok('X.2 Rellena el formulario con los datos actuales',
+     q('#inp-name').value === q('#val-name').textContent &&
+     q('#inp-lastname').value === q('#val-lastname').textContent &&
+     q('#inp-birth').value === q('#val-birth').dataset.iso,
+     q('#inp-name').value + ' / ' + q('#inp-lastname').value);
+
+  // --- Pinchar dentro de cada campo: no debe guardar ni cerrar ---
+  const campos = qa('#personal-edit-form input:not([type="submit"])');
+  let campoQueCierra = '', guardadosDeMas = 0;
+  const antesDePinchar = guardadoAntes();
+
+  campos.forEach((campo) => {
+    const prev = guardadoAntes();
+    campo.click();
+    const fallo = guardadoAntes() > prev || formP.classList.contains('hidden');
+    if (fallo && !campoQueCierra) campoQueCierra = campo.id || '(sin id)';
+    guardadosDeMas += guardadoAntes() - prev;
+  });
+
+  ok('X.3 Pinchar en cualquier campo no guarda ni cierra el editor',
+     guardadosDeMas === 0 && !campoQueCierra && !formP.classList.contains('hidden'),
+     guardadosDeMas + ' guardados de mas' + (campoQueCierra ? '; campo que cierra: ' + campoQueCierra : ''));
+
+  ok('X.4 Los campos siguen siendo utilizables tras pinchar',
+     Array.prototype.every.call(qa('#personal-edit-form input:not([type="submit"])'),
+       (c) => !c.disabled && !c.readOnly),
+     'ningun campo deshabilitado ni de solo lectura');
+
+  // --- Escribir y guardar ---
+  q('#inp-lastname').value = 'Pérez';
+  q('#personal-edit-form').dispatchEvent(new Event('input', { bubbles: true }));
+  const antesDeGuardar = guardadoAntes();
+  q('#personal-edit-form button[type="submit"]').click(); await tick();
+
+  ok('X.5 Guardar con el botón sí guarda y cierra el editor',
+     guardadoAntes() === antesDeGuardar + 1 &&
+     q('#val-lastname').textContent === 'Pérez' &&
+     lecturaP.classList.contains('hidden') === false,
+     'apellido=' + q('#val-lastname').textContent + ', edicion visible=' + !formP.classList.contains('hidden'));
+
+  ok('X.6 Guardar aclara que el cambio es local',
+     /este dispositivo/i.test(q('#module-notice').textContent), q('#module-notice').textContent);
+
+  // --- Reabrir: debe traer lo guardado, no lo anterior ---
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+  ok('X.7 Reabrir trae los datos guardados',
+     q('#inp-lastname').value === 'Pérez', q('#inp-lastname').value);
+
+  // --- Cancelar sin cambios: sale limpio, sin preguntar ---
+  const confirmOriginal = window.confirm;
+  let preguntas = 0;
+  window.confirm = function () { preguntas++; return true; };
+  q('#personal-edit-form [data-action="perfil:cancelar-personal"]').click(); await tick();
+  ok('X.8 Cancelar sin cambios sale sin preguntar',
+     preguntas === 0 && formP.classList.contains('hidden') && !lecturaP.classList.contains('hidden'),
+     preguntas + ' pregunta(s), editor cerrado=' + formP.classList.contains('hidden'));
+
+  // --- Descartar cambios sin guardar: preguntar, y volver si se dice que no ---
+  // El valor tiene que ser distinto del que ya habia: si coincide, el
+  // formulario no esta "sucio" y no hay nada que preguntar.
+  q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
+  ok('X.8c Volver a Editar reabre el editor',
+     !formP.classList.contains('hidden') && q('#inp-lastname').value === 'Pérez',
+     'abierto=' + !formP.classList.contains('hidden') + ', apellidos=' + q('#inp-lastname').value);
+  const calleAntes = q('#inp-street').value;
+  q('#inp-street').value = 'Calle de prueba ' + calleAntes.length + '9';
+  const calleNueva = q('#inp-street').value;
+  const guardados = guardadoAntes();
+  formP.dispatchEvent(new Event('input', { bubbles: true }));
+  await tick();
+  ok('X.8b Escribir cambia el valor del campo', calleNueva !== calleAntes,
+     '"' + calleAntes + '" -> "' + calleNueva + '"');
+
+  // Escribir NO puede disparar el guardado: el <form> lleva data-action y
+  // el evento input hereda ese atributo. Con la delegacion sin corregir,
+  // cada pulsacion de tecla guardaba y cerraba el formulario.
+  ok('X.8d Escribir no dispara el guardado ni cierra el editor',
+     (window.__ejecutado['perfil:guardar-personal'] || 0) === guardados &&
+     !formP.classList.contains('hidden') && q('#inp-street').value === calleNueva,
+     'guardados de mas: ' + ((window.__ejecutado['perfil:guardar-personal'] || 0) - guardados) +
+     ', editor abierto=' + !formP.classList.contains('hidden'));
+
+  preguntas = 0;
+  const cancelaciones = window.__ejecutado['perfil:cancelar-personal'] || 0;
+  window.confirm = function () { preguntas++; return false; };
+  q('#personal-edit-form [data-action="perfil:cancelar-personal"]').click(); await tick();
+
+  ok('X.9 Cancelar con cambios escritos pregunta antes de tirarlos',
+     preguntas >= 1, preguntas + ' pregunta(s)');
+  ok('X.10 Si no confirma, el editor sigue abierto con lo escrito',
+     !formP.classList.contains('hidden') && q('#inp-street').value === calleNueva,
+     'cancelaciones=' + ((window.__ejecutado['perfil:cancelar-personal'] || 0) - cancelaciones) +
+     ' preguntas=' + preguntas +
+     ' estado=' + (formP.dataset.estado || '(vacio)') +
+     ' original=' + JSON.stringify((formP.dataset.original || '').slice(-24)) +
+     ' editor abierto=' + !formP.classList.contains('hidden') +
+     ' valor=' + q('#inp-street').value);
+
+  // Si confirma, se descarta.
+  window.confirm = function () { preguntas++; return true; };
+  q('#personal-edit-form [data-action="perfil:cancelar-personal"]').click(); await tick();
+  ok('X.11 Si confirma, se descarta y vuelve a la lectura',
+     formP.classList.contains('hidden') && !lecturaP.classList.contains('hidden'),
+     'lectura visible=' + !lecturaP.classList.contains('hidden'));
+  window.confirm = confirmOriginal;
+
+  // --- El mismo fallo afectaba a los demas formularios con data-action ---
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="info-medica"]').click();
+  q('#ptab-info-medica [data-action="perfil:editar-medica"]').click(); await tick();
+  const formM = q('#medical-edit-form');
+  const medicoAntes = window.__ejecutado['perfil:guardar-medica'] || 0;
+  qa('#medical-edit-form input').forEach((c) => c.click());
+  await tick();
+  ok('X.12 El formulario medico tampoco se guarda al pinchar un campo',
+     (window.__ejecutado['perfil:guardar-medica'] || 0) === medicoAntes &&
+     !formM.classList.contains('hidden'),
+     'guardados de mas: ' + ((window.__ejecutado['perfil:guardar-medica'] || 0) - medicoAntes));
+  q('#medical-edit-form [data-action="perfil:cancelar-medica"]').click(); await tick();
+
+  // Y los botones de dentro de un formulario siguen funcionando.
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="contactos"]').click();
+  q('#ptab-contactos [data-action="perfil:agregar-contacto"]').click(); await tick();
+  ok('X.13 Un boton dentro de un dialogo sigue disparando su accion',
+     q('#module-dialog').open === true && !!q('#contacto-form'),
+     q('#module-dialog-title') ? q('#module-dialog-title').textContent.trim() : '(sin titulo)');
+  if (q('#module-dialog').open) q('#module-dialog').close();
+  await tick();
+
   // ---------- ESTADO GLOBAL ----------
   q('#nav-inicio').click(); await tick();
   q('#nav-inicio').click(); await tick();

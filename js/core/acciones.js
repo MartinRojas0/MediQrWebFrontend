@@ -23,6 +23,33 @@
 
   var registro = Object.create(null);
 
+  // --- Listeners delegados ---
+  // click y submit se delegan desde document. input y change tambien,
+  // por los filtros de documentos.
+  //
+  // Un <form> lleva data-action para que su submit llegue a la accion
+  // correspondiente. Ese atributo lo heredan todos sus hijos a traves de
+  // closest(), asi que un clic, un input o un change dentro de el
+  // llegaban a ejecutar el guardado: el formulario se cerraba al primer
+  // clic para escribir y se guardaba en cada pulsacion de tecla, lo que
+  // dejaba el editor inutilizable.
+  //
+  // Los formularios se atienden SOLO desde submit. Por eso este resolutor
+  // ignora el propio <form> y sube al siguiente ancestro con data-action,
+  // que es el boton que si debe dispararse.
+  function controlDe(contenedor, evento) {
+    var elemento = evento.target.closest("[data-action]");
+
+    if (elemento && elemento.tagName === "FORM") {
+      elemento = elemento.parentElement
+        ? elemento.parentElement.closest("[data-action]")
+        : null;
+    }
+
+    if (!elemento || !contenedor.contains(elemento)) return null;
+    return elemento;
+  }
+
   var MediAcciones = {
     registro: registro,
 
@@ -50,15 +77,12 @@
     },
 
     // --- Listeners delegados ---
-    // click y submit se delegan desde document. input y change tambien,
-    // por los filtros de documentos.
     conectar: function (raiz) {
       var contenedor = raiz || document;
 
       contenedor.addEventListener("click", function (evento) {
-        var elemento = evento.target.closest("[data-action]");
-
-        if (!elemento || !contenedor.contains(elemento)) return;
+        var elemento = controlDe(contenedor, evento);
+        if (!elemento) return;
 
         // Los <a> sin href tambien disparan la accion; se evita que el
         // navegador la siga si algun dia se les pone href.
@@ -79,17 +103,15 @@
       });
 
       contenedor.addEventListener("input", function (evento) {
-        var elemento = evento.target.closest("[data-action]");
-
-        if (!elemento || !contenedor.contains(elemento)) return;
+        var elemento = controlDe(contenedor, evento);
+        if (!elemento) return;
 
         MediAcciones.ejecutar(elemento.dataset.action, elemento, evento);
       });
 
       contenedor.addEventListener("change", function (evento) {
-        var elemento = evento.target.closest("[data-action]");
-
-        if (!elemento || !contenedor.contains(elemento)) return;
+        var elemento = controlDe(contenedor, evento);
+        if (!elemento) return;
 
         MediAcciones.ejecutar(elemento.dataset.action, elemento, evento);
       });
