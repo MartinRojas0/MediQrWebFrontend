@@ -1487,6 +1487,21 @@ ok('P.4 Hay una regla de foco visible con contorno',
   q('#nav-inicio').click(); await tick();
   const filas = qa('#view-inicio [data-action="inicio:resumen"]');
   ok('K.21 El resumen de Inicio tiene filas', filas.length === 3, filas.length + ' filas');
+
+  // La banda de alerta y el resumen no deben repetir el mismo texto en la
+  // misma pantalla: se ve como un fallo de la interfaz.
+  ok('K.21b Ningun texto aparece dos veces en Inicio',
+     (function () {
+       var texto = q('#view-inicio').textContent.replace(/\s+/g, ' ').trim();
+       var frases = texto.split(/(?<=\.)\s+/);
+       var repetidas = frases.filter(function (f) { return f.length > 25 && frases.indexOf(f) !== frases.lastIndexOf(f); });
+       return repetidas.length === 0;
+     })(),
+     (function () {
+       var texto = q('#view-inicio').textContent.replace(/\s+/g, ' ').trim();
+       var frases = texto.split(/(?<=\.)\s+/);
+       return frases.filter(function (f) { return f.length > 25 && frases.indexOf(f) !== frases.lastIndexOf(f); }).join(' | ') || 'sin repeticiones';
+     })());
   if (filas.length === 3) {
     filas[0].click(); await tick();
     ok('K.22 "Proxima" lleva a las citas', location.hash.indexOf('citas') !== -1, location.hash);

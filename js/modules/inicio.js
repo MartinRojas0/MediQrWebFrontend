@@ -76,6 +76,10 @@
     const alergias = salud.alergias
       .map((a) => (a.severidad ? a.nombre + " (" + a.severidad + ")" : a.nombre))
       .join(", ");
+    // La banda de arriba ya dice WHICH alergias hay. La fila del resumen
+    // repetia la misma frase en la misma pantalla, asi que aqui solo cuenta
+    // cuantas hay: informa de algo distinto y sigue llevando a Salud.
+    const riesgos = salud.alergias.length;
 
     destino.innerHTML = `
       <h1 data-titulo-vista class="heading-1">Hola, Paciente Demo <i data-icon="hand" class="icon-wave"></i></h1>
@@ -115,7 +119,7 @@
           ultima ? "Última: " + ultima.especialidad + " · " + ultima.medico : "Última: sin historial",
           "accent")}
         ${filaResumen(riesgo ? "triangle-exclamation" : "heart-pulse",
-          riesgo ? "Alergia crítica: " + alergias : "Sin alertas críticas",
+          riesgos ? "Alergias registradas: " + riesgos : "Sin alergias registradas",
           riesgo ? "danger" : "muted")}
       </div>
 
