@@ -76,6 +76,7 @@ async function comprobarEnlaceDirecto() {
   const q = (s) => document.querySelector(s);
   const qa = (s) => document.querySelectorAll(s);
   const vis = (e) => !!e && !e.classList.contains('hidden');
+
   const caso = window.__CASO;
 
   const casos = {
@@ -1230,6 +1231,108 @@ ok('F.24 Informa del resultado sin prometer una reserva confirmada',
      q('#module-dialog').textContent.replace(/\s+/g, ' ').match(/[^.]*\./)[0].trim());
   if (q('#module-dialog').open) q('#module-dialog').close();
   await tick();
+
+  // ---------- ACCESIBILIDAD Y ESTADOS (Fase 6) ----------
+  // Se comprueba sobre el portal entero, no vista por vista: si algo falla
+  // en un estado que la suite no abre, no se veria.
+  const RUTAS_REVISABLES = ['inicio', 'salud', 'historial', 'citas', 'documentos', 'perfil', 'acceso'];
+
+  let sinH1 = [], h1Repetidos = [], sinAlt = [], botonesSinNombre = [], sinFocusVisible = [];
+  let点击 = 0;
+
+  RUTAS_REVISABLES.forEach(function (ruta) {
+    Router.ir(ruta);
+    const vista = q('#view-' + ruta.split('/')[0]);
+    if (!vista) return;
+
+    const h1 = qa('#view-' + ruta.split('/')[0] + ' h1');
+    if (h1.length === 0) sinH1.push(ruta);
+    if (h1.length > 1) h1Repetidos.push(ruta + ' (' + h1.length + ')');
+
+    qa('#view-' + ruta.split('/')[0] + ' img').forEach(function (img) {
+      if (!img.hasAttribute('alt')) sinAlt.push(ruta + ':' + img.getAttribute('src'));
+    });
+
+    qa('button').forEach(function (b) {
+      const nombre = (b.textContent || '').trim() ||
+        b.getAttribute('aria-label') || b.getAttribute('title') || '';
+      if (!nombre) botonesSinNombre.push(ruta + ' ' + (b.className || b.id || '(sin clase)'));
+    });
+  });
+
+  ok('P.1 Cada vista tiene exactamente un h1',
+     sinH1.length === 0 && h1Repetidos.length === 0,
+     'sin h1: ' + (sinH1.join(', ') || '-') + '; repetidos: ' + (h1Repetidos.join(', ') || '-'));
+
+  ok('P.2 Todas las imagenes tienen texto alternativo',
+     sinAlt.length === 0, sinAlt.join(', ') || 'todas con alt');
+
+  ok('P.3 Todos los botones tienen nombre accesible',
+     botonesSinNombre.length === 0, botonesSinNombre.slice(0, 4).join(' | ') || 'todos nombrados');
+
+  // El foco debe verse: sin indicador, un usuario de teclado no sabe donde
+// esta. El portal lo resuelve con :focus-visible, que no se puede provocar
+// con focus() programatico, asi que se lee la regla por CSSOM.
+function reglasDeFoco() {
+  var encontradas = [];
+  Array.prototype.forEach.call(document.styleSheets, function (hoja) {
+    var reglas;
+    try { reglas = hoja.cssRules; } catch (e) { return; }
+    if (!reglas) return;
+    Array.prototype.forEach.call(reglas, function (r) {
+      if (r.selectorText && /focus-visible/.test(r.selectorText)) {
+        encontradas.push(r.cssText);
+      }
+    });
+  });
+  return encontradas;
+}
+
+ok('P.4 Hay una regla de foco visible con contorno',
+     reglasDeFoco().some(function (r) { return /outline/.test(r) && !/none/.test(r); }),
+     reglasDeFoco().length + ' reglas :focus-visible');
+
+  // Estados coherentes: el aviso accesible es aria-live y se anuncia.
+  ok('P.5 El aviso de acciones es una region viva',
+     q('#module-notice').getAttribute('aria-live') === 'polite' ||
+     q('#module-notice').getAttribute('role') === 'status',
+     q('#module-notice').getAttribute('aria-live') || q('#module-notice').getAttribute('role') || '(sin rol)');
+
+  // El dialogo es nativo, asi que se cierra con Escape y devuelve el foco.
+  Router.ir('perfil'); await tick();
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="contactos"]').click();
+  q('#ptab-contactos [data-action="perfil:agregar-contacto"]').click(); await tick();
+  ok('P.6 El dialogo modal usa <dialog> nativo, con cierre y etiqueta',
+     q('#module-dialog').open === true &&
+     !!q('#module-dialog').getAttribute('aria-labelledby') &&
+     !!q('#module-dialog [data-action="modal:cerrar"]'));
+  q('#module-dialog').close(); await tick();
+
+  // El enlace saltador ayuda en teclado y lector de pantalla.
+  const salto = q('.skip-link');
+  ok('P.7 Hay una via para saltar al contenido',
+     !!salto && /^Saltar/i.test(salto.textContent) && !!q(salto.getAttribute('href')),
+     salto ? salto.textContent.trim() + ' -> ' + salto.getAttribute('href') : '(no existe)');
+
+  // Y solo se ve cuando recibe el foco, que es cuando sirve. Se comprueba
+  // por CSSOM porque focus() programatico no dispara :focus de forma fiable
+  // en headless.
+  ok('P.8 El enlace de salto se oculta y se revela con el foco',
+     (function () {
+       var reglas = [];
+       Array.prototype.forEach.call(document.styleSheets, function (hoja) {
+         var r; try { r = hoja.cssRules; } catch (e) { return; }
+         if (!r) return;
+         Array.prototype.forEach.call(r, function (x) {
+           if (x.selectorText && x.selectorText.indexOf('skip-link') !== -1) {
+             reglas.push(x.selectorText);
+           }
+         });
+       });
+       var texto = reglas.join(' ');
+       return /skip-link:focus/.test(texto) && /not\(:focus\)/.test(texto);
+     })(),
+     'reglas de skip-link encontradas');
 
   // ---------- ESTADO GLOBAL ----------
   q('#nav-inicio').click(); await tick();

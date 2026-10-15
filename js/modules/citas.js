@@ -129,8 +129,8 @@ window.MediPartes.citas = {
       : '<p class="empty-state">No tienes citas para este día.</p>';
 
     document.getElementById("citas-content").innerHTML = `
-      <div class="calendar-toolbar">
-        <h2>Calendario de citas</h2>
+<div class="calendar-toolbar">
+      <h1 class="heading-1" data-titulo-vista>Calendario de citas</h1>
 
         <div class="calendar-controls">
           <button type="button" class="btn btn-outline" aria-label="Mes anterior"

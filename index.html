@@ -14,6 +14,11 @@
 </head>
 <body>
 
+  <!-- ENLACE PARA SALTAR AL CONTENIDO -->
+  <!-- Sin esto, un usuario de teclado tiene que recorrer la barra de -->
+  <!-- navegacion en cada vista antes de llegar al contenido.          -->
+  <a class="skip-link" href="#app-main">Saltar al contenido</a>
+
   <!-- NAVBAR PRINCIPAL -->
 <!-- Barra superior: marca. En movil cede el sitio a la barra inferior. -->
   <header class="app-bar">
@@ -52,8 +57,8 @@
     </a>
   </nav>
 
-  <main class="app-main">
-  <div class="container">
+<main class="app-main" id="app-main" tabindex="-1">
+    <div class="container">
     <section id="view-historial" class="view-section hidden"></section>
 
     <!-- ========================================== -->

@@ -35,10 +35,13 @@ window.MediPartes.formato = {
     `;
   },
 
-  tituloVista(titulo, subtitulo) {
+  // Cabecera de una sub-vista. Es un h1, como el resto de vistas del portal:
+// con h2, la vista de Citas se quedaba sin encabezado principal y el foco
+// del router no tenia donde aterrizar al cambiar de sub-vista.
+tituloVista(titulo, subtitulo) {
     return `
       <div class="view-title">
-        <h2>${titulo}</h2>
+        <h1 class="heading-1" data-titulo-vista>${titulo}</h1>
         <p class="text-muted">${subtitulo}</p>
       </div>
     `;

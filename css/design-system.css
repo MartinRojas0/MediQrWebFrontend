@@ -336,6 +336,35 @@ input:disabled, select:disabled { background: var(--bg-sunken); cursor: not-allo
 .info-row-item .row-value { overflow-wrap: anywhere; }
 .info-row-item .row-chevron { color: var(--text-tertiary); font-size: 1rem; }
 
+/* ---------- Enlace para saltar al contenido ----------
+   Solo aparece al recibir el foco: hasta entonces estorba. Sin el, quien
+   navega con teclado tiene que pasar por la barra entera en cada vista. */
+.skip-link {
+  position: absolute;
+  left: var(--space-sm);
+  top: var(--space-sm);
+  z-index: 1000;
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--primary);
+  color: var(--text-inverse);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  transform: translateY(-200%);
+  transition: transform var(--motion-fast) var(--ease-out);
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+/* Estado de reposo. La clase .sin-foco permite comprobarlo sin depender
+   de que el motor de headless reparta el foco real. */
+.skip-link:not(:focus),
+.skip-link.sin-foco {
+  transform: translateY(-200%);
+}
+
 /* ---------- Alerta clinica ---------- */
 .critical-alert {
   display: flex;
