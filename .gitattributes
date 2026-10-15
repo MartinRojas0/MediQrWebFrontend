@@ -14,6 +14,13 @@
 .gitattributes text eol=lf
 .gitignore     text eol=lf
 
+# Ademas, marcar como texto el codigo de forma explicita. Sin esto, un
+# archivo con un byte suelto (un NUL escrito dentro de un literal) queda
+# clasificado como binario y sus cambios dejan de verse en el diff.
+*.js   diff=javascript
+*.css  diff=css
+*.html diff=html
+
 # Imagenes: nunca aplicar conversiones de fin de linea.
 *.png  binary
 *.jpg  binary
