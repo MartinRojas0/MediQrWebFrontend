@@ -40,10 +40,20 @@ window.__servidor = location.origin;
   };
 })();
 
-// Todo control que ha，县existido alguna vez en el DOM. Los dialogos se vacian
-// al cerrarse, asi que mirar solo el estado final daria falsos positivos.
+// Todo control que ha existido alguna vez en el DOM. Los dialogos se vacian
+// al cerrar, asi que mirar solo el estado final daria falsos positivos.
 window.__visto = {};
+// Acciones que se han EJECUTADO de verdad, no solo las que tienen una
+// funcion registrada. Un control registrado que nadie pulsa puede seguir
+// roto sin que nada se entere.
+window.__ejecutado = {};
 (function () {
+  var original = MediAcciones.ejecutar;
+  MediAcciones.ejecutar = function (nombre, elemento, evento) {
+    window.__ejecutado[nombre] = (window.__ejecutado[nombre] || 0) + 1;
+    return original.call(MediAcciones, nombre, elemento, evento);
+  };
+
   function anotar() {
     Array.prototype.forEach.call(document.querySelectorAll('[data-action]'), function (el) {
       var a = el.getAttribute('data-action');
@@ -1334,17 +1344,177 @@ ok('P.4 Hay una regla de foco visible con contorno',
      })(),
      'reglas de skip-link encontradas');
 
+  // ---------- CONTROLES QUE NADIE PULSABA ----------
+  // Estar registrado no es funcionar. Estas doce acciones tenian su funcion
+  // registrada pero ninguna prueba las ejecutaba, asi que un fallo en ellas
+  // no habria salido nunca. Se pulsan de verdad, como el usuario.
+  const REQ = { total: 0, capturadas: [], href: null };
+  const pedirRecarga = (u) => { REQ.capturadas.push(String(u)); };
+
+  // --- Calendario: dias, mes y "Hoy" ---
+  MediModules.irCitas('calendario'); await tick();
+  const unDia = q('#view-citas [data-action="citas:seleccionar-dia"]');
+  ok('K.1 El calendario ofrece dias pulsables', !!unDia,
+     qa('#view-citas [data-action="citas:seleccionar-dia"]').length + ' dias');
+  if (unDia) {
+    const dia = unDia.dataset.fecha;
+    unDia.click(); await tick();
+    ok('K.2 Pulsar un dia muestra sus citas',
+       MediModules.diaSeleccionado === dia, MediModules.diaSeleccionado || dia);
+
+    const mesAntes = MediModules.mes.getMonth();
+    q('#view-citas [data-action="citas:mes"][data-paso="1"]').click(); await tick();
+    ok('K.3 El botón de mes avanza', MediModules.mes.getMonth() === (mesAntes + 1) % 12,
+       mesAntes + ' -> ' + MediModules.mes.getMonth());
+
+    q('#view-citas [data-action="citas:mes"][data-paso="-1"]').click(); await tick();
+    q('#view-citas [data-action="citas:hoy"]').click(); await tick();
+    ok('K.4 "Hoy" vuelve al dia y al mes actuales',
+       MediModules.diaSeleccionado === MediPartes.fechas.hoyISO() &&
+       MediModules.mes.getMonth() === new Date().getMonth(),
+       MediModules.diaSeleccionado);
+  }
+
+  // --- Detalle de cita desde la tarjeta ---
+  MediModules.irCitas('proximas'); await tick();
+  const botonDetalle = q('#view-citas [data-action="citas:detalle"]');
+  ok('K.5 La tarjeta ofrece ver detalle', !!botonDetalle);
+  if (botonDetalle) {
+    botonDetalle.click(); await tick();
+    ok('K.6 El detalle se abre', q('#module-dialog').open === true,
+       q('#module-dialog-title') ? q('#module-dialog-title').textContent.trim() : '(sin titulo)');
+    if (q('#module-dialog').open) q('#module-dialog').close();
+    await tick();
+  }
+
+  // --- Documentos: filtrar, descargar y eliminar ---
+  q('#nav-documentos').click(); await tick();
+  q('#doc-type').value = 'Receta';
+  q('#doc-type').dispatchEvent(new Event('change', { bubbles: true }));
+  await tick();
+  ok('K.7 Cambiar el filtro por tipo reduce la lista',
+     qa('#documents-content .doc-card').length > 0 &&
+     qa('#documents-content .doc-card').length < 9,
+     qa('#documents-content .doc-card').length + ' documentos');
+  q('#doc-type').value = 'Todos';
+  q('#doc-type').dispatchEvent(new Event('change', { bubbles: true }));
+  await tick();
+
+  const doc = MediModules.documentos[0];
+  q('#documents-content [data-action="documentos:descargar"][data-id="' + doc.id + '"]').click();
+  await tick();
+  ok('K.8 Descargar aclara que el archivo es de ejemplo',
+     /simulada|de ejemplo/i.test(q('#module-notice').textContent), q('#module-notice').textContent);
+
+  const antesDeBorrarDoc = MediModules.documentos.length;
+  const aBorrar = MediModules.documentos[0];
+  q('#documents-content [data-action="documentos:pedir-eliminar"][data-id="' + aBorrar.id + '"]').click();
+  await tick();
+  ok('K.9 Eliminar pide confirmacion', q('#module-dialog').open === true &&
+     !!q('#module-dialog [data-action="documentos:eliminar"]'));
+  q('#module-dialog [data-action="documentos:eliminar"]').click(); await tick();
+  ok('K.10 Confirmar borra el documento',
+     MediModules.documentos.length === antesDeBorrarDoc - 1 &&
+     !MediModules.documentos.some(function (d) { return d.id === aBorrar.id; }),
+     antesDeBorrarDoc + ' -> ' + MediModules.documentos.length);
+  ok('K.11 Y avisa de que el borrado es local',
+     /este dispositivo/i.test(q('#module-notice').textContent), q('#module-notice').textContent);
+
+  // --- Contactos: guardar y eliminar ---
+  q('#nav-perfil').click(); await tick();
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="contactos"]').click();
+  q('#ptab-contactos [data-action="perfil:agregar-contacto"]').click(); await tick();
+  q('#contacto-form [name="nombre"]').value = 'Contacto de prueba';
+  q('#contacto-form [name="parentesco"]').value = 'Hermano';
+  q('#contacto-form [name="telefono"]').value = '999888777';
+  q('#contacto-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  ok('K.12 Guardar un contacto lo anade a la lista',
+     /Contacto de prueba/.test(q('#view-perfil').textContent),
+     q('#module-notice').textContent);
+
+  // Se borra el contacto recien anadido, identified por su id.
+  const nuevoContacto = MediModules.salud.contactos[MediModules.salud.contactos.length - 1];
+  const btnBorrar = q('#ptab-contactos [data-action="perfil:eliminar-contacto"][data-id="' + nuevoContacto.id + '"]');
+  ok('K.13 El contacto anadido aparece con su boton de eliminar', !!btnBorrar,
+     nuevoContacto.nombre);
+  if (btnBorrar) {
+    const nAntes = MediModules.salud.contactos.length;
+    btnBorrar.click(); await tick();
+    ok('K.14 Eliminar un contacto pide confirmacion y nombra a quien',
+       q('#module-dialog').open === true &&
+       !!q('#module-dialog [data-action="perfil:confirmar-eliminar"]') &&
+       new RegExp(nuevoContacto.nombre).test(q('#module-dialog').textContent),
+       q('#module-dialog-title') ? q('#module-dialog-title').textContent.trim() : '');
+    q('#module-dialog [data-action="perfil:confirmar-eliminar"]').click(); await tick();
+    ok('K.15 Confirmar lo elimina de verdad',
+       MediModules.salud.contactos.length === nAntes - 1 &&
+       !q('#ptab-contactos').textContent.includes(nuevoContacto.nombre),
+       nAntes + ' -> ' + MediModules.salud.contactos.length);
+  }
+
+  // Y queda el estado vacio cuando no hay ninguno.
+  const otros = MediModules.salud.contactos.slice();
+  MediModules.salud.contactos.length = 0;
+  window.PerfilModulo.pintarContactos();
+  ok('K.16 Sin contactos se explica, no queda un hueco vacio',
+     /Sin contactos de emergencia/.test(q('#contacts-grid').textContent),
+     q('#contacts-grid').textContent.trim().slice(0, 45));
+  MediModules.salud.contactos.push.apply(MediModules.salud.contactos, otros);
+  window.PerfilModulo.pintarContactos();
+
+  // --- Cancelar la edicion medica ---
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="info-medica"]').click();
+  q('#ptab-info-medica [data-action="perfil:editar-medica"]').click(); await tick();
+  ok('K.17 La edicion medica se abre', vis(q('#medical-edit-form')));
+  q('#medical-edit-form [data-action="perfil:cancelar-medica"]').click(); await tick();
+  ok('K.18 Cancelar vuelve a la vista de lectura', vis(q('#medical-read-view')));
+
+  // --- Confirmar la llamada SOS ---
+  q('#sos-boton').click(); await tick();
+  q('#module-dialog [data-action="sos:ambulancia"]').click(); await tick();
+  const btnLlamar = q('#module-dialog [data-action="sos:confirmar-llamada"]');
+  ok('K.19 Confirmar la llamada esta disponible', !!btnLlamar);
+  if (btnLlamar) {
+    btnLlamar.click(); await tick();
+    ok('K.20 Confirmar cierra el panel y aclara que no hay servicio de alertas',
+       q('#module-dialog').open === false &&
+       /todav[ií]a no est[aá] conectado/i.test(q('#module-notice').textContent),
+       q('#module-notice').textContent);
+  }
+  await tick();
+  // --- Resumen de Inicio: cada fila lleva a donde corresponde ---
+  q('#nav-inicio').click(); await tick();
+  const filas = qa('#view-inicio [data-action="inicio:resumen"]');
+  ok('K.21 El resumen de Inicio tiene filas', filas.length === 3, filas.length + ' filas');
+  if (filas.length === 3) {
+    filas[0].click(); await tick();
+    ok('K.22 "Proxima" lleva a las citas', location.hash.indexOf('citas') !== -1, location.hash);
+    q('#nav-inicio').click(); await tick();
+
+    qa('#view-inicio [data-action="inicio:resumen"]')[2].click(); await tick();
+    ok('K.23 "Alerta" lleva a Salud, no a los documentos',
+       location.hash.indexOf('salud') !== -1, location.hash);
+    q('#nav-inicio').click(); await tick();
+
+    qa('#view-inicio [data-action="inicio:resumen"]')[1].click(); await tick();
+    ok('K.24 "Ultima" lleva al Historial, no a los documentos',
+       location.hash.indexOf('historial') !== -1, location.hash);
+  }
+
   // ---------- ESTADO GLOBAL ----------
   q('#nav-inicio').click(); await tick();
   q('#nav-inicio').click(); await tick();
   ok('G.1 Vuelta a Inicio', vis(q('#view-inicio')));
   ok('G.2 Una sola vista visible', qa('.view-section:not(.hidden)').length === 1, qa('.view-section:not(.hidden)').length);
-  // Las pruebas de flujo crean y modifican citas a proposito, asi que no se
-  // comprueba el total: se comprueba que los datos de partida siguen ahi.
+  // Las pruebas de flujo borran un documento y crean una cita a proposito, asi
+  // que no se comprueba el total: se comprueba que los datos de partida que
+  // no se tocan siguen ahi.
   ok('G.3 Datos de partida intactos',
-     MediModules.documentos.length === 9 &&
-     MediModules.citas.length >= 9 &&
-     MediModules.citas.some(function (c) { return String(c.estado).toLowerCase() === 'atendida'; }),
+     MediModules.documentos.length === 8 &&
+     MediModules.citas.length === 10 &&
+     MediModules.citas.some(function (c) { return String(c.estado).toLowerCase() === 'atendida'; }) &&
+     MediModules.documentos.some(function (d) { return d.tipo === 'Receta'; }),
      MediModules.documentos.length + ' documentos, ' + MediModules.citas.length + ' citas');
   ok('G.4 Sin errores JavaScript', (window.__errs || []).length === 0, JSON.stringify(window.__errs || []));
 
@@ -1433,6 +1603,17 @@ ok('P.4 Hay una regla de foco visible con contorno',
   ok('G.15 Se han visto acciones de todo el portal',
      Object.keys(window.__visto).length >= 45,
      Object.keys(window.__visto).length + ' acciones vistas');
+
+  // Estar registrado no es lo mismo que funcionar. Se comprueba que las
+  // acciones se ejecuten de verdad, para que un control que nadie pulsa no
+  // se dé por bueno solo por existir.
+  var sinEjecutar = Object.keys(window.__visto).filter(function (a) {
+    return !window.__ejecutado[a];
+  });
+  ok('G.16 Todas las acciones del portal se han ejecutado alguna vez',
+     sinEjecutar.length === 0,
+     'sin ejecutar: ' + (sinEjecutar.join(', ') || 'ninguna') +
+     ' | ejecutadas: ' + Object.keys(window.__ejecutado).length);
 
   var pass = R.filter(function (r) { return r.p; }).length;
   var out = '==RESULTADO==\nTOTAL=' + R.length + ' OK=' + pass + ' FALLOS=' + (R.length - pass) + '\n';

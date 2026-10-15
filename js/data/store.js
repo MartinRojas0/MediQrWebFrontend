@@ -84,10 +84,16 @@
         { nombre: "Influenza", fechaAplicacion: "2025-04-20", dosis: 1 }
       ],
 
-      cirugias: [
-        { nombre: "Extracción dental", fecha: "2025-11-05", hospital: "Clínica MediSalud" }
-      ]
-    },
+cirugias: [
+            { nombre: "Extracción dental", fecha: "2025-11-05", hospital: "Clínica MediSalud" }
+          ],
+          // Contactos de emergencia. Se guardan de verdad, como el resto del
+          // expediente: viven en memoria y se pierden al recargar, que es lo
+          // que el aviso deja claro despues de cada cambio.
+          contactos: [
+            { id: 1, nombre: "Contacto Demo", parentesco: "Hermana", telefono: "+51 000 000 001" }
+          ]
+        },
 
     vistasDoc: {
       Todos: { tipo: null, titulo: "Mis documentos", subtitulo: "Tus recetas, exámenes e informes en un solo lugar." },

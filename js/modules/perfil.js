@@ -112,18 +112,8 @@
               <button class="btn btn-primary-sm"  data-action="perfil:agregar-contacto">+ Agregar contacto</button>
             </div>
 
-            <div class="contacts-grid mt-1">
-              <div class="contact-card">
-                <h4>Contacto Demo</h4>
-                <p><strong>Parentesco:</strong> Hermana</p>
-                <p><strong>Teléfono:</strong> +51 000 000 001</p>
-                <div class="contact-actions mt-1">
-                  <button class="btn btn-outline-sm"  data-action="perfil:agregar-contacto">Editar</button>
-                  <button class="btn btn-danger-sm"  data-action="perfil:eliminar-contacto">Eliminar</button>
-                </div>
-              </div>
-            </div>
-          </article>
+<div id="contacts-grid" class="contacts-grid mt-1"></div>
+  </article>
 
           <!-- 11. CONFIGURACIÓN -->
           <article id="ptab-configuracion" class="card card-full profile-tab-content hidden">
@@ -170,8 +160,46 @@
     if (destino && !destino.dataset.renderizado) {
       destino.innerHTML = MARCADO;
       destino.dataset.renderizado = "1";
+      pintarContactos();
       pintarDerivados();
     }
+  }
+
+  // La lista de contactos se pinta desde los datos, no desde un bloque fijo
+  // en el marcado: antes el boton de guardar no guardaba nada y solo
+  // avisaba de que si.
+  function pintarContactos() {
+    const destino = document.getElementById('contacts-grid');
+    if (!destino) return;
+
+    const lista = MediModules.salud.contactos || [];
+
+    if (lista.length === 0) {
+      destino.innerHTML = '<div class="empty-state">'
+        + '<i data-icon="phone"></i>'
+        + '<p><strong>Sin contactos de emergencia</strong></p>'
+        + '<p class="text-muted">Agrega a alguien a quien llamar si te ocurre algo.</p>'
+        + '</div>';
+      MediIcons.render(destino);
+      return;
+    }
+
+    destino.innerHTML = lista.map(function (c) {
+      return `
+        <div class="contact-card">
+          <h4>${MediPartes.dom.escapar(c.nombre)}</h4>
+          <p><strong>Parentesco:</strong> ${MediPartes.dom.escapar(c.parentesco)}</p>
+          <p><strong>Teléfono:</strong> ${MediPartes.dom.escapar(c.telefono)}</p>
+          <div class="contact-actions mt-1">
+            <a class="btn btn-outline-sm" href="tel:${MediPartes.dom.atributo(String(c.telefono).replace(/\D/g, ''))}">
+              <i data-icon="phone"></i> Llamar
+            </a>
+            <button type="button" class="btn btn-danger-sm"  data-action="perfil:eliminar-contacto" data-id="${c.id}">Eliminar</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    MediIcons.render(destino);
   }
 
   // La edad y la fecha de nacimiento no se escriben en el marcado: se derivan
@@ -418,16 +446,36 @@
         </form>
       `);
         },
-    eliminarContacto() {
+    eliminarContacto(id) {
+      const contacto = MediModules.salud.contactos.filter(function (c) {
+        return c.id === id;
+      })[0];
+
+      if (!contacto) return;
+
       MediModules.modal('¿Deseas eliminar este contacto?', `
-        <p class="text-muted"><small>Esta acción es una simulación visual.</small></p>
+        <p><strong>${MediPartes.dom.escapar(contacto.nombre)}</strong> ·
+           ${MediPartes.dom.escapar(contacto.parentesco)}</p>
+        <p class="file-help">Se quitará de los contactos de emergencia de este
+           dispositivo. No hay servidor al que avisar.</p>
         <div class="module-actions">
           <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cancelar</button>
-          <button type="button" class="btn btn-danger"  data-action="perfil:confirmar-eliminar">Eliminar</button>
+          <button type="button" class="btn btn-danger"  data-action="perfil:confirmar-eliminar" data-id="${contacto.id}">Eliminar</button>
         </div>
       `, true);
     },
-    confirmarEliminar() {
+    confirmarEliminar(id) {
+      // Se borra de verdad el contacto, no solo se avisa.
+      const lista = MediModules.salud.contactos;
+      const indice = lista.findIndex(function (c) { return c.id === id; });
+
+      if (indice === -1) {
+        MediModules.close();
+        return;
+      }
+
+      lista.splice(indice, 1);
+      pintarContactos();
       MediModules.close();
       MediModules.avisoLocal('Contacto eliminado.');
     },
@@ -509,17 +557,54 @@
     "perfil:password": function (el, evento) { handlePasswordChange(evento); },
     "perfil:exportar": function () { exportarExpediente(); },
     "perfil:ir-acceso": function () { Router.ir("acceso"); },
-    "perfil:guardar-contacto": function () {
+    "perfil:guardar-contacto": function (el, evento) {
+      evento.preventDefault();
+
+      const form = document.getElementById('contacto-form');
+      const datos = new FormData(form);
+      const nombre = String(datos.get('nombre') || '').trim();
+      const parentesco = String(datos.get('parentesco') || '').trim();
+      const telefono = String(datos.get('telefono') || '').trim();
+      const error = document.getElementById('contacto-error');
+
+      // Se validan los tres campos antes de guardar nada. Un error no
+      // cierra el formulario ni borra lo escrito.
+      const vacio = !nombre || !parentesco || !telefono;
+      const telefonoCorto = telefono.replace(/\D/g, '').slice(-9);
+
+      if (vacio) {
+        error.textContent = 'Completa nombre, parentesco y teléfono.';
+        return;
+      }
+
+      if (!MediValidaciones.telefono(telefonoCorto).ok) {
+        error.textContent = 'El teléfono debe tener 9 dígitos.';
+        return;
+      }
+
+      error.textContent = '';
+      MediModules.salud.contactos.push({
+        id: Date.now(),
+        nombre: nombre,
+        parentesco: parentesco,
+        telefono: telefono
+      });
+
+      pintarContactos();
       MediModules.close();
-      MediModules.avisoLocal('Contacto guardado.');
+      MediModules.avisoLocal('Contacto añadido a tus contactos de emergencia.');
     },
     
     "perfil:agregar-contacto": function () { PerfilModales.agregarContacto(); },
-    "perfil:eliminar-contacto": function () { PerfilModales.eliminarContacto(); },
-    "perfil:confirmar-eliminar": function () { PerfilModales.confirmarEliminar(); },
+    "perfil:eliminar-contacto": function (el) { PerfilModales.eliminarContacto(Number(el.dataset.id)); },
+    "perfil:confirmar-eliminar": function (el) { PerfilModales.confirmarEliminar(Number(el.dataset.id)); },
     "perfil:cambiar-password": function () { PerfilModales.cambiarPassword(); },
     "perfil:cerrar-sesion": function () { PerfilModales.cerrarSesion(); }
   });
+
+  // Se expone para que la vista pueda repintarse cuando cambian los
+  // contactos, igual que Salud expone refrescar().
+  window.PerfilModulo = { pintarContactos };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", iniciar);

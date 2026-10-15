@@ -132,11 +132,15 @@
       MediModules.aviso("Compartir información médica depende del servicio de QR, aún no conectado.");
     },
     // Las filas del resumen llevan a la seccion que corresponde.
+// Cada fila lleva a donde corresponde. Antes "Ultima" abria Documentos y la
+    // fila de alerta abria Recetas: dos destinos que no tienen nada que ver
+    // con lo que la fila anuncia.
     "inicio:resumen": function (el) {
       const fila = el.dataset.fila;
-      if (fila === "Próxima") MediModules.irCitas("proximas");
-      else if (fila === "Última") MediModules.irDocumentos("Todos");
-      else MediModules.irDocumentos("Recetas");
+
+      if (fila === "Próxima") return MediModules.irCitas("proximas");
+      if (fila === "Última") return Router.ir("historial");
+      return Router.ir("salud");
     }
   });
 
