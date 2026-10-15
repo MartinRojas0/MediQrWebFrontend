@@ -1,7 +1,7 @@
 # ==========================================================
 # MediQR - Pruebas funcionales
 #
-# Ejecuta 203 comprobaciones funcionales, 10 cargas por enlace directo y 35 mediciones responsive en un navegador real
+# Ejecuta 289 comprobaciones funcionales, 10 cargas por enlace directo y 35 mediciones responsive en un navegador real
 # (Microsoft Edge o Google Chrome) en modo headless.
 #
 # REQUISITOS
@@ -36,6 +36,12 @@
 #   V.*   validaciones de datos (nombre, DNI, telefono, email, contrasena, edad)
 #   H.*   historial de consultas: orden, buscador, vacio y adjuntos
 #   S.*   flujo SOS: cuenta atras, cancelar, Escape y veracidad del aviso
+#   F.*   flujos completos: reprogramar, finalizar, cancelar, agendar,
+#          editar Salud, grupo sanguineo y panel SOS con su confirmacion
+#   A.*   acceso: pending de backend, sin contrasena guardada ni red
+#   E.*   edicion: guardados locales y aviso antes de descartar cambios
+#   D.*   funciones pendientes: QR sin patron, alta local de documentos
+#   P.*   accesibilidad: h1 unico, alt, nombres, foco, enlace de salto
 #   G.*   estado global: iconos dibujados, formatos de fecha y hora unicos,
 #          ausencia de peticiones a la red y de promesas de guardado
 #   N.*   paridad con el movil (Salud, Perfil, alertas, validaciones)
