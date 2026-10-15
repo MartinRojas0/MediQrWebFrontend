@@ -1,7 +1,7 @@
 # ==========================================================
 # MediQR - Pruebas funcionales
 #
-# Ejecuta 289 comprobaciones funcionales, 10 cargas por enlace directo y 35 mediciones responsive en un navegador real
+# Ejecuta 289 comprobaciones funcionales, 10 cargas por enlace directo y 42 mediciones responsive en un navegador real
 # (Microsoft Edge o Google Chrome) en modo headless.
 #
 # REQUISITOS
