@@ -336,16 +336,6 @@ input:disabled, select:disabled { background: var(--bg-sunken); cursor: not-allo
 .info-row-item .row-value { overflow-wrap: anywhere; }
 .info-row-item .row-chevron { color: var(--text-tertiary); font-size: 1rem; }
 
-/* ---------- Marco del QR ---------- */
-.qr-frame {
-  display: inline-block;
-  padding: var(--space-md);
-  background: var(--white);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-}
-.qr-frame svg { display: block; width: 180px; height: 180px; }
-
 /* ---------- Alerta clinica ---------- */
 .critical-alert {
   display: flex;

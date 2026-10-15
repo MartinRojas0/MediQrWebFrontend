@@ -373,7 +373,7 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
   ok('M.0b No hay contenedores modal-* sueltos', qa('[id^="modal-"]').length === 0);
 
   var disparadores = [
-    ['Ver QR', 'QR de Emergencia', null],
+    ['Ver QR', 'Código QR de emergencia', null],
     ['+ Agregar contacto', 'Contacto de Emergencia', 'contactos'],
     ['Eliminar', 'eliminar este contacto', 'contactos'],
     ['Cambiar contraseña', 'Cambiar contraseña', 'configuracion'],
@@ -1194,6 +1194,42 @@ ok('F.24 Informa del resultado sin prometer una reserva confirmada',
      q('#inp-email').value === 'correo-invalido' && vis(q('#personal-edit-form')) &&
      /e-?mail|correo/i.test(q('#personal-error').textContent),
      q('#personal-error').textContent);
+
+  // ---------- FUNCIONES PENDIENTES DE BACKEND ----------
+  // Ninguna debe fingir que funciona: o lo explica, o no se muestra.
+  q('[data-action="inicio:ver-qr"]').click(); await tick();
+  ok('D.1 El QR no muestra un patron que parezca escaneable',
+     qa('#module-dialog .qr-frame').length === 0 &&
+     qa('#module-dialog svg[viewBox="0 0 100 100"]').length === 0,
+     qa('#module-dialog .qr-frame').length + ' marcos, ' +
+     qa('#module-dialog svg[viewBox="0 0 100 100"]').length + ' patrones');
+  ok('D.2 El QR se declara pendiente y explica por que',
+     /en desarrollo|todav[ií]a no existe/i.test(q('#module-dialog').textContent) &&
+     /podr[ií]a escanearse por error/i.test(q('#module-dialog').textContent),
+     q('#module-dialog').textContent.replace(/\s+/g, ' ').slice(0, 90));
+  if (q('#module-dialog').open) q('#module-dialog').close();
+  await tick();
+
+  // El boton de compartir sigue_CONNECTADO al aviso honesto.
+  q('[data-action="inicio:compartir"]').click(); await tick();
+  ok('D.3 Compartir explica que depende del servicio de QR',
+     /a[uú]n no conectado|depende del servicio/i.test(q('#module-notice').textContent),
+     q('#module-notice').textContent);
+
+  // Subir un documento es local y de verdad se guarda en memoria: el
+  // resultado que se muestra tiene que decirlo.
+  q('#nav-documentos').click(); await tick();
+  q('[data-action="documentos:form"]').click(); await tick();
+  var campoArchivo = q('#document-form [name="archivo"]');
+  ok('D.4 El alta de documento pide un archivo de verdad',
+     !!campoArchivo && campoArchivo.getAttribute('type') === 'file' &&
+     /pdf/i.test(campoArchivo.getAttribute('accept') || ''),
+     campoArchivo ? campoArchivo.getAttribute('type') + ' ' + campoArchivo.getAttribute('accept') : '(no encontrado)');
+  ok('D.5 Y avisa de que no se sube a un servidor',
+     /no se env[ií]a|sin servidor|no se sube/i.test(q('#module-dialog').textContent),
+     q('#module-dialog').textContent.replace(/\s+/g, ' ').match(/[^.]*\./)[0].trim());
+  if (q('#module-dialog').open) q('#module-dialog').close();
+  await tick();
 
   // ---------- ESTADO GLOBAL ----------
   q('#nav-inicio').click(); await tick();

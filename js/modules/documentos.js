@@ -327,6 +327,9 @@ window.MediPartes.documentos = {
         </label>
 
         <p id="document-error" class="error-msg wide" role="alert"></p>
+      <p class="file-help wide">El archivo se guarda solo en este dispositivo:
+      no se sube a ningún servidor, así que no podrás compartirlo con un médico
+      ni recuperarlo si recargas la página.</p>
 
         <div class="module-actions wide">
           <button type="submit" class="btn btn-primary">Subir archivo</button>
@@ -388,7 +391,9 @@ window.MediPartes.documentos = {
       this.modal("Documento agregado correctamente.", `
         <div class="result-box result-ok">
           <i data-icon="circle-check"></i>
-          <p>Tu documento ya está en tu biblioteca.</p>
+          <p>El archivo se añadió a tu biblioteca en este dispositivo.</p>
+          <p class="file-help">No se ha subido a ningún servidor: se pierde al
+          recargar la página y no podrás compartirlo con un médico.</p>
         </div>
 
         ${this.filas([
