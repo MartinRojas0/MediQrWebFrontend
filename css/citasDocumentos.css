@@ -293,17 +293,21 @@ a.btn {
   margin-top: 0.5rem;
 }
 
+/* Rejilla en vez de flex con salto: una etiqueta larga como
+   "Consulta relacionada" desbordaba el min-width y empujaba su valor a la
+   linea siguiente, dejando la columna de valores desalineada respecto a
+   las filas de arriba. Con rejilla, todas las etiquetas ocupan la misma
+   columna aunque necesite dos lineas. */
 .info-row {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(8.5rem, 34%) 1fr;
+  gap: 0 var(--space-sm);
   align-items: baseline;
-  font-size: 0.92rem;
+  font-size: var(--text-label);
 }
 
 .info-label {
   color: var(--text-secondary);
-  min-width: 8.5rem;
 }
 
 .info-value {
@@ -704,9 +708,8 @@ input:disabled {
     grid-column: 1 / -1 !important;
   }
 
-  .info-label {
-    min-width: 7rem;
-  }
+  /* Con rejilla la etiqueta no necesita min-width propio: en movil la
+   columna se estrecha sola. */
 }
 
 @media (max-width: 420px) {
