@@ -80,18 +80,54 @@ function crearServidor(harness) {
 <pre id="MEDIDA"></pre>
 <script>
 document.getElementById('f').addEventListener('load', function () {
-  var f = this;
-  setTimeout(function () {
-    var doc = f.contentDocument;
-    var vp = f.clientWidth;
-    var sw = doc.documentElement.scrollWidth;
-    var out = ['vp=' + vp, 'sw=' + sw, 'desborde=' + (sw - vp), 'culpables=0'];
+var f = this;
+// El portal exige sesion de demostracion: sin ella cualquier ruta cae en la
+// pantalla de acceso y se estaria midiendo siempre la misma pantalla, que es
+// lo que ocurrio al anadir el acceso. Se abre una sesion en memoria dentro
+// del iframe y se pide la ruta que se quiere medir. La abre el marco, no la
+// aplicacion: el codigo de la app no gana ninguna puerta trasera.
+setTimeout(function () {
+try {
+var w = f.contentWindow;
+w.AccesoModulo.sesion.activa = true;
+w.AccesoModulo.sesion.correo = 'demo@ejemplo.invalid';
+w.AccesoModulo.sesion.onboarding = 'hecho';
+w.Router.ir('${v}');
+} catch (e) { /* si el modulo no esta, se mide lo que haya */ }
+// Segunda espera: la ruta pedida ya esta pintada antes de medir.
+setTimeout(function () {
+var doc = f.contentDocument;
+var vp = f.clientWidth;
+var ventana = doc.defaultView;
+// El desborde se mide por geometria, no con documentElement.scrollWidth.
+// Ese valor miente dentro de este marco: con la misma pagina y el mismo
+// ancho devolvia 1118 de forma constante mientras ningun elemento, ningun
+// margen y ningun pseudo-elemento se salia del ancho real (el borde mas
+// lejano estaba en 345, el mismo valor que clientWidth). Medir donde esta
+// el ultimo borde de la pagina es ademas lo que ve el usuario: si nada se
+// sale, no hay barra horizontal, diga lo que diga scrollWidth.
+var limite = vp;
+var maxDerecha = 0;
+Array.prototype.forEach.call(doc.querySelectorAll('body *'), function (el) {
+var r = el.getBoundingClientRect();
+if (r.width === 0 && r.height === 0) return;
+var cs = ventana.getComputedStyle(el);
+// El margen forma parte del area que ocupa el elemento aunque no salga en
+// getBoundingClientRect, asi que tambien cuenta.
+var mr = parseFloat(cs.marginRight) || 0;
+var borde = r.right + mr;
+if (borde > maxDerecha) maxDerecha = borde;
+});
+var sw = doc.documentElement.scrollWidth;
+var desborde = Math.round(maxDerecha - limite);
+var out = ['vp=' + vp, 'sw=' + sw, 'maxDerecha=' + Math.round(maxDerecha),
+'desborde=' + desborde, 'culpables=0', 'ruta=' + doc.body.className];
     var vistos = {};
     // Un elemento dentro de un contenedor con scroll propio no desborda
     // la pagina: se ignora para no marcar falsos positivos.
     function enScroll(el) {
       for (var p = el.parentElement; p && p !== doc.body; p = p.parentElement) {
-        var ov = p.style.overflowX || getComputedStyle(p).overflowX;
+        var ov = p.style.overflowX || ventana.getComputedStyle(p).overflowX;
         if (ov === 'auto' || ov === 'scroll') return true;
       }
       return false;
@@ -130,7 +166,8 @@ document.getElementById('f').addEventListener('load', function () {
       }
     }
     document.getElementById('MEDIDA').textContent = out.join('\\n');
-  }, 250);
+    }, 250);
+  }, 150);
 });
 <\/script>
 </body></html>`;
@@ -178,7 +215,7 @@ document.getElementById('f').addEventListener('load', function () {
 // Tercera pasada: cada vista dentro de un marco de ancho fijo, para
 // detectar desbordamiento horizontal. --window-sizeno baja de 492 px,
 // asi que la medicion se hace con iframes de ancho exacto.
-const VISTAS_RESPONSIVE = ['inicio', 'salud', 'historial', 'citas', 'documentos', 'perfil', 'acceso'];
+const VISTAS_RESPONSIVE = ['inicio', 'salud', 'historial', 'citas', 'documentos', 'perfil', 'acceso', 'onboarding'];
 const ANCHOS = [360, 390, 430, 540, 768, 1024, 1440];
 
 function medir(navegador, url) {
@@ -218,7 +255,12 @@ async function faseResponsive(navegador) {
       // Ojo: la cabecera es 'culpables=0'; los culpables reales empiezan por 'culpable ' con espacio.
       const culpables = texto.split('\n').filter((l) => l.startsWith('culpable '));
 
-      if (desborde > 1 || culpables.length > 0 || texto.indexOf('nav=') !== -1) {
+      // En la pantalla de acceso la barra tiene que estar oculta a proposito: es
+// un login a pantalla completa, sin el portal detras. Ahi no se exige que
+// se vea; en cualquier otra vista si, porque desaparece significa que algo
+// se rompio.
+const accesoSinBarra = v === 'acceso' || v === 'onboarding';
+if (desborde > 1 || culpables.length > 0 || (!accesoSinBarra && texto.indexOf('nav=') !== -1)) {
         fallos++;
         linea.push(w + ':DESBORDA');
         culpables.slice(0, 3).forEach((c) => console.log('        ' + v + ' ' + w + 'px -> ' + c));

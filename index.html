@@ -186,6 +186,11 @@
     <section id="view-acceso" class="view-section hidden">
     </section>
 
+    <!-- Configuración inicial del paciente. Solo aparece tras entrar     -->
+    <!-- en la demostración y mientras no se haya hecho u omitido.        -->
+    <section id="view-onboarding" class="view-section hidden">
+    </section>
+
   </div>
 
   <!-- ========================================== -->
@@ -234,6 +239,7 @@
 <!-- acceso.js construye su marcado al cargar y usa MediPartes.dom.escapar,
      asi que tiene que venir despues de las librerias. -->
 <script src="js/modules/acceso.js"></script>
+<script src="js/modules/onboarding.js"></script>
 <script src="js/components/navbar.js"></script>
 <script src="js/components/modal.js"></script>
 <script src="js/modules/citas.js"></script>

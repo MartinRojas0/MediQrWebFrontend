@@ -34,8 +34,8 @@ guardar una sesión y a hablar con la API, sin cambiar los módulos.
 | | |
 |---|---|
 | **Pantalla** | `js/modules/acceso.js` (`#/acceso`, `#/acceso/registro`, `#/acceso/recuperar`) |
-| **Estado hoy** | El formulario existe con los campos del móvil original. El botón está **deshabilitado** y no hay ninguna llamada al servidor. |
-| **Qué NO se hace** | No se guarda la contraseña en ninguna parte: ni memoria, ni `localStorage`, ni `sessionStorage`, ni cookie. Lo hay verificado en las pruebas `A.8`, `A.9`, `A.11`, `A.12`. |
+| **Estado hoy** | La pantalla **funciona en modo demostración**: acepta cualquier correo y contraseña y marca la sesión como activa. No hay ninguna llamada al servidor, y la propia pantalla lo dice. |
+| **Qué NO se hace** | No se guarda la contraseña en ninguna parte: ni memoria, ni `localStorage`, ni `sessionStorage`, ni cookie. La sesión que se crea (`AccesoModulo.sesion`) solo guarda `activa`, `correo` y si se hizo la configuración inicial, y se pierde al recargar. Verificado en la prueba `L.16` y en `D.1` y `D.5`, que comprueban además que sin sesión no se entra al portal. |
 | **Necesario** | Un endpoint que verifique credenciales, que devuelva un token y una política de renovación y cierre. La contraseña nunca debe llegar al cliente después de enviarse. |
 | **Riesgo a evitar** | Bloquear los datos médicos detrás de un login que no verifica nada daría una falsa sensación de protección. |
 
@@ -53,7 +53,7 @@ guardar una sesión y a hablar con la API, sin cambiar los módulos.
 | | |
 |---|---|
 | **Pantalla** | `MediPartes.modal.verQr()`, en `js/components/modal.js` |
-| **Estado hoy** | Estado "En desarrollo". **No se dibuja ningún patrón**, ni de ejemplo: en una emergencia, un QR con aspecto escaneable haría perder tiempo a un sanitario. Verificado en `D.1`. |
+| **Estado hoy** | Estado "En desarrollo". **No se dibuja ningún patrón**, ni de ejemplo: en una emergencia, un QR con aspecto escaneable haría perder tiempo a un sanitario. Lo comprueban las pruebas del bloque de modales tituladas "El QR no muestra un patrón que parezca escaneable" y "El QR se declara pendiente y explica por qué". |
 | **Necesario** | Generación del QR con los datos del paciente, firma para que no se pueda alterar y validación en el lado que lo escanea. |
 | **Nota** | El botón "Compartir información" (`inicio:compartir`) depende de este mismo servicio. |
 
@@ -101,7 +101,7 @@ guardar una sesión y a hablar con la API, sin cambiar los módulos.
 - **Sin salidas a la red**: verificado en `G.11`. Todo lo que hoy "guarda" es local y lo declara.
 - **Sin datos reales**: los datos de paciente son de demostración y no hay PII. Verificado en `P.1`-`P.5`.
 - **Interfaz coherente para lo pendiente**: los estados "En desarrollo" usan un mismo patrón visual (`css/views/acceso.css`), no mensajes sueltos.
-- **Pruebas que cubren el contrato**: 315 comprobaciones, incluidas las que garantizan que no se guardan contraseñas, no se sale a la red y no se promete un guardado que no ocurre.
+- **Pruebas que cubren el contrato**: 378 comprobaciones, incluidas las que garantizan que no se guardan contraseñas, no se sale a la red y no se promete un guardado que no ocurre.
 
 ---
 

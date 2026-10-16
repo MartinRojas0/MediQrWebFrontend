@@ -22,8 +22,8 @@
           <div class="avatar-box">
             <!-- Avatar local: no se solicita a servicios de terceros -->
             <img src="img/avatar.png" alt="Foto de perfil del paciente" class="avatar-img">
-            <h3>Paciente Demo</h3>
-            <p class="text-muted"><small>DNI: 00000000</small></p>
+<h3 id="perfil-nombre">Delegada Demo</h3>
+              <p class="text-muted"><small>DNI: <span id="perfil-dni">00000000</span></small></p>
           </div>
           <nav class="sidebar-nav mt-1">
             <button class="sb-btn active"  data-action="perfil:pestana" data-tab="info-personal"><i data-icon="user"></i> Información Personal</button>
@@ -45,8 +45,8 @@
 
             <!-- Vista Lectura -->
             <div id="personal-read-view" class="data-grid">
-              <p><strong>Nombres:</strong> <span id="val-name">Paciente</span></p>
-              <p><strong>Apellidos:</strong> <span id="val-lastname">Demo</span></p>
+              <p><strong>Nombres:</strong> <span id="val-name">Delegada</span></p>
+              <p><strong>Apellidos:</strong> <span id="val-lastname">Sin registrar</span></p>
               <p><strong>DNI:</strong> <span id="val-dni">00000000</span></p>
               <p><strong>Fecha de Nacimiento:</strong> <span id="val-birth" data-iso="1990-01-01">01/01/1990</span></p>
               <p><strong>Edad:</strong> <span id="val-age">35 años</span></p>
@@ -57,8 +57,8 @@
 
             <!-- Formulario Edición (Convertible visualmente) -->
             <form id="personal-edit-form" class="form-grid hidden"  data-action="perfil:guardar-personal">
-              <label>Nombres: <input type="text" id="inp-name" value="Paciente" required></label>
-              <label>Apellidos: <input type="text" id="inp-lastname" value="Demo" required></label>
+        <label>Nombres: <input type="text" id="inp-name" value="Martin" required></label>
+        <label>Apellidos: <input type="text" id="inp-lastname" value=""></label>
               <label>DNI: <input type="text" id="inp-dni" value="00000000" required></label>
               <label>Fecha Nacimiento: <input type="date" id="inp-birth" value="1990-01-01" required></label>
               <label>Correo: <input type="email" id="inp-email" value="paciente.demo@ejemplo.invalid" required></label>
@@ -145,10 +145,9 @@
             <h3 class="mt-2"><i data-icon="shield-halved"></i> Seguridad</h3>
             <div class="security-actions mt-1">
               <button class="btn btn-outline"  data-action="perfil:cambiar-password"><i data-icon="key"></i> Cambiar contraseña</button>
-              <button class="btn btn-outline"  data-action="perfil:ir-acceso"><i data-icon="right-from-bracket"></i> Iniciar sesión</button>
               <button class="btn btn-danger"  data-action="perfil:cerrar-sesion"><i data-icon="right-from-bracket"></i> Cerrar sesión</button>
             </div>
-            <p class="text-muted mt-1"><small>El acceso está pendiente de integración: todavía no hay servidor que verifique las credenciales.</small></p>
+            <p class="text-muted mt-1"><small>Sesión de demostración: no hay servidor, la sesión vive solo en esta pestaña y se pierde al recargar.</small></p>
           </article>
 
         </main>
@@ -157,12 +156,19 @@
   function render() {
     var destino = document.getElementById("view-perfil");
 
+    // El marcado se crea una sola vez, pero los datos del paciente se repinten
+    // en cada visita. Si solo se pintaran la primera vez, Perfil seguiria
+    // mostrando los valores de carga despues de que los cambiaran el
+    // onboarding o el propio formulario: era el motivo de que el nombre
+    // escrito al entrar no apareciera aqui. pintarDerivados solo toca los
+    // campos de lectura, no los inputs, asi que no pisa lo que se este
+    // escribiendo.
     if (destino && !destino.dataset.renderizado) {
       destino.innerHTML = MARCADO;
       destino.dataset.renderizado = "1";
       pintarContactos();
-      pintarDerivados();
     }
+    if (destino) pintarDerivados();
   }
 
   // La lista de contactos se pinta desde los datos, no desde un bloque fijo
@@ -204,12 +210,32 @@
 
   // La edad y la fecha de nacimiento no se escriben en el marcado: se derivan
   // de la fecha guardada. Escribirlas a mano las dejaba desactualizadas (un
-  // "35 años" fijo que envejecia con el tiempo y ya no cuadraba).
+  // "35 años" fijo que envejecía con el tiempo y además no cuadraba).
+  //
+  // Aquí también se pinta la identidad desde MediModules.paciente, que es la
+  // única fuente: si el onboarding recoge un nombre, Perfil lo muestra.
   function pintarDerivados() {
-    var nodo = document.getElementById('val-birth');
-    var nacimiento = nodo.dataset.iso || '';
-    var edad = MediPartes.fechas.edad(nacimiento);
+    const paciente = MediModules.paciente;
 
+    document.getElementById('val-name').textContent = paciente.nombre || 'Sin registrar';
+    document.getElementById('val-lastname').textContent = paciente.apellidos || 'Sin registrar';
+
+    const cabecera = document.getElementById('perfil-nombre');
+    if (cabecera) {
+      cabecera.textContent = [paciente.nombre, paciente.apellidos]
+      .map((v) => (v || '').trim())
+      .filter(Boolean)
+      .join(' ') || 'Paciente';
+    }
+
+    const dni = document.getElementById('perfil-dni');
+    if (dni) dni.textContent = paciente.dni || '';
+
+    const nodo = document.getElementById('val-birth');
+    const nacimiento = paciente.nacimiento || '';
+    nodo.dataset.iso = nacimiento;
+
+    const edad = MediPartes.fechas.edad(nacimiento);
     document.getElementById('val-age').textContent = edad === null
       ? 'Sin registrar'
       : edad + (edad === 1 ? ' año' : ' años');
@@ -217,6 +243,12 @@
     if (/^\d{4}-\d{2}-\d{2}$/.test(nacimiento)) {
       nodo.textContent = MediPartes.fechas.fechaCorta(nacimiento);
     }
+
+    const direccion = [paciente.calle, paciente.distrito].filter(Boolean).join(', ');
+    document.getElementById('val-address').textContent = direccion || 'Sin registrar';
+
+    document.getElementById('val-email').textContent = paciente.email;
+    document.getElementById('val-phone').textContent = paciente.telefono;
   }
 
   // 2. Navegación por pestañas del Perfil
@@ -232,18 +264,16 @@
   // descartado en el intento anterior.
   function enablePersonalEdit() {
     const formulario = document.getElementById('personal-edit-form');
-    document.getElementById('inp-name').value = document.getElementById('val-name').textContent;
-    document.getElementById('inp-lastname').value = document.getElementById('val-lastname').textContent;
-    document.getElementById('inp-dni').value = document.getElementById('val-dni').textContent;
-    document.getElementById('inp-birth').value = document.getElementById('val-birth').dataset.iso || '';
-    document.getElementById('inp-email').value = document.getElementById('val-email').textContent;
-    document.getElementById('inp-phone').value = document.getElementById('val-phone').textContent;
+    const p = MediModules.paciente;
 
-    const direccion = document.getElementById('val-address').textContent;
-    const esSinRegistrar = direccion === 'Sin registrar';
-    const partes = esSinRegistrar ? ['', ''] : direccion.split(', ');
-    document.getElementById('inp-street').value = partes[0] || '';
-    document.getElementById('inp-district').value = partes[1] || '';
+    document.getElementById('inp-name').value = p.nombre;
+    document.getElementById('inp-lastname').value = p.apellidos;
+    document.getElementById('inp-dni').value = p.dni;
+    document.getElementById('inp-birth').value = p.nacimiento;
+    document.getElementById('inp-email').value = p.email;
+    document.getElementById('inp-phone').value = p.telefono;
+    document.getElementById('inp-street').value = p.calle;
+    document.getElementById('inp-district').value = p.distrito;
 
     document.getElementById('personal-read-view').classList.add('hidden');
     document.getElementById('personal-edit-form').classList.remove('hidden');
@@ -285,7 +315,7 @@
 
     const resultado = MediValidaciones.todo([
       function () { return MediValidaciones.nombre(valores.nombre); },
-      function () { return MediValidaciones.nombre(valores.apellido); },
+      function () { return MediValidaciones.nombreOpcional(valores.apellido); },
       function () { return MediValidaciones.dni(valores.dni); },
       function () { return MediValidaciones.nacimiento(valores.nacimiento); },
       function () { return MediValidaciones.email(valores.email); },
@@ -303,19 +333,20 @@
     error.textContent = '';
     error.classList.add('hidden');
 
-    document.getElementById('val-name').textContent = valores.nombre;
-    document.getElementById('val-lastname').textContent = valores.apellido;
-    document.getElementById('val-dni').textContent = valores.dni;
+    // El nombre se escribe en el modelo, no solo en el DOM. Es lo que hacia que
+    // editar en Perfil no cambiara nada en Inicio ni en ninguna otra vista.
+    const paciente = MediModules.paciente;
+    paciente.nombre = valores.nombre;
+    paciente.apellidos = valores.apellido;
+    paciente.nacimiento = valores.nacimiento;
+    paciente.dni = valores.dni;
+    paciente.email = valores.email;
+    paciente.telefono = valores.telefono;
+    paciente.calle = valores.calle;
+    paciente.distrito = valores.distrito;
 
-    // El ISO se guarda aparte; lo que se ve es la fecha del portal.
-    document.getElementById('val-birth').dataset.iso = valores.nacimiento;
     pintarDerivados();
-
-    document.getElementById('val-email').textContent = valores.email;
-    document.getElementById('val-phone').textContent = valores.telefono;
-
-    const direccion = [valores.calle, valores.distrito].filter(Boolean).join(', ');
-    document.getElementById('val-address').textContent = direccion || 'Sin registrar';
+    if (window.MediRefrescarPaciente) window.MediRefrescarPaciente();
 
     MediModules.avisoLocal('Información personal actualizada.');
     cancelPersonalEdit();
@@ -508,19 +539,23 @@
         </form>
       `);
     },
-    // No hay sesion que cerrar: el acceso no esta integrado. Se ofrece ir a
-    // las pantallas de acceso, que es lo que el paciente buscaria.
+    // La sesión de demostración vive solo en memoria. "Cerrar sesión" la
+    // descarta de verdad y devuelve al login de demostración. No se afirma
+    // ninguna revocación de token: no hay servidor ni token que revocar.
     cerrarSesion() {
-      MediModules.modal('Sesión de acceso', `
-        <p class="text-muted">Todavía no hay una sesión iniciada: el acceso al
-        portal aún no está integrado con un servidor.</p>
-        <p class="file-help">Los datos que ves son de demostración y están
-        disponibles sin ningún tipo de acceso.</p>
+      MediModules.modal('¿Salir de la demostración?', `
+        <p>Volverás a la pantalla de acceso. Los datos que hayas cambiado en esta
+        sesión se perderán, porque no están guardados en ningún sitio.</p>
         <div class="module-actions">
-          <button type="button" class="btn btn-primary"  data-action="perfil:ir-acceso">Ir a iniciar sesión</button>
-          <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cerrar</button>
+          <button type="button" class="btn btn-outline" data-action="modal:cerrar">Cancelar</button>
+          <button type="button" class="btn btn-danger" data-action="perfil:confirmar-cierre">Salir</button>
         </div>
       `, true);
+    },
+    confirmarCierre() {
+      MediModules.close();
+      if (window.AccesoModulo) window.AccesoModulo.terminar();
+      else Router.ir('acceso');
     },
   };
   // El envio esta deshabilitado, pero si alguien lo fuerza por teclado el
@@ -556,7 +591,6 @@
     "perfil:guardar-medica": function (el, evento) { saveMedicalEdit(evento); },
     "perfil:password": function (el, evento) { handlePasswordChange(evento); },
     "perfil:exportar": function () { exportarExpediente(); },
-    "perfil:ir-acceso": function () { Router.ir("acceso"); },
     "perfil:guardar-contacto": function (el, evento) {
       evento.preventDefault();
 
@@ -599,12 +633,13 @@
     "perfil:eliminar-contacto": function (el) { PerfilModales.eliminarContacto(Number(el.dataset.id)); },
     "perfil:confirmar-eliminar": function (el) { PerfilModales.confirmarEliminar(Number(el.dataset.id)); },
     "perfil:cambiar-password": function () { PerfilModales.cambiarPassword(); },
-    "perfil:cerrar-sesion": function () { PerfilModales.cerrarSesion(); }
+    "perfil:cerrar-sesion": function () { PerfilModales.cerrarSesion(); },
+    "perfil:confirmar-cierre": function () { PerfilModales.confirmarCierre(); }
   });
 
   // Se expone para que la vista pueda repintarse cuando cambian los
   // contactos, igual que Salud expone refrescar().
-  window.PerfilModulo = { pintarContactos };
+  window.PerfilModulo = { pintarContactos, refrescar: pintarDerivados };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", iniciar);

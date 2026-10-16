@@ -1,4 +1,4 @@
-// Captura las seis vistas en movil, tablet y escritorio para revisarlas a ojo.
+// Captura las ocho vistas en movil, tablet y escritorio para revisarlas a ojo.
 // No es parte de la suite: es la herramienta de inspeccion visual.
 //
 // Importante: --window-size no baja de ~492 px en Windows, asi que una
@@ -25,7 +25,7 @@ const TIPOS = {
   '.json': 'application/json'
 };
 
-const VISTAS = ['inicio', 'salud', 'historial', 'citas', 'documentos', 'perfil', 'acceso'];
+const VISTAS = ['inicio', 'salud', 'historial', 'citas', 'documentos', 'perfil', 'acceso', 'onboarding'];
 const VENTANAS = [
   { nombre: 'movil', w: 390, h: 1500 },
   { nombre: 'tablet', w: 768, h: 1300 },
@@ -58,8 +58,93 @@ function servir() {
 html,body{margin:0;padding:0;background:#0b1020;overflow:hidden}
 iframe{display:block;border:0;width:${w}px;height:${h}px}
 </style></head><body>
-<iframe src="/?captura=1#/${q.get('v') || 'inicio'}"></iframe>
-</body></html>`);
+<iframe id="f" src="/?captura=1#/${q.get('v') || 'inicio'}"></iframe>
+  <span id="ESTADO" style="display:none">ESPERANDO</span>
+  <div id="PENDIENTE" style="background:#b00020;color:#fff;font:700 13px sans-serif;padding:6px">ESPERANDO ${q.get('v') || 'inicio'}</div>
+  <script>
+// El portal exige sesion de demostracion, asi que sin ella toda captura
+// saldria de la pantalla de acceso. Se abre una sesion en memoria dentro
+// del iframe y se pide la ruta que se quiere retratar. Lo hace el marco de
+// captura, no la aplicacion: la app no gana ninguna puerta trasera.
+//
+// Se espera a que la vista pedida este de verdad en pantalla antes de dar
+// la captura por buena. Antes se usaban con dos retardos fijos, y se
+// perdia la carrera con la redireccion al acceso: la imagen salia con el
+// contenido ya pintado pero a medio camino.
+//
+// Aqui se comprueba una condicion, no un reloj: que la vista pedida sea la
+// visible y que la barra de navegacion se vea cuando la vista no es de
+// acceso. Si no se cumple, se reintenta y, mientras tanto, la imagen lleva
+// arriba un aviso rojo para que una captura incompleta no pase por buena.
+//
+// AVISO al leer estas imagenes: en las capturas la barra inferior fija no
+// sale, y no es un fallo del portal. Se comprobo: dentro del iframe la
+// barra esta en pantalla (display flex, caja de 375x65 pegada al borde
+// inferior y cinco enlaces visibles) y elementFromPoint devuelve elementos
+// suyos en todo el ancho, o sea que esta encima y se puede pulsar. Es el
+// volcado a PNG del navegador sin interfaz, con la barra dentro de un
+// iframe, lo que no la pinta. La comprobacion automatica de la barra vive
+// en tests/run.js, que si la mide sobre la pagina real.
+var RUTA = ${JSON.stringify(q.get('v') || 'inicio')};
+var vistaDeAcceso = RUTA === 'acceso' || RUTA === 'onboarding';
+var intentos = 0;
+
+function barraVisible(doc) {
+  var nav = doc.querySelector('.app-nav');
+  if (!nav) return false;
+  var cs = doc.defaultView.getComputedStyle(nav);
+  var r = nav.getBoundingClientRect();
+  return cs.display !== 'none' && cs.visibility !== 'hidden' &&
+    r.height > 0 && r.width > 0;
+}
+
+function listo(doc) {
+  if (!doc || !doc.body) return false;
+  var visible = doc.querySelector('.view-section:not(.hidden)');
+  var vista = visible ? visible.id : '';
+  var esLaMia = vista === 'view-' + RUTA ||
+    (RUTA === 'citas' && vista === 'view-citas') ||
+    (RUTA === 'documentos' && vista === 'view-documentos');
+  if (!esLaMia) return false;
+  // En el acceso la barra tiene que estar oculta a proposito; en el resto del
+  // portal tiene que verse, y si no se ve todavia no se ha terminado de pintar.
+  return vistaDeAcceso ? !barraVisible(doc) : barraVisible(doc);
+}
+
+function intento() {
+  intentos++;
+  var f = document.getElementById('f');
+  try {
+    var w = f.contentWindow;
+    w.AccesoModulo.sesion.activa = true;
+    w.AccesoModulo.sesion.correo = 'demo@ejemplo.invalid';
+    w.AccesoModulo.sesion.onboarding = 'hecho';
+    w.Router.ir(RUTA);
+  } catch (e) {}
+  if (listo(f.contentDocument)) {
+    document.getElementById('PENDIENTE').style.display = 'none';
+    document.getElementById('ESTADO').textContent = 'LISTO intentos=' + intentos;
+    return;
+  }
+  if (intentos > 60) {
+    var dd = document.getElementById('f').contentDocument;
+    var nav = dd ? dd.querySelector('.app-nav') : null;
+    var ns = (nav && dd) ? dd.defaultView.getComputedStyle(nav) : null;
+    document.getElementById('ESTADO').textContent =
+      'AVISO vista=' + RUTA + ' intentos=' + intentos +
+      ' bodyClass=' + (dd && dd.body ? dd.body.className : '?') +
+      ' navDisplay=' + (ns ? ns.display : 'sin-nav') +
+      ' hash=' + (dd ? dd.location.hash : '?');
+    return;
+  }
+  setTimeout(intento, 60);
+}
+
+document.getElementById('f').addEventListener('load', function () {
+  setTimeout(intento, 60);
+});
+  </script>
+  </body></html>`);
         return;
       }
 

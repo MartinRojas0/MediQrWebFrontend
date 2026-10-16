@@ -6,6 +6,58 @@
 
 ---
 
+## 0. Estado actual (actualización posterior a la auditoría)
+
+Este documento es la foto de un momento concreto: lo que había antes de que se añadiera
+la pantalla de acceso. Lo que vino después no está descrito en el resto del informe, así
+que conviene tener presente esta diferencia antes de leerlo.
+
+Cinco archivos que aparecen en el inventario de la sección 1 ya no están en el
+repositorio: eran código sin usar o sin cargar y se eliminaron al limpiar el
+proyecto. Si se buscan aquí, no van a aparecer:
+
+- `js/navigation.js`, `js/modalControl.js`, `js/profileEdit.js`,
+  `js/citasDocumentos.js`: código muerto, sin cargar por `index.html`.
+- `img/qr-sample.png`: imagen de ejemplo sin referenciar. El QR real sigue sin
+  estar implementado.
+
+Los nombres que aparecen en las secciones de propuestas (por ejemplo
+`tokens.css` o `api.js`) son recomendaciones de la auditoría, no archivos
+existentes: describen a dónde debería ir cada cosa si se hiciera esa mejora.
+
+### Implementado y verificado
+
+- **Portal de seis vistas** (Inicio, Salud, Historial, Citas, Documentos, Perfil) con
+  navegación por hash y adaptación a móvil, tableta y escritorio.
+- **Acceso de demostración.** Es una pantalla de entrada propia, no autenticación: acepta
+  cualquier correo y contraseña porque no hay servidor contra el que comprobarlos, y así
+  lo dice en pantalla. La sesión vive **solo en memoria**, en `AccesoModulo.sesion`.
+- **Configuración inicial (onboarding) de tres pasos** tras entrar la primera vez, con
+  progreso, retroceso que conserva lo escrito, resumen y opción de omitir.
+- **Nombre del paciente con una sola fuente de verdad.** `MediModules.paciente` es el
+  único sitio del que leen Inicio y Perfil. Se corrigió una causa raíz: el guardado del
+  onboarding sustituía el objeto entero y borraba DNI, correo, teléfono y dirección.
+  Ahora escribe campo a campo sobre el modelo.
+- **Verificación automática:** 378 comprobaciones en el recorrido principal y 8 en cada
+  uno de los 10 enlaces directos (recarga con la URL ya escrita). Todas en verde.
+
+### Demostrativo, no real
+
+- El **acceso no autentica a nadie** y la sesión se pierde al recargar, a propósito: no
+  se guarda nada en `localStorage`, `sessionStorage` ni cookies.
+- El **QR no está implementado**. La acción "Ver QR" muestra un aviso de que queda
+  pendiente. Sigue sin haber un patrón que se pueda escanear; dibujarlo a mano daría una
+  falsa impresión de que funciona, así que no se ha puesto.
+- No hay envío de datos a ningún servicio: `tests/harness.js` comprueba que no sale
+  ninguna petición a la red.
+
+### Pendiente
+
+- QR real, autenticación real y conexión con el backend. Ver `INTEGRACION-BACKEND.md`
+  para lo que haría falta en cada caso.
+
+---
+
 ## 1. Tecnología y estructura comprobadas
 
 ### 1.1 Lo que realmente hay

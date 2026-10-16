@@ -52,6 +52,23 @@
       </button>`;
   }
 
+  // El nombre sale del modelo, no de un texto escrito en el marcado. Antes
+  // Inicio decía "Paciente Demo" y Perfil "Delegada Demo": dos fuentes de
+  // verdad, y editar una no movía la otra.
+  function saludo() {
+    const p = MediModules.paciente || {};
+    return [p.nombre, p.apellidos].filter(Boolean).join(' ').trim() || 'Paciente';
+  }
+
+  // Inicio se pinta una sola vez, asi que si el nombre cambia en Perfil o en
+  // el onboarding hay que volver a pintarlo para que se vea al instante.
+  window.MediRefrescarPaciente = function () {
+    const destino = document.getElementById("view-inicio");
+    if (!destino) return;
+    destino.dataset.renderizado = "";
+    render();
+  };
+
   function accesos() {
     return [
       { icono: "history", etiqueta: "Historial", ruta: "historial", sub: "Tus consultas" },
@@ -82,14 +99,14 @@
     const riesgos = salud.alergias.length;
 
     destino.innerHTML = `
-      <h1 data-titulo-vista class="heading-1">Hola, Paciente Demo <i data-icon="hand" class="icon-wave"></i></h1>
+      <h1 data-titulo-vista class="heading-1">Hola, ${esc(saludo())} <i data-icon="hand" class="icon-wave"></i></h1>
       <p class="text-muted">Tu ecosistema médico está al día</p>
 
       <!-- Identidad medica: el QR es lo primero, igual que en el movil -->
       <article class="card identity-card">
         <div class="identity-main">
           <span class="identity-label">Identidad médica digital</span>
-          <p class="identity-name">Paciente Demo · ${esc(salud.tipoSangre || "Sin grupo sanguíneo")}</p>
+          <p class="identity-name">${esc(saludo())} · ${esc(salud.tipoSangre || "Sin grupo sanguíneo")}</p>
           <p class="identity-detail">${esc(alergias || "Sin alergias registradas")}</p>
           <div class="identity-actions">
             <button type="button" class="btn btn-outline" data-action="inicio:ver-qr">Ver QR</button>

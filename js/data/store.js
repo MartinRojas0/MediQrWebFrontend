@@ -1,4 +1,4 @@
-// ==========================================================
+﻿// ==========================================================
 // MediQR · Estado de la aplicacion
 //
 // Une los datos ficticios, el estado en memoria y los metodos de cada
@@ -64,6 +64,23 @@
        condiciones, medicamentos, vacunas y cirugias son
        estructuras, no texto suelto como estaban aqui.
     ------------------------------------------------------ */
+    // Fuente unica de la identidad del paciente.
+    //
+    // Antes el nombre vivia escrito en el marcado de Inicio ("Hola,
+    // Paciente Demo") y aparte en el de Perfil ("Delegada / Demo"): dos
+    // valores distintos que editando uno no cambiaba el otro. Ahora
+    // ambas vistas leen de aqui, asi que guardar en Perfil se refleja en
+    // todo el portal y el onboarding escribe en el mismo sitio.
+    paciente: {
+      nombre: "Martin",
+      apellidos: "",
+      nacimiento: "1990-01-01",
+      dni: "00000000",
+      email: "paciente.demo@ejemplo.invalid",
+      telefono: "+51 000 000 000",
+      calle: "",
+      distrito: ""
+    },
     salud: {
       tipoSangre: "O+",
 
@@ -117,12 +134,26 @@ cirugias: [
     temporizadorAviso: null,
 
     // Los "desp" son relativos a hoy: se resuelven una sola vez al arrancar.
+    //
+    // Es idempotente a proposito. La cita se queda sin "desp" al resolverse, y
+    // este metodo tambien lo llama el final de la configuracion inicial: sin
+    // el guardia de abajo, esa segunda pasada sumaria undefined a la fecha y
+    // todas las citas de ejemplo quedarian con fecha NaN-NaN-NaN.
     resolverFechas() {
       const hoy = new Date();
 
       this.citas.forEach((cita) => {
+        if (typeof cita.desp !== "number") return;
+
         const fecha = new Date(hoy);
         fecha.setDate(fecha.getDate() + cita.desp);
+        // Los datos de ejemplo son relativos a hoy, asi que una cita "proxima"
+        // puede caer en domingo cuando hoy es viernes. El portal declara que
+        // no hay atencion los domingos, de modo que se pasa al lunes: si no,
+        // el paciente ve una cita el dia que el propio portal dice cerrado.
+        if (cita.desp > 0 && fecha.getDay() === 0) {
+          fecha.setDate(fecha.getDate() + 1);
+        }
         cita.fecha = this.fechaISO(fecha);
         cita.direccion = this.lugares[cita.lugar];
         delete cita.desp;

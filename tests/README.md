@@ -1,7 +1,7 @@
 # ==========================================================
 # MediQR - Pruebas funcionales
 #
-# Ejecuta 331 comprobaciones funcionales, 10 cargas por enlace directo y 49 mediciones responsive en un navegador real
+# Ejecuta 378 comprobaciones funcionales, 10 cargas por enlace directo y 56 mediciones responsive en un navegador real
 # (Microsoft Edge o Google Chrome) en modo headless.
 #
 # REQUISITOS
@@ -42,6 +42,11 @@
 #          escribir, guardar, cancelar, reabrir y descartar sin guardar
 #   K.*   controles que antes solo estaban registrados y se pulsan de verdad
 #   A.*   acceso: pending de backend, sin contrasena guardada ni red
+  #   L.*   acceso en modo demostracion y configuracion inicial (onboarding)
+  #   PAC.* nombre del paciente: fuente unica, guardado y propagacion a Inicio
+  #         y Perfil
+  #   D.*   carga por enlace directo: sin sesion, un enlace al portal devuelve
+  #         al acceso; tras entrar, la ruta pedida se abre con normalidad
 #   E.*   edicion: guardados locales y aviso antes de descartar cambios
 #   D.*   funciones pendientes: QR sin patron, alta local de documentos
 #   P.*   accesibilidad: h1 unico, alt, nombres, foco, enlace de salto

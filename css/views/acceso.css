@@ -1,54 +1,175 @@
 /* ==========================================================
-   MediQR · Pantallas de acceso
+   MediQR · Acceso en modo demostración y configuración inicial
    ==========================================================
-   Inicio de sesion, registro y recuperacion. No hay servidor, asi
-   que el formulario se presenta pero no envia: el boton queda
-   deshabilitado y la tarjeta explica el motivo. El diseno reutiliza
-   las tarjetas y los botones del sistema visual para que la pantalla
-   no parezca un añadido.
+   Comparte tarjetas, botones y tokens del sistema visual. Solo se define
+   lo que es propio de estas dos pantallas: el aviso de demo, el campo de
+   contraseña con mostrar/ocultar, la casilla de términos y el paso a paso
+   de la configuración inicial.
    ========================================================== */
 
-.auth-card {
-  max-width: 30rem;
-  margin: 0 auto var(--space-lg);
+/* ---------- Login a pantalla completa ----------
+   En acceso no se ve nada del portal: ni la cabecera con la marca, ni la
+   navegación, ni el contenido de otras secciones. Sin esto el formulario
+   quedaba encajado en la barra superior del portal, con huecos y con los
+   enlaces del menú detrás. */
+body.solo-acceso .app-bar,
+body.solo-acceso .app-nav,
+body.solo-acceso #sos-boton {
+  display: none;
 }
 
-.auth-card .module-form {
+body.solo-acceso .app-main {
+  padding-left: 0;
+}
+
+body.solo-acceso .container {
+  max-width: none;
   margin: 0;
+  padding: 0;
 }
 
-/* Aviso de función pendiente de backend. */
-.pending-card {
-  max-width: 30rem;
-  margin: 0 auto var(--space-lg);
-  background: var(--warning-soft);
-  border: 1px solid var(--border-subtle);
+body.solo-acceso #view-acceso {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-2xl) var(--space-lg);
 }
 
-.pending-card p {
-  margin: 0 0 var(--space-xs);
+body.solo-acceso #view-acceso h1,
+body.solo-acceso #view-acceso .view-lead,
+body.solo-acceso #view-acceso .auth-card,
+body.solo-acceso #view-acceso .demo-card,
+body.solo-acceso #view-acceso .pending-card,
+body.solo-acceso #view-acceso .auth-alt {
+  width: 100%;
+  max-width: 26rem;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.pending-card p:last-child {
+body.solo-acceso #view-acceso h1 {
   margin-bottom: 0;
 }
 
-.pending-head {
+.auth-card,
+.onb-card {
+  max-width: 32rem;
+  margin: 0 auto var(--space-lg);
+}
+
+.auth-card .module-form,
+.onb-card .module-form {
+  margin: 0;
+}
+
+/* ---------- Aviso de modo demostración ---------- */
+.demo-card {
+  max-width: 32rem;
+  margin: 0 auto var(--space-lg);
+  background: var(--primary-soft);
+  border: 1px solid var(--primary);
+}
+
+.demo-card p {
+  margin: 0 0 var(--space-xs);
+}
+
+.demo-card p:last-child {
+  margin-bottom: 0;
+}
+
+.demo-head {
   display: flex;
   align-items: center;
   gap: var(--space-2xs);
   font-weight: 700;
-  color: var(--warning-text);
+  color: var(--primary-dark);
 }
 
-.pending-head .icon {
+.demo-head .icon {
   width: 1.15rem;
   height: 1.15rem;
   flex: none;
 }
 
+/* ---------- Contraseña con mostrar/ocultar ---------- */
+.input-con-icon {
+  position: relative;
+  display: block;
+}
+
+.input-con-icon input {
+  padding-right: var(--space-4xl);
+}
+
+.ver-clave {
+  position: absolute;
+  right: var(--space-2xs);
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.ver-clave:hover {
+  background: var(--bg-sunken);
+  color: var(--primary);
+}
+
+.ver-clave .icon {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+/* ---------- Condiciones ---------- */
+.terminos-fila {
+  margin-top: var(--space-2xs);
+}
+
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-xs);
+  font-size: var(--text-label);
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.check input {
+  margin-top: 0.15rem;
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  accent-color: var(--primary);
+}
+
+.enlace-terminos {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .auth-alt {
-  max-width: 30rem;
+  max-width: 32rem;
   margin: 0 auto;
   text-align: center;
   color: var(--text-muted);
@@ -65,15 +186,182 @@
   text-decoration: underline;
 }
 
-/* Un boton deshabilitado tiene que explicar por que, no solo verse apagado. */
-button[disabled] {
-  cursor: not-allowed;
+/* Texto de condiciones, dentro del diálogo. */
+.legal {
+  max-height: 50vh;
+  overflow-y: auto;
+  padding-right: var(--space-xs);
+}
+
+.legal h3 {
+  margin: var(--space-lg) 0 var(--space-2xs);
+  font-size: var(--text-subtitle);
+}
+
+.legal h3:first-child {
+  margin-top: 0;
+}
+
+.legal p,
+.legal ul {
+  margin: 0 0 var(--space-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-label);
+  line-height: 1.6;
+}
+
+/* ---------- Configuración inicial: paso a paso ---------- */
+.pasos {
+  max-width: 32rem;
+  margin: var(--space-lg) auto var(--space-lg);
+}
+
+.pasos-lista {
+  display: flex;
+  gap: var(--space-2xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paso-marca {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2xs);
+  padding: var(--space-2xs) var(--space-xs);
+  border-top: 3px solid var(--border-default);
+  color: var(--text-tertiary);
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+.paso-marca--actual {
+  border-top-color: var(--primary);
+  color: var(--primary);
+}
+
+.paso-marca--hecho {
+  border-top-color: var(--primary);
+  color: var(--text-secondary);
+}
+
+.paso-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--bg-sunken);
+  color: inherit;
+  font-size: var(--text-caption);
+}
+
+.paso-marca--actual .paso-num,
+.paso-marca--hecho .paso-num {
+  background: var(--primary);
+  color: var(--text-inverse);
+}
+
+.paso-nombre {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pasos-cuenta {
+  margin: var(--space-2xs) 0 0;
+  text-align: center;
+  font-size: var(--text-caption);
+}
+
+/* ---------- Campos del paso ---------- */
+.onb-campos {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  margin: var(--space-md) 0 var(--space-xs);
+}
+
+.onb-campos label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xs);
+  font-size: var(--text-label);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.onb-campos label.wide {
+  grid-column: 1 / -1;
+}
+
+.onb-campos input {
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  color: var(--text-primary);
+  font-size: var(--text-body);
+}
+
+.onb-acciones {
+  justify-content: space-between;
+  gap: var(--space-2xs);
+  flex-wrap: wrap;
+}
+
+/* ---------- Resumen final ---------- */
+.onb-resumen {
+  max-width: 32rem;
+  margin: 0 auto var(--space-lg);
+  padding: 0;
+}
+
+.onb-resumen-fila {
+  display: grid;
+  grid-template-columns: minmax(9rem, 38%) 1fr;
+  gap: 0 var(--space-sm);
+  padding: var(--space-xs) var(--space-md);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.onb-resumen-fila:last-child {
+  border-bottom: none;
+}
+
+.onb-resumen-clave {
+  color: var(--text-secondary);
+  font-size: var(--text-label);
+}
+
+.onb-resumen-valor {
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 767px) {
   .auth-card,
+  .onb-card,
+  .demo-card,
   .pending-card,
-  .auth-alt {
+  .auth-alt,
+  .pasos {
     max-width: none;
+  }
+
+  .onb-campos {
+    grid-template-columns: 1fr;
+  }
+
+  .paso-nombre {
+    display: none;
+  }
+
+  .onb-resumen-fila {
+    grid-template-columns: 1fr;
+    gap: 0;
   }
 }

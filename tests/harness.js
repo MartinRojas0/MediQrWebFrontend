@@ -102,17 +102,57 @@ async function comprobarEnlaceDirecto() {
     'ruta-inexistente': () => location.hash === '#/inicio' && vis(q('#view-inicio'))
   };
 
-  ok('D.1 La ruta se restaura al cargar', caso === 'ruta-inexistente'
-    ? casos[caso]() : location.hash === '#/' + caso, location.hash);
-  ok('D.2 La vista correspondiente se muestra', casos[caso](), caso);
-  ok('D.3 Solo una vista visible', qa('.view-section:not(.hidden)').length === 1);
-  // Historial se abre desde Inicio y no tiene posicion propia en la barra:
-  // en ese caso la seccion activa se marca en su tarjeta de acceso.
-  ok('D.4 La seccion activa queda marcada',
-     qa('.app-nav [aria-current="page"]').length + qa('.quick-card[aria-current="page"]').length === 1);
-  ok('D.5 El titulo del documento no es el generico',
+  // La sesion de demostracion vive solo en memoria, a proposito: no se guarda
+  // en localStorage, sessionStorage ni cookies. Una recarga arranca sin sesion
+  // y, por tanto, un enlace directo a una vista del portal debe terminar en el
+  // acceso en vez de dejar al usuario dentro. Antes de que existiera el acceso
+  // estas pruebas solo miraban que la ruta se restaurara; ahora se comprueba
+  // la propiedad de seguridad, que es la que manda.
+  ok('D.1 Un enlace directo sin sesion no deja entrar al portal',
+     location.hash === '#/acceso' && vis(q('#view-acceso')),
+     'hash=' + location.hash);
+
+  ok('D.2 La vista protegida no llega a mostrarse',
+     qa('.view-section:not(.hidden)').length === 1 && vis(q('#view-acceso')));
+
+  // La barra no se borra del DOM: el acceso la oculta con body.solo-acceso.
+  // Por eso se mira el estilo calculado y no la clase hidden.
+  var navVisible = getComputedStyle(q('.app-nav')).display !== 'none';
+  ok('D.3 La barra del portal no se ve sin sesion',
+     !navVisible && document.body.classList.contains('solo-acceso'),
+     'nav display=' + getComputedStyle(q('.app-nav')).display +
+     ' | solo-acceso=' + document.body.classList.contains('solo-acceso'));
+
+  // Entra y comprueba que, ya con sesion en memoria, la ruta pedida abre.
+  q('#acc-correo').value = 'demo@ejemplo.invalid';
+  q('#acc-contrasena').value = 'demo1234';
+  q('#acc-terminos').checked = true;
+  q('#acceso-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await new Promise(function (r) { setTimeout(r, 60); });
+
+  // Tras entrar se aterriza en la configuracion inicial, no en la ruta que se
+  // habia escrito antes: sin sesion esa ruta no significaba nada.
+  ok('D.4 Tras entrar, se sale del acceso y arranca la configuracion inicial',
+     window.AccesoModulo.estaActiva() &&
+     (location.hash === '#/onboarding' || location.hash === '#/inicio') &&
+     (vis(q('#view-onboarding')) || vis(q('#view-inicio'))) &&
+     !vis(q('#view-acceso')),
+     'hash=' + location.hash +
+     ' | activa=' + window.AccesoModulo.estaActiva() +
+     ' | onb=' + (q('#view-onboarding') ? q('#view-onboarding').className : '?') +
+     ' | acceso=' + (q('#view-acceso') ? q('#view-acceso').className : '?'));
+
+  Router.ir(caso === 'ruta-inexistente' ? 'inicio' : caso);
+  await new Promise(function (r) { setTimeout(r, 60); });
+
+  ok('D.5 Ya con sesion, la ruta pedida se abre con normalidad',
+     casos[caso] && casos[caso](), 'hash=' + location.hash);
+
+  ok('D.6 Solo una vista visible', qa('.view-section:not(.hidden)').length === 1);
+
+  ok('D.7 El titulo del documento no es el generico',
     !/Portal del Paciente$/.test(document.title), document.title);
-  ok('D.6 Sin errores JavaScript', (window.__errs || []).length === 0, JSON.stringify(window.__errs || []));
+  ok('D.8 Sin errores JavaScript', (window.__errs || []).length === 0, JSON.stringify(window.__errs || []));
 
   const pass = R.filter((r) => r.p).length;
   let out = `==RESULTADO==\nCASO=${caso}\nTOTAL=${R.length} OK=${pass} FALLOS=${R.length - pass}\n`;
@@ -129,6 +169,20 @@ async function run() {
   var q = function (s) { return document.querySelector(s); };
   var qa = function (s) { return document.querySelectorAll(s); };
   var vis = function (e) { return !!e && !e.classList.contains('hidden'); };
+
+  // ---------- SESION DE DEMOSTRACION ----------
+  // El portal ya no se abre sin entrar: el router manda a #/acceso cuando no
+  // hay sesion. Las pruebas de las vistas necesitan una sesion previa, asi que
+  // se abre una aqui, antes de la primera navegacion. El bloque L borra la
+  // sesion a proposito para comprobar el comportamiento sin ella, y la
+  // devuelve al terminar. No se persiste nada: vive solo en memoria, igual
+  // que en la app.
+  window.AccesoModulo.sesion.activa = true;
+  window.AccesoModulo.sesion.correo = 'demo@ejemplo.invalid';
+  window.AccesoModulo.sesion.onboarding = 'completado';
+  Router.ir('inicio');
+  await tick();
+
 
   // ---------- RECURSOS ----------
   // Se captura antes de cualquier navegacion: el hash inicial solo es
@@ -388,7 +442,7 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
     ['+ Agregar contacto', 'Contacto de Emergencia', 'contactos'],
     ['Eliminar', 'eliminar este contacto', 'contactos'],
     ['Cambiar contraseña', 'Cambiar contraseña', 'configuracion'],
-    ['Cerrar sesión', 'Sesión de acceso', 'configuracion']
+    ['Cerrar sesión', 'Salir de la demostración', 'configuracion']
   ];
 
   for (var i = 0; i < disparadores.length; i++) {
@@ -450,15 +504,18 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
 
   // Toast accesible
   q('#ptab-configuracion [data-action="perfil:cerrar-sesion"]').click(); await tick();
-  // No hay sesion que cerrar: el dialogo lo explica y lleva al acceso.
-  ok('V4.13 Cerrar sesion no finge cerrar nada',
-     q('#module-dialog').open === true &&
-     /no hay una sesi[oó]n iniciada|no est[aá] integrada/i.test(q('#module-dialog').textContent) &&
-     !q('#module-dialog [data-action="perfil:confirmar-cierre"]'),
-     q('#module-dialog').textContent.replace(/\s+/g, ' ').slice(0, 80));
-  q('#module-dialog [data-action="perfil:ir-acceso"]').click(); await tick();
-  ok('V4.14 Cerrar sesion ofrece ir al acceso', location.hash === '#/acceso', location.hash);
-  Router.ir('perfil'); await tick();
+// Cerrar sesión: ahora hay una sesión de demostración que sí se puede
+    // cerrar, así que se pide confirmación y se vuelve al acceso de verdad.
+    q('#ptab-configuracion [data-action="perfil:cerrar-sesion"]').click(); await tick();
+    ok('V4.13 Cerrar sesion pide confirmacion',
+       q('#module-dialog').open === true &&
+       !!q('#module-dialog [data-action="perfil:confirmar-cierre"]') &&
+       /demostraci/i.test(q('#module-dialog').textContent),
+       q('#module-dialog-title') ? q('#module-dialog-title').textContent.trim() : '');
+    q('#module-dialog [data-action="modal:cerrar"]').click(); await tick();
+    ok('V4.14 Cancelar deja la sesion abierta',
+       window.AccesoModulo.estaActiva() && location.hash === '#/perfil',
+       'activa=' + window.AccesoModulo.estaActiva());
   ok('M.11 Aviso accesible role=status', q('#module-notice').getAttribute('role') === 'status');
   ok('M.12 Aviso visible', !q('#module-notice').classList.contains('hidden'), q('#module-notice').textContent);
 
@@ -768,7 +825,9 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
        campoFecha ? 'min=' + campoFecha.getAttribute('min') + ' value=' + campoFecha.value : '(sin campo)');
 
     var casillas = qa('#rp-slots input[name="hora"]');
-    ok('F.4 Ofrece horarios concretos para elegir', casillas.length > 0, casillas.length + ' horarios');
+    ok('F.4 Ofrece horarios concretos para elegir', casillas.length > 0,
+  casillas.length + ' horarios | fecha=' + (campoFecha ? campoFecha.value : '?') +
+  ' | hoy=' + MediPartes.fechas.hoyISO());
     ok('F.5 Los horarios se muestran en 24 h',
        !/\d{1,2}:\d{2}\s*(a\. m\.|p\. m\.)/.test(q('#rp-slots').textContent));
 
@@ -972,99 +1031,6 @@ ok('F.24 Informa del resultado sin prometer una reserva confirmada',
       }
     }
   await tick();
-
-  // ---------- ACCESO (sesion pendiente de backend) ----------
-  // No se protege nada, y el portal lo dice. Lo que se comprueba es que las
-  // tres pantallas existan, que el envio este deshabilitado y que no quede
-  // ninguna contrasena guardada ni ninguna peticion hecha.
-  Router.ir('acceso'); await tick();
-
-  ok('A.1 La pantalla de acceso existe', vis(q('#view-acceso')) &&
-     /Iniciar sesi/.test(q('#view-acceso h1').textContent), q('#view-acceso h1').textContent.trim());
-
-  ok('A.2 Respeta los campos del movil (correo y contrasena)',
-     !!q('#acc-correo') && !!q('#acc-contrasena') &&
-     q('#acc-correo').getAttribute('autocomplete') === 'email' &&
-     q('#acc-contrasena').getAttribute('type') === 'password',
-     'correo + contrasena');
-
-  ok('A.3 El boton de iniciar sesion esta deshabilitado',
-     !!q('#acceso-form [type="submit"]') && q('#acceso-form [type="submit"]').disabled === true);
-
-  ok('A.4 Explica que el acceso esta pendiente, con razon',
-     /pendiente de integraci/.test(q('#view-acceso').textContent) &&
-     /no est[aá]n protegidos/.test(q('#view-acceso').textContent),
-     q('.pending-head') ? q('.pending-head').textContent.trim() : '(sin aviso)');
-
-  // El enlace de registro del movil: "¿No tienes cuenta? Registrate aqui".
-  q('#view-acceso [data-action="acceso:ir"]').click(); await tick();
-  ok('A.5 El enlace lleva a crear una cuenta',
-     location.hash === '#/acceso/registro' && /Crear una cuenta/.test(q('#view-acceso h1').textContent),
-     location.hash);
-
-  ok('A.6 El registro pide confirmar la contrasena',
-     !!q('#acc-contrasena') && !!q('#acc-repetir') && q('#registro-form [type="submit"]').disabled === true);
-
-  // Contrasenas distintas: se explica sin enviar nada.
-  q('#acc-correo').value = 'paciente@ejemplo.invalid';
-  q('#acc-contrasena').value = 'clave-larga-1';
-  q('#acc-repetir').value = 'clave-larga-2';
-  q('#registro-form').dispatchEvent(new Event('input', { bubbles: true }));
-  await tick();
-  ok('A.7 Detecta que las contrasenas no coinciden',
-     /no coinciden/.test(q('#registro-error').textContent), q('#registro-error').textContent);
-
-  // Un envio forzado no guarda la contrasena ni sale a la red.
-  q('#acc-contrasena').value = 'clave-larga-1';
-  q('#acc-repetir').value = 'clave-larga-1';
-  var redAntes = window.__red.length;
-  q('#registro-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
-  await tick();
-  ok('A.8 Un envio no deja la contrasena en el formulario',
-     q('#acc-contrasena').value === '' && q('#acc-repetir').value === '',
-     'correo conservado: ' + q('#acc-correo').value);
-  ok('A.9 Un envio no sale a la red', window.__red.length === redAntes, 'red: ' + window.__red.length);
-  ok('A.10 El aviso nombra lo que falta, sin fingir un fallo del servidor',
-     /falta conectar el servidor|todav[ií]a no est[aá] disponible/i.test(q('#registro-error').textContent),
-     q('#registro-error').textContent);
-
-  // Nada se guarda en almacenamiento persistente.
-  var guardado = [];
-  try { for (var k = 0; k < localStorage.length; k++) guardado.push(localStorage.key(k)); } catch (e) { }
-  try { for (var s = 0; s < sessionStorage.length; s++) guardado.push(sessionStorage.key(s)); } catch (e) { }
-  ok('A.11 No se guarda nada en el almacenamiento del navegador',
-     guardado.length === 0, guardado.join(', ') || 'vacio');
-  ok('A.12 No hay cookies de sesion',
-     document.cookie === '' || !/token|session|auth/i.test(document.cookie), document.cookie || 'sin cookies');
-
-  // Recuperacion de acceso: se vuelve al inicio de sesion y se toma el enlace.
-  Router.ir('acceso'); await tick();
-  q('#view-acceso [data-action="acceso:recuperar"]').click(); await tick();
-  ok('A.13 Existe la pantalla de recuperacion',
-     location.hash === '#/acceso/recuperar' && /Recuperar acceso/.test(q('#view-acceso h1').textContent),
-     location.hash);
-  ok('A.14 Recuperar tambien esta pendiente',
-     q('#recuperar-form [type="submit"]').disabled === true &&
-     /pendiente de integraci/.test(q('#view-acceso').textContent));
-
-  // La navegacion no desaparece en las pantallas de acceso: si no, el
-  // paciente se queda sin forma de volver al portal. Se comprueba que
-  // ademas este dentro de la ventana, no solo que tenga alto.
-  var rutasAcceso = ['acceso', 'acceso/registro', 'acceso/recuperar'];
-  var navVisible = true, navFuera = '';
-  rutasAcceso.forEach(function (ruta) {
-    Router.ir(ruta);
-    var barra = q('.app-nav');
-    if (!barra) { navVisible = false; return; }
-    var r = barra.getBoundingClientRect();
-    var dentro = r.height > 0 && r.bottom <= window.innerHeight + 2 && r.top >= 0;
-    if (!dentro) { navVisible = false; navFuera = ruta + ' alto=' + Math.round(r.height) + ' top=' + Math.round(r.top) + ' vh=' + window.innerHeight; }
-  });
-  ok('A.15 La navegacion sigue disponible en las pantallas de acceso', navVisible, navFuera || 'visible en las tres');
-
-  // Y se puede volver al portal desde ahi.
-  q('#nav-inicio').click(); await tick();
-  ok('A.16 Se vuelve al portal desde Acceso', vis(q('#view-inicio')) && !vis(q('#view-acceso')));
 
   // ---------- EDICION Y GUARDADOS (Fase 3) ----------
   // Un guardado local debe decir solo lo que ha pasado: que quedo en este
@@ -1544,8 +1510,8 @@ ok('P.4 Hay una regla de foco visible con contorno',
      !formP.classList.contains('hidden') && lecturaP.classList.contains('hidden'));
 
   ok('X.2 Rellena el formulario con los datos actuales',
-     q('#inp-name').value === q('#val-name').textContent &&
-     q('#inp-lastname').value === q('#val-lastname').textContent &&
+     q('#inp-name').value === MediModules.paciente.nombre &&
+     q('#inp-lastname').value === MediModules.paciente.apellidos &&
      q('#inp-birth').value === q('#val-birth').dataset.iso,
      q('#inp-name').value + ' / ' + q('#inp-lastname').value);
 
@@ -1671,7 +1637,450 @@ ok('P.4 Hay una regla de foco visible con contorno',
   if (q('#module-dialog').open) q('#module-dialog').close();
   await tick();
 
-  // ---------- ESTADO GLOBAL ----------
+  // ---------- ACCESO EN DEMOSTRACION Y CONFIGURACION INICIAL ----------
+// El acceso no verifica nada contra un servidor porque no hay servidor.
+// Lo que se comprueba aqui es lo que el usuario ve y lo que NO ocurre:
+// que los terminos sean obligatorios, que se entre con cualquier correo,
+// que no salga nada a la red, que no quede ninguna contrasena guardada y
+// que el camino completo (acceso -> configuracion -> inicio) no se niegue.
+
+  const guardarAcceso = {
+    activa: window.AccesoModulo.sesion.activa,
+    correo: window.AccesoModulo.sesion.correo,
+    onboarding: window.AccesoModulo.sesion.onboarding
+  };
+
+  // --- El portal no se ve sin entrar ---
+  // Se limpian las dos marcas: sin sesion y sin configuracion hecha.
+  window.AccesoModulo.sesion.activa = false;
+  window.AccesoModulo.sesion.onboarding = '';
+  Router.ir('documentos');
+  ok('L.1 Sin entrar, una ruta del portal devuelve al acceso',
+     location.hash === '#/acceso' && vis(q('#view-acceso')), location.hash);
+
+  Router.ir('salud'); await tick();
+  ok('L.2 Y no hay bucle: sigue en el acceso',
+     location.hash === '#/acceso', location.hash);
+
+  // --- La pantalla de acceso ---
+  ok('L.3 La pantalla ofrece correo y contrasena',
+     !!q('#acc-correo') && !!q('#acc-contrasena') &&
+     q('#acc-correo').getAttribute('type') === 'email' &&
+     q('#acc-contrasena').getAttribute('type') === 'password');
+
+  ok('L.4 Declara que es una demostracion, de forma visible',
+     /modo demostraci/i.test(q('#view-acceso').textContent),
+     q('.demo-head') ? q('.demo-head').textContent.trim() : '(sin aviso)');
+
+  ok('L.5 No afirma que exista autenticacion real',
+     /no hay servidor|no se conecta|pendiente de integraci/i.test(q('#view-acceso').textContent));
+
+  // --- Mostrar y ocultar la contrasena ---
+  const verClave = q('#view-acceso [data-action="acceso:ver-clave"]');
+  ok('L.6 Hay un boton para mostrar la contrasena',
+     !!verClave && verClave.getAttribute('aria-pressed') === 'false',
+     verClave ? 'aria-pressed=' + verClave.getAttribute('aria-pressed') : '(no existe)');
+  verClave.click(); await tick();
+  ok('L.7 Al pulsarlo, la contrasena se ve', q('#acc-contrasena').type === 'text',
+     'tipo=' + q('#acc-contrasena').type);
+  q('#view-acceso [data-action="acceso:ver-clave"]').click(); await tick();
+  ok('L.8 Y al volver a pulsarlo, se oculta',
+     q('#acc-contrasena').type === 'password', 'tipo=' + q('#acc-contrasena').type);
+
+  // --- Campos vacios ---
+  q('#acc-correo').value = '';
+  q('#acc-contrasena').value = '';
+  q('#acc-terminos').checked = true;
+  q('#acceso-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  ok('L.9 Sin correo no se entra',
+     /correo/i.test(q('#acceso-error').textContent) &&
+     window.AccesoModulo.estaActiva() === false,
+     q('#acceso-error').textContent);
+
+  // --- Los terminos son obligatorios ---
+  q('#acc-correo').value = 'demo@ejemplo.invalid';
+  q('#acc-contrasena').value = 'clave-de-demo';
+  q('#acc-terminos').checked = false;
+  q('#acceso-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  ok('L.10 Sin aceptar los terminos no se entra',
+     /aceptar las condiciones/i.test(q('#acceso-error').textContent) &&
+     window.AccesoModulo.estaActiva() === false,
+     q('#acceso-error').textContent);
+
+  // --- El enlace a los terminos ---
+  q('#view-acceso [data-action="acceso:terminos"]').click(); await tick();
+  ok('L.11 El enlace abre los terminos en un dialogo accesible',
+     q('#module-dialog').open === true &&
+     /condiciones de uso/i.test(q('#module-dialog').textContent),
+     q('#module-dialog-title') ? q('#module-dialog-title').textContent.trim() : '(sin titulo)');
+  ok('L.12 Los terminos aclaran que no es consentimiento medico',
+     /no constituye consentimiento m[eé]dico/i.test(q('#module-dialog').textContent));
+
+  // Boton de aceptar del propio dialogo: marca la casilla y avisa. Sin esta
+  // prueba la accion quedaba registrada pero nunca se ejecutaba, y el bloque
+  // G.16 lo detectaba como codigo sin usar.
+  q('#acc-terminos').checked = false;
+  q('#module-dialog [data-action="acceso:aceptar-terminos"]').click(); await tick();
+  ok('L.12b Aceptar desde el dialogo marca la casilla y lo dice',
+     q('#acc-terminos').checked === true &&
+     /aceptadas/i.test(document.getElementById('module-notice').textContent),
+     'casilla=' + q('#acc-terminos').checked);
+  q('#acc-terminos').checked = false;
+  q('#module-dialog [data-action="modal:cerrar"]').click(); await tick();
+  ok('L.13 El dialogo de terminos se cierra', q('#module-dialog').open === false);
+
+  // --- Ahora si: cualquier correo y contrasena valen ---
+  q('#acc-correo').value = 'demo@ejemplo.invalid';
+  q('#acc-contrasena').value = 'clave-de-demo';
+  q('#acc-terminos').checked = true;
+  const redAntesDeEntrar = window.__red.length;
+  q('#acceso-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+
+  ok('L.14 Con terminos aceptados se entra con cualquier correo',
+     window.AccesoModulo.estaActiva() === true &&
+     window.AccesoModulo.sesion.correo === 'demo@ejemplo.invalid',
+     'correo=' + window.AccesoModulo.sesion.correo);
+
+  ok('L.15 Entrar NO hace ninguna peticion al backend',
+     window.__red.length === redAntesDeEntrar,
+     'red: ' + (window.__red.length - redAntesDeEntrar));
+
+  ok('L.16 La contrasena no queda guardada en ninguna parte',
+     q('#acc-contrasena') === null || q('#acc-contrasena').value === '',
+     'el campo ya no existe o esta vacio');
+
+  ok('L.17 Tampoco queda nada en el almacenamiento del navegador',
+     (function () {
+       var guardados = [];
+       try { for (var i = 0; i < localStorage.length; i++) guardados.push(localStorage.key(i)); } catch (e) { }
+       try { for (var j = 0; j < sessionStorage.length; j++) guardados.push(sessionStorage.key(j)); } catch (e) { }
+       return guardados.length === 0;
+     })(), 'vacio');
+
+  ok('L.18 No se afirma haber autenticado contra un servidor',
+     !/autenticado contra|inici[oó] sesi[oó]n correctamente|credenciales v[aá]lidas/i
+       .test(q('#module-notice').textContent + document.body.textContent.slice(0, 600)),
+     q('#module-notice').textContent);
+
+  // --- Tras entrar, la configuracion inicial ---
+  ok('L.19 Al entrar sin configurar, aparece el onboarding',
+     location.hash === '#/onboarding' && vis(q('#view-onboarding')), location.hash);
+
+  ok('L.20 El onboarding muestra el progreso del paso',
+     /paso 1 de 3/i.test(q('#view-onboarding').textContent) &&
+     qa('.paso-marca').length === 3);
+
+  q('#onb-nombre').value = 'Ana';
+  q('#onb-apellidos').value = 'García';
+  q('#onb-nacimiento').value = '1992-04-18';
+  q('[data-action="onboarding:siguiente"]').click(); await tick();
+
+  ok('L.21 Continuar pasa al paso 2', /paso 2 de 3/i.test(q('#view-onboarding').textContent));
+
+  q('[data-action="onboarding:atras"]').click(); await tick();
+  ok('L.22 Volver atras conserva los datos introducidos',
+     q('#onb-nombre').value === 'Ana' &&
+     q('#onb-apellidos').value === 'García' &&
+     q('#onb-nacimiento').value === '1992-04-18',
+     q('#onb-nombre').value + ' ' + q('#onb-apellidos').value + ' ' + q('#onb-nacimiento').value);
+
+  q('[data-action="onboarding:siguiente"]').click(); await tick();
+  q('#onb-grupo').value = 'A+';
+  q('#onb-alergias').value = 'Penicilina (grave)';
+  q('#onb-condiciones').value = 'Hipertensión leve';
+  q('[data-action="onboarding:siguiente"]').click(); await tick();
+  ok('L.23 Continua hasta el paso 3', /paso 3 de 3/i.test(q('#view-onboarding').textContent));
+
+  q('#onb-contacto').value = 'Jorge García';
+  q('#onb-parentesco').value = 'Hermano';
+  q('#onb-telefono').value = '999888777';
+  q('[data-action="onboarding:siguiente"]').click(); await tick();
+
+  ok('L.24 Muestra un resumen con lo introducido',
+     /Ana/.test(q('#view-onboarding').textContent) &&
+     /García/.test(q('#view-onboarding').textContent) &&
+     /Penicilina/.test(q('#view-onboarding').textContent) &&
+     /Jorge/.test(q('#view-onboarding').textContent),
+     q('.onb-resumen').textContent.replace(/\s+/g, ' ').trim().slice(0, 90));
+
+  ok('L.25 El resumen aclara que solo queda en este dispositivo',
+     /solo en este dispositivo|no se env[ií]a a ning[uú]n servicio/i.test(q('#view-onboarding').textContent));
+
+  const citasAntes = MediModules.citas.length;
+  q('[data-action="onboarding:finalizar"]').click(); await tick();
+
+  ok('L.26 Finalizar lleva al Inicio',
+     location.hash === '#/inicio' && vis(q('#view-inicio')), location.hash);
+  ok('L.27 Lo introducido llega de verdad al modelo',
+     MediModules.salud.tipoSangre === 'A+' &&
+     MediModules.salud.alergias.length === 1 &&
+     MediModules.salud.contactos.some(function (c) { return c.nombre === 'Jorge García'; }),
+     'grupo=' + MediModules.salud.tipoSangre +
+     ', alergias=' + MediModules.salud.alergias.length +
+     ', contactos=' + MediModules.salud.contactos.length);
+  ok('L.28 Finalizar no altera las citas',
+     MediModules.citas.length === citasAntes, MediModules.citas.length + ' citas');
+  ok('L.29 Y avisa de que el guardado es local',
+     /este dispositivo/i.test(q('#module-notice').textContent), q('#module-notice').textContent);
+
+  // --- Omitir ---
+  window.AccesoModulo.sesion.onboarding = '';
+  Router.ir('onboarding'); await tick();
+  q('[data-action="onboarding:omitir"]').click(); await tick();
+  ok('L.30 Omitir tambien lleva al Inicio y no bloquea',
+     location.hash === '#/inicio' && vis(q('#view-inicio')), location.hash);
+  ok('L.31 Tras omitir se recuerda, para no volver a preguntar',
+     window.AccesoModulo.sesion.onboarding === 'omitido',
+     window.AccesoModulo.sesion.onboarding);
+
+  // --- Registro de demostracion ---
+  q('#nav-perfil').click(); await tick();
+  q('.sidebar-nav [data-action="perfil:pestana"][data-tab="configuracion"]').click();
+  q('#ptab-configuracion [data-action="perfil:cerrar-sesion"]').click(); await tick();
+  q('#module-dialog [data-action="perfil:confirmar-cierre"]').click(); await tick();
+
+  ok('L.32 Cerrar sesion devuelve al acceso',
+     location.hash === '#/acceso' && vis(q('#view-acceso')) &&
+     window.AccesoModulo.estaActiva() === false, location.hash);
+
+  q('#view-acceso [data-action="acceso:ir"]').click(); await tick();
+  ok('L.33 El enlace lleva al registro',
+     location.hash === '#/acceso/registro' && /cuenta de demostraci/i.test(q('#view-acceso h1').textContent),
+     location.hash);
+
+  ok('L.34 El registro pide confirmar la contrasena',
+     !!q('#acc-contrasena') && !!q('#acc-repetir') &&
+     /demostraci/i.test(q('#view-acceso').textContent));
+
+  q('#acc-correo').value = 'nuevo@ejemplo.invalid';
+  q('#acc-contrasena').value = 'una-clave-larga';
+  q('#acc-repetir').value = 'otra-clave-distinta';
+  q('#registro-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  ok('L.35 Detecta que las contrasenas no coinciden',
+     /no coinciden/i.test(q('#registro-error').textContent), q('#registro-error').textContent);
+
+  q('#acc-repetir').value = 'una-clave-larga';
+  q('#acc-terminos').checked = false;
+  q('#registro-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  ok('L.36 El registro tambien exige aceptar los terminos',
+     /aceptar las condiciones/i.test(q('#registro-error').textContent),
+     q('#registro-error').textContent);
+
+  q('#acc-terminos').checked = true;
+  const redAntesRegistro = window.__red.length;
+  q('#registro-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+
+  ok('L.37 El registro de demostracion deja continuar',
+     window.AccesoModulo.estaActiva() === true &&
+     window.AccesoModulo.sesion.correo === 'nuevo@ejemplo.invalid',
+     'correo=' + window.AccesoModulo.sesion.correo);
+  ok('L.38 Y tampoco envia nada al backend',
+     window.__red.length === redAntesRegistro,
+     'red: ' + (window.__red.length - redAntesRegistro));
+
+  window.AccesoModulo.terminar();
+  Router.ir('acceso/registro'); await tick();
+  q('#view-acceso [data-action="acceso:ir"]').click(); await tick();
+  ok('L.39 Desde el registro se vuelve al login',
+     location.hash === '#/acceso' && /iniciar sesi/i.test(q('#view-acceso h1').textContent),
+     location.hash);
+
+  q('#view-acceso [data-action="acceso:recuperar"]').click(); await tick();
+  ok('L.40 Recuperar explica que en la demo no se envia correo',
+     /no se env[ií]a ning[uú]n correo/i.test(q('#view-acceso').textContent),
+     q('#view-acceso h1').textContent.trim());
+  ok('L.41 Recuperar deja claro que el acceso real sigue pendiente',
+     /pendiente de integraci/i.test(q('#view-acceso').textContent));
+
+  ok('L.42 Desde el acceso no se queda atrapado en un bucle',
+     (function () {
+       Router.ir('perfil');
+       return location.hash === '#/acceso';
+     })(), 'una ruta del portal devuelve al acceso');
+
+  // Se restablece la sesion para el resto de la suite
+  window.AccesoModulo.sesion.activa = guardarAcceso.activa;
+  window.AccesoModulo.sesion.correo = guardarAcceso.correo;
+  window.AccesoModulo.sesion.onboarding = guardarAcceso.onboarding;
+  Router.ir('inicio'); await tick();
+
+  ok('L.43 La navegacion principal sigue disponible tras entrar',
+     vis(q('#view-inicio')) && qa('.app-nav').length === 1, location.hash);
+
+// ---------- NOMBRE DEL PACIENTE: UNA SOLA FUENTE DE VERDAD ----------
+  // El nombre aparecia duplicado en el portal: Inicio decia "Paciente Demo"
+  // y Perfil "Delegada Demo". Se comprueba que los tres sitios lean de
+  // MediModules.paciente y que escribir una vez se vea en los tres.
+
+  // El bloque va dentro de un try: si un selector deja de existir, la prueba
+  // tiene que contarse como fallida y dejar ver el motivo, no tirar la suite
+  // entera abajo y perder los resultados de los demas bloques.
+  try {
+
+  var pac = MediModules.paciente;
+
+  // Los bloques anteriores (L, el flujo de edicion) dejan el modelo con los
+  // datos que escribieron en sus propias pruebas. Aqui interesa el estado de
+  // partida: se parte de un paciente limpio y al final se deja
+  // como estaba, para no arrastrar cambios a ESTADO GLOBAL.  var original = JSON.parse(JSON.stringify(pac));
+  pac.nombre = 'Martin';
+  pac.apellidos = '';
+  pac.dni = '00000000';
+  pac.nacimiento = '1990-01-01';
+  pac.email = 'paciente.demo@ejemplo.invalid';
+  pac.telefono = '+51 000 000 000';
+
+  ok('PAC.1  El modelo central trae un nombre por defecto visible',
+     typeof pac.nombre === 'string' && pac.nombre.trim() === 'Martin',
+     JSON.stringify(pac.nombre));
+
+  // No hay apellido conocido: se deja vacio en vez de inventar uno.
+  ok('PAC.2  No se inventa un apellido si el paciente no tiene',
+     pac.apellidos === '', JSON.stringify(pac.apellidos));
+
+  // --- El onboarding guarda nombres y apellidos en el modelo central ---
+  var antes = {
+    dni: pac.dni, email: pac.email, telefono: pac.telefono,
+    direccion: JSON.stringify(pac.direccion)
+  };
+
+  window.OnboardingModulo.reiniciar();
+  Router.ir('onboarding'); await tick();
+
+  var vistaOnb = q('#view-onboarding');
+  ok('PAC.3  El onboarding se abre y el nombre previo se ofrece para editar',
+     !!q('#onb-nombre'),
+     'hash=' + location.hash +
+     ' | vista=' + (vistaOnb ? vistaOnb.className : '(sin #view-acceso)') +
+     ' | rutaAplicada=' + (Router.rutaAplicada || '?') +
+     ' | html=' + (vistaOnb ? vistaOnb.innerHTML.slice(0, 90).replace(/\s+/g, ' ') : ''));
+  // El nombre se escribe en el paso 1. En el paso 2 ese campo ya no existe,
+  // porque cada paso muestra lo suyo: se comprueba el paso y luego se vuelve
+  // atras para ver que lo escrito seguia ahi.
+  q('#onb-nombre').value = 'Martin Andres';
+  q('#onb-apellidos').value = '';
+  q('[data-action="onboarding:siguiente"]').click(); await tick();
+  ok('PAC.4  Escribir el nombre avanza al paso 2',
+     /Paso 2 de 3/.test(q('#view-onboarding').textContent) && !q('#onb-nombre'),
+     (q('#view-onboarding').textContent.match(/Paso \d de \d/) || ['(sin paso)'])[0]);
+
+  // Retroceder no debe borrar lo escrito.
+  q('[data-action="onboarding:atras"]').click(); await tick();
+  ok('PAC.5 Retroceder conserva lo ya escrito',
+     q('#onb-nombre') && q('#onb-nombre').value === 'Martin Andres',
+     q('#onb-nombre') ? q('#onb-nombre').value : '(sin campo)');
+
+
+  q('[data-action="onboarding:siguiente"]').click(); await tick();
+  q('[data-action="onboarding:siguiente"]').click(); await tick();
+  q('[data-action="onboarding:siguiente"]').click(); await tick();
+  ok('PAC.6  El tercer paso lleva a un resumen, no se salta',
+     /Resumen de tu configuraci/i.test(q('#view-onboarding').textContent),
+     (q('#view-onboarding').textContent.match(/Martin[^\n]{0,20}/) || ['(el resumen no muestra el nombre)'])[0].trim());
+
+  // Se copia el resumen antes de finalizar: si el nombre no llega al modelo,
+  // este texto dice si se perdio al escribir o al guardar.
+  var resumenAntes = q('#view-onboarding').textContent.replace(/\s+/g, ' ');
+  q('[data-action="onboarding:finalizar"]').click(); await tick();
+
+  ok('PAC.7  Al finalizar, los nombres quedan en el modelo central',
+     MediModules.paciente.nombre === 'Martin Andres',
+     'modelo=' + JSON.stringify(MediModules.paciente.nombre) +
+     ' | resumen=' + resumenAntes.slice(0, 120));
+
+  // El fallo que motivo el arreglo: antes se asignaba un objeto nuevo y se
+  // perdian DNI, correo, telefono y direccion.
+  ok('PAC.8  Guardar el nombre no borra el resto de los datos del paciente',
+     MediModules.paciente.dni === antes.dni &&
+     MediModules.paciente.email === antes.email &&
+     MediModules.paciente.telefono === antes.telefono &&
+     JSON.stringify(MediModules.paciente.direccion) === antes.direccion,
+     JSON.stringify({ dni: MediModules.paciente.dni, email: MediModules.paciente.email }));
+
+  ok('PAC.9  El modelo sigue siendo el mismo objeto (referencia unica)',
+     MediModules.paciente === pac);
+
+  // --- Inicio y Perfil leen del modelo ---
+  Router.ir('inicio'); await tick();
+  ok('PAC.10  Inicio muestra el nombre del modelo central',
+     /Martin\s*Andres/.test(q('#view-inicio h1[data-titulo-vista]').textContent),
+     q('#view-inicio h1[data-titulo-vista]').textContent.trim());
+
+  Router.ir('perfil'); await tick();
+  ok('PAC.11  Perfil muestra el mismo nombre que Inicio',
+     q('#val-name').textContent === MediModules.paciente.nombre &&
+     q('#perfil-nombre').textContent.indexOf('Martin Andres') === 0,
+     'val-name=' + q('#val-name').textContent +
+     ' | cabecera=' + q('#perfil-nombre').textContent);
+
+  ok('PAC.12  El apellido vacio se muestra como "Sin registrar", no como undefined',
+     q('#val-lastname').textContent === 'Sin registrar',
+     q('#val-lastname').textContent);
+
+  // Con apellido vacio no debe quedar un espacio suelto en la cabecera.
+  ok('PAC.13  La cabecera no deja un espacio final si no hay apellido',
+     q('#perfil-nombre').textContent === q('#perfil-nombre').textContent.trim(),
+     JSON.stringify(q('#perfil-nombre').textContent));
+
+  // --- Guardar desde Perfil sigue funcionando ---
+  MediModules.paciente.apellidos = '';
+  q('#btn-edit-personal').click(); await tick();
+  ok('PAC.14  Perfil sigue permitiendo editar sus datos',
+     vis(q('#personal-edit-form')));
+
+  // required en el campo de apellido bloquearia el guardado con el apellido
+  // vacio, que es justo el caso por defecto.
+  ok('PAC.15  El apellido no es obligatorio en el formulario de guardado',
+     !q('#inp-lastname').required, 'required=' + q('#inp-lastname').required);
+
+  q('#inp-name').value = 'Martin Andres';
+  q('#inp-lastname').value = '';
+  q('#personal-edit-form').dispatchEvent(new Event('submit', {
+    bubbles: true, cancelable: true
+  }));
+  await tick();
+  ok('PAC.16  Guardar desde Perfil escribe en el modelo central',
+     MediModules.paciente.nombre === 'Martin Andres' &&
+     MediModules.paciente.apellidos === '',
+     JSON.stringify(MediModules.paciente.nombre));
+
+  // --- Cancelar sigue descartando lo escrito ---
+  q('#btn-edit-personal').click(); await tick();
+  q('#inp-name').value = 'Nombre Que No Debe Quedar';
+  q('[data-action="perfil:cancelar-personal"]').click(); await tick();
+  ok('PAC.17  Cancelar la edicion descarta lo escrito y conserva lo guardado',
+     MediModules.paciente.nombre === 'Martin Andres' &&
+     !vis(q('#personal-edit-form')),
+     JSON.stringify(MediModules.paciente.nombre));
+
+  } catch (errorPac) {
+    ok('PAC.0 El bloque completo se pudo ejecutar', false,
+       (errorPac && errorPac.message ? errorPac.message : String(errorPac)) +
+       ' | ' + String((errorPac && errorPac.stack || '').split('\n')[1] || '').trim());
+  }
+
+  // Se devuelve el paciente como estaba, para que ESTADO GLOBAL vea los datos
+  // que dejaron los bloques anteriores y no los de estas pruebas.
+  try {
+    var p = MediModules.paciente;
+    p.nombre = original.nombre;
+    p.apellidos = original.apellidos;
+    p.dni = original.dni;
+    p.nacimiento = original.nacimiento;
+    p.email = original.email;
+    p.telefono = original.telefono;
+    p.direccion = original.direccion;
+    if (window.MediRefrescarPaciente) window.MediRefrescarPaciente();
+  } catch (e) { /* el estado global lo comprobara igualmente */ }
+
+
+// ---------- ESTADO GLOBAL ----------
   q('#nav-inicio').click(); await tick();
   q('#nav-inicio').click(); await tick();
   ok('G.1 Vuelta a Inicio', vis(q('#view-inicio')));
@@ -1685,6 +2094,32 @@ ok('P.4 Hay una regla de foco visible con contorno',
      MediModules.citas.some(function (c) { return String(c.estado).toLowerCase() === 'atendida'; }) &&
      MediModules.documentos.some(function (d) { return d.tipo === 'Receta'; }),
      MediModules.documentos.length + ' documentos, ' + MediModules.citas.length + ' citas');
+
+  // El bloque L termina la configuracion inicial, y al finalizarla se vuelve a
+  // llamar a resolverFechas(). Ese metodo borra el "desp" de cada cita al
+  // resolverla, asi que una segunda pasada sin guardia dejaba todas las
+  // fechas en NaN-NaN-NaN y el calendario se quedaba sin citas. Se comprueba
+  // que las fechas siguen siendo fechas de verdad.
+  var fechasMalas = MediModules.citas.filter(function (c) {
+    return !/^\d{4}-\d{2}-\d{2}$/.test(String(c.fecha || ''));
+  });
+  ok('G.3b Todas las citas tienen fecha valida tras el onboarding',
+     fechasMalas.length === 0 && MediModules.citas.every(function (c) {
+       return new Date(c.fecha + 'T12:00:00').toString() !== 'Invalid Date';
+     }),
+     fechasMalas.length
+       ? fechasMalas.map(function (c) { return c.id + '=' + c.fecha; }).join(', ')
+       : MediModules.citas.length + ' citas con fecha');
+
+  // Tampoco puede quedar ninguna cita proxima en domingo: el portal declara
+  // que no hay atencion ese dia, asi que no debe offercer una.
+  var proximasEnDomingo = MediModules.citas.filter(function (c) {
+    return String(c.estado).toLowerCase() === 'próxima' &&
+      new Date(c.fecha + 'T12:00:00').getDay() === 0;
+  });
+  ok('G.3c Ninguna cita proxima cae en domingo',
+     proximasEnDomingo.length === 0,
+     proximasEnDomingo.map(function (c) { return c.id + '=' + c.fecha; }).join(', '));
   ok('G.4 Sin errores JavaScript', (window.__errs || []).length === 0, JSON.stringify(window.__errs || []));
 
   // Iconos: render() sustituye cada <i data-icon> por su <svg>. Si queda
@@ -1710,8 +2145,12 @@ ok('P.4 Hay una regla de foco visible con contorno',
 
   // La edad se deriva de la fecha guardada, no de un texto fijo que envejece.
   var isoNac = q('#val-birth').dataset.iso;
+  // La edad tiene que salir de la fecha que el propio DOM muestra, no de una
+  // fecha fija escrita aqui. Antes se comparaba contra '1990-06-15', que solo
+  // se cumplia si ningun bloque posterior habia cambiado la fecha del
+  // paciente, y dejaba de ser cierto en cuanto el onboarding la escribia.
   ok('G.7 La edad coincide con la fecha de nacimiento mostrada',
-     isoNac === '1990-06-15' &&
+     /^\d{4}-\d{2}-\d{2}$/.test(isoNac) &&
      q('#val-age').textContent.trim() === (function () {
        var p = isoNac.split('-').map(Number), h = new Date();
        var e = h.getFullYear() - p[0];
@@ -1721,8 +2160,8 @@ ok('P.4 Hay una regla de foco visible con contorno',
      isoNac + ' -> ' + q('#val-age').textContent.trim());
 
   // La fecha se muestra en el formato del portal, nunca en ISO crudo.
-  ok('G.8 La fecha de nacimiento no se muestra en ISO',
-     q('#val-birth').textContent.trim() === '15/06/1990',
+  ok('G.8 La fecha de nacimiento se muestra en formato corto, no en ISO',
+     /^\d{2}\/\d{2}\/\d{4}$/.test(q('#val-birth').textContent.trim()),
      q('#val-birth').textContent.trim());
 
   // Una sola forma de hora en todo el portal: 24 h, sin "p. m.".

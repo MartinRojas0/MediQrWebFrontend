@@ -26,12 +26,26 @@ const RUTAS = {
   citas: { vista: "citas" },
   documentos: { vista: "documentos" },
   perfil: { vista: "perfil" },
-  // Acceso no es una seccion con boton en la barra: se llega desde
-  // Perfil > Configuracion y desde los enlaces entre sus pantallas.
-  acceso: { vista: "acceso" }
+  // El acceso vive fuera de la barra: se llega desde el propio flujo de
+  // entrada y desde Perfil > Configuración.
+  acceso: { vista: "acceso" },
+  onboarding: { vista: "onboarding" }
 };
 
+// Rutas por las que se puede entrar sin sesión de demostración.
+const SIN_SESION = { acceso: true, onboarding: true };
+
 const RUTA_INICIAL = "inicio";
+
+// Decide por dónde entra el paciente. La sesión de demostración solo
+// existe en memoria, así que sin ella se empieza siempre por el acceso:
+// nunca hay un estado guardado que contradiga lo que se ve.
+function primeraPantalla() {
+  const acceso = window.AccesoModulo;
+
+  if (!acceso || !acceso.estaActiva()) return "acceso";
+  return acceso.sesion.onboarding ? "inicio" : "onboarding";
+}
 
 const TITULOS = {
   inicio: "MediQR - Inicio",
@@ -85,7 +99,10 @@ const Router = {
     if (location.hash) {
       this.resolver(location.hash);
     } else {
-      this.ir(RUTA_INICIAL, { reemplazar: true });
+      // Primera pantalla: el login de la demostración. La sesión vive solo
+      // en memoria, así que recargar vuelve a pedir el acceso, que es lo
+      // honesto: no hay nada que recordar.
+      this.ir(primeraPantalla(), { reemplazar: true });
     }
   },
 
@@ -97,6 +114,13 @@ const Router = {
     // ciclo: esperar al evento hashchange dejaba la pantalla old durante
     // un frame y rompia las pruebas que comprueban el estado de inmediato.
     this.resolver(destino);
+
+    // resolver puede haber redirigido por su cuenta (por ejemplo, una ruta
+    // del portal sin sesion de demostracion devuelve al acceso). Si ya no
+    // estamos donde pedimos, no se escribe el hash pedido: se sobrescribiria
+    // la redireccion y dejaria al usuario en una vista a la que no tiene
+    // acceso.
+    if (this.rutaAplicada !== normalizar(destino)) return;
 
     if (location.hash === destino) return;
 
@@ -114,6 +138,16 @@ const Router = {
     const definicion = RUTAS[base];
     if (!definicion) {
       this.ir(RUTA_INICIAL, { reemplazar: true });
+      return;
+    }
+
+    // Sin sesión de demostración solo se puede estar en el acceso o en la
+    // configuración inicial. Si alguien escribe una ruta del portal a mano
+    // sin haber entrado, se le devuelve al acceso. Como el acceso nunca
+    // redirige hacia si mismo, no hay forma de bucle.
+    const acceso = window.AccesoModulo;
+    if (acceso && !acceso.estaActiva() && !SIN_SESION[base]) {
+      this.ir("acceso", { reemplazar: true });
       return;
     }
 
@@ -163,6 +197,11 @@ const Router = {
 
     const clave = sub ? base + "/" + sub : base;
     document.title = TITULOS[clave] || TITULO_GENERICO;
+
+    // Mientras se está en el acceso, el portal no se ve: ni cabecera, ni
+    // navegación, ni el contenido de otras secciones. El login ocupa la
+    // ventana entera y no hay nada del portal detrás.
+    document.body.classList.toggle("solo-acceso", base === "acceso");
 
     if (typeof this.alEntrar === "function") {
       this.alEntrar(base, sub, definicion);

@@ -30,6 +30,16 @@
     if (base === "acceso" && window.AccesoModulo) {
       window.AccesoModulo.render(sub || "acceso");
     }
+    if (base === "onboarding" && window.OnboardingModulo) {
+      window.OnboardingModulo.render();
+    }
+    // El marcado de Perfil se crea una sola vez, pero sus datos hay que
+    // repintarlos al entrar: el onboarding y el propio guardado cambian el
+    // modelo despues de la primera carga, y sin esto la vista se quedaba con
+    // los valores antiguos. refrescar() solo toca los campos de lectura.
+    if (base === "perfil" && window.PerfilModulo && window.PerfilModulo.refrescar) {
+      window.PerfilModulo.refrescar();
+    }
   }
 
   function registrarMenus() {

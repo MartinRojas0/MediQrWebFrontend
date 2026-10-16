@@ -59,6 +59,14 @@
       if (valor.trim().length < 3) return { ok: false, mensaje: "El nombre debe tener al menos 3 caracteres" };
       return { ok: true };
     },
+    // Igual que nombre(), pero admite vacio. El apellido no siempre se
+    // conoce: en una cuenta recien creada el paciente puede no tenerlo
+    // apuntado, y bloquear el guardado por eso deja el formulario
+    // inutilizable. Si viene escrito, se aplica la misma regla de formato.
+    nombreOpcional(valor) {
+      if (!valor || !valor.trim()) return { ok: true };
+      return this.nombre(valor);
+    },
 
     // validarFechaNacimiento: sin futuro y mayor de edad.
     nacimiento(valor) {
