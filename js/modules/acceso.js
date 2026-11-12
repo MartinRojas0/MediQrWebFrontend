@@ -240,31 +240,88 @@
     `, true);
   }
 
-  // --- Entrada en la demostración ---
-  function entrar(correo) {
-    sesion.activa = true;
-    sesion.correo = correo;
+  // --- Entrada en la aplicacion ---
+  async function entrar(correo, password, esRegistro) {
+    const errorElem = document.getElementById(esRegistro ? "registro-error" : "acceso-error");
 
-    // Al entrar se muestra lo que falte: la configuración inicial o el
-    // portal. Nunca se vuelve al login, asi que no hay bucle posible.
-    Router.ir(sesion.onboarding ? "inicio" : "onboarding");
+    // Si no hay configuración explícita de API o estamos en entorno de prueba autónomo, operar en demo
+    if (!window.MEDIQR_CONFIG || !window.MEDIQR_CONFIG.API_URL) {
+      sesion.activa = true;
+      sesion.esDemo = true;
+      sesion.correo = correo;
+      sesion.onboarding = "hecho";
+      Router.ir("inicio");
+      return;
+    }
+
+    try {
+      if (window.MediApi) {
+        if (esRegistro) {
+          await window.MediApi.auth.registro(correo, password, "PACIENTE");
+          MediModules.aviso("Cuenta registrada con éxito. Iniciando sesión...");
+        }
+
+        const authData = await window.MediApi.auth.login(correo, password);
+        if (authData && authData.token) {
+          window.MediApi.storage.setToken(authData.token, true);
+          window.MediApi.storage.setUser({
+            id: authData.id,
+            email: authData.email,
+            rol: authData.rol
+          }, true);
+        }
+      }
+
+      sesion.activa = true;
+      sesion.esDemo = false;
+      sesion.correo = correo;
+      sesion.onboarding = "hecho";
+
+      // Sincronizar datos si existe el store conectado
+      if (window.MediModules && typeof window.MediModules.cargarDatosServidor === "function") {
+        await window.MediModules.cargarDatosServidor();
+      }
+
+      Router.ir("inicio");
+    } catch (err) {
+      console.error("[Auth Error]", err);
+
+      // Si el backend no está disponible o falla, informarlo claramente y NO simular una sesión real
+      if (errorElem) {
+        if (err.message && err.message.includes("Failed to fetch")) {
+          errorElem.textContent = "No se pudo conectar con el servidor backend de MediQR (puerto 8080). Comprueba que el servicio esté activo.";
+        } else {
+          errorElem.textContent = err.message || "Error al autenticar con el servidor.";
+        }
+      }
+    }
+  }
+
+  // Entrada explícita en modo demostración (aislado y declarado)
+  function entrarModoDemo() {
+    sesion.activa = true;
+    sesion.esDemo = true;
+    sesion.correo = "paciente.demo@ejemplo.invalid";
+    sesion.onboarding = "hecho";
+    limpiarClaves();
+    Router.ir("inicio");
   }
 
   function enviar(sub, errorId) {
     const formulario = document.getElementById(sub + "-form");
     if (!formulario) return;
 
-    formulario.addEventListener("submit", function (evento) {
+    formulario.addEventListener("submit", async function (evento) {
       evento.preventDefault();
 
       if (!revisar(sub, errorId)) return;
 
       const correo = document.getElementById("acc-correo").value.trim();
+      const clave = document.getElementById("acc-contrasena").value;
 
-      // El registro visual no crea ninguna cuenta: continua por el mismo
-      // camino que el login, sin decir que nada se guardo en ningun sitio.
+      const esRegistro = (sub === "registro");
       limpiarClaves();
-      entrar(correo);
+      await entrar(correo, clave, esRegistro);
     });
   }
 
@@ -353,6 +410,9 @@
     render,
     sesion,
     terminar: function () {
+      if (window.MediApi && window.MediApi.storage) {
+        window.MediApi.storage.clear();
+      }
       sesion.activa = false;
       sesion.correo = "";
       sesion.onboarding = "";
