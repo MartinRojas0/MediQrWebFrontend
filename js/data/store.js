@@ -133,6 +133,85 @@ cirugias: [
     citaPendiente: null,
     temporizadorAviso: null,
 
+    // Sincronización asíncrona con el backend MediQR
+    async cargarDatosServidor() {
+      if (!window.MediApi || !window.MediApi.storage.getToken()) return;
+
+      try {
+        const usuario = window.MediApi.storage.getUser();
+        if (!usuario) return;
+
+        // 1. Obtener Paciente
+        const pacientes = await window.MediApi.pacientes.getAll().catch(() => []);
+        let pacActual = pacientes.find(p => p.usuarioId === usuario.id || p.id === usuario.id);
+
+        if (pacActual) {
+          this.paciente.id = pacActual.id;
+          this.paciente.nombre = pacActual.nombres || this.paciente.nombre;
+          this.paciente.apellidos = pacActual.apellidos || "";
+          this.paciente.nacimiento = pacActual.fechaNacimiento || this.paciente.nacimiento;
+          this.paciente.dni = pacActual.documentoIdentidad || this.paciente.dni;
+          this.paciente.telefono = pacActual.telefono || this.paciente.telefono;
+          this.paciente.calle = pacActual.direccion || "";
+          this.paciente.email = usuario.email || this.paciente.email;
+
+          // 2. Historial clínico del paciente
+          const historiales = await window.MediApi.historial.getAll().catch(() => []);
+          const hist = historiales.find(h => h.pacienteId === pacActual.id);
+          if (hist) {
+            if (hist.tipoSangre) this.salud.tipoSangre = hist.tipoSangre;
+            if (hist.alergias) {
+              this.salud.alergias = hist.alergias.split(",").map(a => ({ nombre: a.trim(), severidad: "moderada" }));
+            }
+            if (hist.enfermedadesCronicas) {
+              this.salud.condicionesCronicas = hist.enfermedadesCronicas.split(",").map(c => ({
+                nombre: c.trim(),
+                diagnostico: "",
+                fechaDiagnostico: ""
+              }));
+            }
+          }
+
+          // 3. Medicamentos reales
+          const meds = await window.MediApi.medicamentos.getByPaciente(pacActual.id).catch(() => []);
+          if (meds && meds.length > 0) {
+            this.salud.medicamentosActuales = meds.map(m => ({
+              id: m.id,
+              nombre: m.nombre,
+              dosis: m.dosis,
+              frecuencia: m.frecuencia,
+              fechaInicio: m.fechaInicio,
+              fechaFin: m.fechaFin
+            }));
+          }
+
+          // 4. Citas del paciente
+          const todasCitas = await window.MediApi.citas.getAll().catch(() => []);
+          const citasPaciente = todasCitas.filter(c => c.pacienteId === pacActual.id);
+          if (citasPaciente && citasPaciente.length > 0) {
+            this.citas = citasPaciente.map(c => ({
+              id: c.id,
+              especialidad: "Consulta Médica",
+              medico: "Dr. Asignado",
+              fecha: c.fechaHora ? c.fechaHora.substring(0, 10) : "",
+              hora: c.fechaHora ? c.fechaHora.substring(11, 16) : "",
+              lugar: "Hospital Central MediQR",
+              direccion: "Av. Salaverry 3100, Jesús María",
+              estado: c.estado === "PENDIENTE" ? "Próxima" : c.estado,
+              motivo: c.motivo || ""
+            }));
+          }
+        }
+
+        if (window.MediRefrescarPaciente) window.MediRefrescarPaciente();
+        if (window.SaludModulo && typeof window.SaludModulo.refrescar === "function") {
+          window.SaludModulo.refrescar();
+        }
+      } catch (e) {
+        console.warn("[MediQR] No se pudieron sincronizar datos del backend:", e);
+      }
+    },
+
     // Los "desp" son relativos a hoy: se resuelven una sola vez al arrancar.
     //
     // Es idempotente a proposito. La cita se queda sin "desp" al resolverse, y
