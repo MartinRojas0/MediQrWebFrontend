@@ -406,8 +406,10 @@
     const paciente = MediModules.paciente;
     if (window.MediApi && window.MediApi.storage.getToken() && paciente.id) {
       try {
-        const historiales = await window.MediApi.historial.getAll().catch(() => []);
-        const histExistente = historiales.find(h => h.pacienteId === paciente.id);
+        const histExistente = await window.MediApi.historial.getMe().catch((error) => {
+          if (error && error.status === 404) return null;
+          throw error;
+        });
 
         const payload = {
           tipoSangre: blood,
@@ -417,12 +419,7 @@
           observaciones: notes
         };
 
-        if (histExistente && histExistente.id) {
-          await window.MediApi.historial.update(histExistente.id, payload);
-        } else {
-          payload.pacienteId = paciente.id;
-          await window.MediApi.historial.create(payload);
-        }
+        await window.MediApi.historial.updateMe(payload);
         MediModules.aviso('Información médica guardada en el servidor.');
       } catch (err) {
         console.warn("[MediQR] Error guardando historial en el backend:", err);

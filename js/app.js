@@ -63,7 +63,7 @@
     document.addEventListener("click", () => MediModules.cerrarMenus());
   }
 
-  function arrancar() {
+  async function arrancar() {
     // 1. Las fechas ya se resolvieron al cargar el store.
 
     // 2. Menus del navbar.
@@ -71,6 +71,11 @@
 
     // 3. Listeners delegados: un unico punto para click, submit, input y change.
     MediAcciones.conectar(document);
+
+    // Restore a valid server session before the router applies its access guard.
+    if (window.AccesoModulo) {
+      await window.AccesoModulo.restaurarSesion();
+    }
 
     // 4. Router.
     Router.iniciar(routerAlEntrar);

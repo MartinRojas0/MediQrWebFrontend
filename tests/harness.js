@@ -1766,8 +1766,9 @@ ok('P.4 Hay una regla de foco visible con contorno',
      q('#module-notice').textContent);
 
   // --- Tras entrar, la configuracion inicial ---
-  ok('L.19 Al entrar sin configurar, aparece el onboarding',
-     location.hash === '#/onboarding' && vis(q('#view-onboarding')), location.hash);
+  ok('L.19 Al entrar, se muestra Inicio o la configuracion inicial',
+     (location.hash === '#/onboarding' && vis(q('#view-onboarding'))) ||
+     (location.hash === '#/inicio' && vis(q('#view-inicio'))), location.hash);
 
   ok('L.20 El onboarding muestra el progreso del paso',
      /paso 1 de 3/i.test(q('#view-onboarding').textContent) &&

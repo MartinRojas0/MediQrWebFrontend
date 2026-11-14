@@ -152,6 +152,7 @@
     },
 
     pacientes: {
+      getMe: function () { return request("/pacientes/me"); },
       getAll: function () { return request("/pacientes"); },
       getById: function (id) { return request(`/pacientes/${id}`); },
       create: function (data) { return request("/pacientes", { method: "POST", body: data }); },
@@ -159,11 +160,12 @@
     },
 
     historial: {
-      getAll: function () { return request("/historiales-clinicos"); },
-      getById: function (id) { return request(`/historiales-clinicos/${id}`); },
-      getByPaciente: function (pacienteId) { return request(`/historiales-clinicos/paciente/${pacienteId}`); },
-      create: function (data) { return request("/historiales-clinicos", { method: "POST", body: data }); },
-      update: function (id, data) { return request(`/historiales-clinicos/${id}`, { method: "PUT", body: data }); }
+      getMe: function () { return request("/historial-clinico/me"); },
+      updateMe: function (data) { return request("/historial-clinico/me", { method: "PUT", body: data }); },
+      getAll: function () { return request("/historial-clinico"); },
+      getById: function (id) { return request(`/historial-clinico/${id}`); },
+      create: function (data) { return request("/historial-clinico", { method: "POST", body: data }); },
+      update: function (id, data) { return request(`/historial-clinico/${id}`, { method: "PUT", body: data }); }
     },
 
     citas: {
@@ -188,14 +190,27 @@
     },
 
     medicamentos: {
+      getAll: function () { return request("/medicamentos"); },
+      getById: function (id) { return request(`/medicamentos/${id}`); },
       getByPaciente: function (pacienteId) { return request(`/medicamentos/paciente/${pacienteId}`); },
       create: function (data) { return request("/medicamentos", { method: "POST", body: data }); },
       update: function (id, data) { return request(`/medicamentos/${id}`, { method: "PUT", body: data }); },
       delete: function (id) { return request(`/medicamentos/${id}`, { method: "DELETE" }); }
     },
 
+    recordatorios: {
+      getAll: function () { return request("/recordatorios-medicamentos"); },
+      getById: function (id) { return request(`/recordatorios-medicamentos/${id}`); },
+      getByMedicamento: function (medicamentoId) { return request(`/recordatorios-medicamentos/medicamento/${medicamentoId}`); },
+      create: function (data) { return request("/recordatorios-medicamentos", { method: "POST", body: data }); },
+      update: function (id, data) { return request(`/recordatorios-medicamentos/${id}`, { method: "PUT", body: data }); },
+      delete: function (id) { return request(`/recordatorios-medicamentos/${id}`, { method: "DELETE" }); }
+    },
+
     qr: {
-      getByPaciente: function (pacienteId) { return request(`/qr-emergencia/paciente/${pacienteId}`); }
+      getByPaciente: function (pacienteId) { return request(`/qr-emergencia/paciente/${pacienteId}`); },
+      create: function (data) { return request("/qr-emergencia", { method: "POST", body: data }); },
+      accessEmergency: function (token) { return request(`/qr-emergencia/emergency/${token}`); }
     }
   };
 
