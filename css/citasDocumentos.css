@@ -53,7 +53,9 @@
 
 a.btn {
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Menús desplegables del navbar (Citas ▾ y Documentos ▾) */
@@ -474,7 +476,7 @@ a.btn {
 }
 
 .choice input:focus-visible + span {
-  outline: 3px solid var(--focus-ring);
+  outline: 3px solid var(--focus-color);
   outline-offset: 2px;
 }
 
@@ -624,7 +626,7 @@ button:focus-visible,
 a:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid var(--focus-ring);
+  outline: 3px solid var(--focus-color);
   outline-offset: 3px;
 }
 input:disabled {
