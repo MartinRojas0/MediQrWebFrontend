@@ -1,14 +1,15 @@
 # ==========================================================
 # MediQR - Pruebas funcionales
 #
-# Ejecuta 378 comprobaciones funcionales, 10 cargas por enlace directo y 56 mediciones responsive en un navegador real
+# Ejecuta 385 comprobaciones funcionales, 10 cargas por enlace directo y 56 mediciones responsive en un navegador real
 # (Microsoft Edge o Google Chrome) en modo headless.
+# La suite usa una configuración local sin API; no comprueba Render ni Neon.
 #
 # REQUISITOS
 #   - Node.js 18 o superior  (node --version)
 #   - Microsoft Edge o Google Chrome instalado
 #   - No hace falta instalar nada mas: no hay dependencias.
-#   - MEDIQR_TEST_FAST=1 ejecuta las 378 comprobaciones funcionales e
+#   - MEDIQR_TEST_FAST=1 ejecuta las 385 comprobaciones funcionales e
 #     inmediatamente omite las recargas por enlace directo y las mediciones
 #     responsive, que requieren muchos lanzamientos del navegador.
 #
@@ -28,6 +29,7 @@
 # QUE SE COMPRUEBA
 #   R.*  recursos: rutas desde la raiz, CSS aplicado, sin peticiones a terceros
 #   N.*  navegacion: menu, iconos SVG, ausencia del enlace muerto
+#   AV.* centro de avisos de actividad de la sesión, sin persistencia
 #   P.*  privacidad: ausencia de datos personales en el DOM
 #   V1.* vista Inicio
 #   V2.* vista Citas (calendario, proximas, historial, agendar)

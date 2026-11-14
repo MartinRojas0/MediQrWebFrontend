@@ -117,19 +117,15 @@
 
           <!-- 11. CONFIGURACIÓN -->
           <article id="ptab-configuracion" class="card card-full profile-tab-content hidden">
-            <h3><i data-icon="bell"></i> Notificaciones</h3>
+            <h3><i data-icon="bell"></i> Notificaciones y avisos</h3>
+            <p class="text-muted mt-1">Las confirmaciones de esta sesión aparecen en la campana de la cabecera y se borran al salir.</p>
             <div class="settings-list mt-1">
               <div class="setting-item">
-                <span>Recordatorios de medicamentos</span>
-                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
-              </div>
-              <div class="setting-item">
-                <span>Recordatorios de citas</span>
-                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
-              </div>
-              <div class="setting-item">
-                <span>Avisos importantes</span>
-                <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                <span>
+                  <strong>Recordatorios automáticos</strong>
+                  <small>Los recordatorios de medicamentos y citas aún no están disponibles.</small>
+                </span>
+                <span class="badge badge-warning">No disponible</span>
               </div>
             </div>
 
@@ -147,7 +143,7 @@
               <button class="btn btn-outline"  data-action="perfil:cambiar-password"><i data-icon="key"></i> Cambiar contraseña</button>
               <button class="btn btn-danger"  data-action="perfil:cerrar-sesion"><i data-icon="right-from-bracket"></i> Cerrar sesión</button>
             </div>
-            <p class="text-muted mt-1"><small>Sesión de demostración: no hay servidor, la sesión vive solo en esta pestaña y se pierde al recargar.</small></p>
+            <p class="text-muted mt-1"><small>Al cerrar sesión se elimina el acceso de esta pestaña. Para volver, inicia sesión con tu cuenta.</small></p>
           </article>
 
         </main>
@@ -565,18 +561,15 @@
       MediModules.close();
       MediModules.avisoLocal('Contacto eliminado.');
     },
-    // Sin servidor de autenticacion, cambiar la contrasena aqui no cambiaria
-    // nada: se guardaria en memoria y se perderia al recargar, dando la
-    // impresion de que la cuenta esta protegida cuando no lo esta. Se
-    // muestra el formulario con la accion desactivada y el motivo a la vista.
+    // El flujo de cambio de contraseña no está conectado en esta versión.
+    // Se mantiene desactivado y se explica el motivo antes de pedir datos.
     cambiarPassword() {
       MediModules.modal('Cambiar contraseña', `
         <div class="card pending-card" role="note" id="password-pendiente">
           <p class="pending-head">
             <i data-icon="shield-halved"></i> Cambio de contraseña pendiente
           </p>
-          <p>No hay servidor de autenticación conectado, así que aquí no se puede
-             cambiar ninguna contraseña.</p>
+          <p>El cambio de contraseña todavía no está disponible en esta versión.</p>
           <p class="text-muted">Escribirla aquí solo daría la impresión de que la
              cuenta está protegida cuando no lo está.</p>
         </div>
@@ -594,13 +587,11 @@
         </form>
       `);
     },
-    // La sesión de demostración vive solo en memoria. "Cerrar sesión" la
-    // descarta de verdad y devuelve al login de demostración. No se afirma
-    // ninguna revocación de token: no hay servidor ni token que revocar.
+    // Elimina el acceso local mediante el flujo de sesión existente.
     cerrarSesion() {
-      MediModules.modal('¿Salir de la demostración?', `
-        <p>Volverás a la pantalla de acceso. Los datos que hayas cambiado en esta
-        sesión se perderán, porque no están guardados en ningún sitio.</p>
+      MediModules.modal('¿Cerrar sesión?', `
+        <p>Volverás a la pantalla de acceso. Los cambios que hayas guardado en tu
+        cuenta permanecerán; cualquier cambio sin guardar puede perderse.</p>
         <div class="module-actions">
           <button type="button" class="btn btn-outline" data-action="modal:cerrar">Cancelar</button>
           <button type="button" class="btn btn-danger" data-action="perfil:confirmar-cierre">Salir</button>
@@ -620,8 +611,7 @@
     e.preventDefault();
 
     const errBox = document.getElementById('pass-error');
-    errBox.textContent =
-      'El cambio de contraseña todavía no está disponible: falta conectar el servidor de autenticación.';
+    errBox.textContent = 'El cambio de contraseña todavía no está disponible en esta versión.';
     errBox.classList.remove('hidden');
 
     ['pass-curr', 'pass-new', 'pass-conf'].forEach(function (id) {

@@ -198,7 +198,7 @@ async function run() {
   // La arquitectura modular sustituyo al archivo monolitico: se comprueba
   // que los modulos nuevos se cargan y que el antiguo ya no se pide.
   var esperados = ['lib/dates.js', 'lib/dom.js', 'lib/format.js', 'components/navbar.js',
-    'components/modal.js', 'modules/citas.js', 'modules/documentos.js',
+    'components/modal.js', 'components/notificaciones.js', 'modules/citas.js', 'modules/documentos.js',
     'modules/inicio.js', 'modules/perfil.js', 'data/store.js', 'router.js', 'app.js', 'icons.js'];
   var faltan = esperados.filter(function (n) {
     return !recs.some(function (u) { return u.indexOf('/js/' + n) !== -1; });
@@ -345,7 +345,9 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
     if (!vis(q('#ptab-' + t))) tabsOk = false;
   });
   ok('V4.3 Cuatro pestanas visibles', tabsOk);
-  ok('V4.4 Tres interruptores de configuracion', qa('#ptab-configuracion input[type="checkbox"]').length === 3);
+  ok('V4.4 No muestra controles de recordatorios no conectados',
+     qa('#ptab-configuracion input[type="checkbox"]').length === 0 &&
+     /recordatorios de medicamentos y citas aún no están disponibles/i.test(q('#ptab-configuracion').textContent));
   q('.sidebar-nav [data-action="perfil:pestana"][data-tab="info-personal"]').click();
   q('#ptab-info-personal [data-action="perfil:editar-personal"]').click(); await tick();
   ok('V4.5 Modo edicion personal se activa', vis(q('#personal-edit-form')));
@@ -442,7 +444,7 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
     ['+ Agregar contacto', 'Contacto de Emergencia', 'contactos'],
     ['Eliminar', 'eliminar este contacto', 'contactos'],
     ['Cambiar contraseña', 'Cambiar contraseña', 'configuracion'],
-    ['Cerrar sesión', 'Salir de la demostración', 'configuracion']
+    ['Cerrar sesión', 'Cerrar sesión', 'configuracion']
   ];
 
   for (var i = 0; i < disparadores.length; i++) {
@@ -504,13 +506,13 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
 
   // Toast accesible
   q('#ptab-configuracion [data-action="perfil:cerrar-sesion"]').click(); await tick();
-// Cerrar sesión: ahora hay una sesión de demostración que sí se puede
-    // cerrar, así que se pide confirmación y se vuelve al acceso de verdad.
+    // Cerrar sesión pide confirmar antes de volver al acceso.
     q('#ptab-configuracion [data-action="perfil:cerrar-sesion"]').click(); await tick();
     ok('V4.13 Cerrar sesion pide confirmacion',
        q('#module-dialog').open === true &&
        !!q('#module-dialog [data-action="perfil:confirmar-cierre"]') &&
-       /demostraci/i.test(q('#module-dialog').textContent),
+       /volverás a la pantalla de acceso/i.test(q('#module-dialog').textContent) &&
+       !/demostraci/i.test(q('#module-dialog').textContent),
        q('#module-dialog-title') ? q('#module-dialog-title').textContent.trim() : '');
     q('#module-dialog [data-action="modal:cerrar"]').click(); await tick();
     ok('V4.14 Cancelar deja la sesion abierta',
@@ -2186,6 +2188,45 @@ ok('P.4 Hay una regla de foco visible con contorno',
      /guardado en (el |nuestro )?(servidor|nube)|enviado (al|a) servidor|subido correctamente|guardado en la nube/i
        .test(cuerpo) === false,
      'ninguno');
+
+  // Centro de avisos de actividad: usa mensajes reales del sistema de
+  // confirmaciones, solo en memoria y sin afirmar que vienen del servidor.
+  window.MediNotifications.clear();
+  var botonAvisos = q('#notification-button');
+  var panelAvisos = q('#notification-panel');
+  ok('AV.1 La cabecera ofrece avisos accesibles y cerrados inicialmente',
+     !!botonAvisos && botonAvisos.getAttribute('aria-expanded') === 'false' && !vis(panelAvisos));
+  botonAvisos.click();
+  await tick();
+  ok('AV.2 El centro abierto muestra un estado vacío honesto',
+     vis(panelAvisos) && vis(q('#notification-empty')) && q('#notification-count').hidden);
+  MediModules.aviso('Confirmación de prueba');
+  await tick();
+  var avisoNuevo = q('#notification-list .notification-item.is-unread');
+  ok('AV.3 Una confirmación real genera un aviso no leído y contador',
+     !q('#notification-count').hidden && q('#notification-count').textContent === '1' &&
+     !!avisoNuevo);
+  avisoNuevo.querySelector('[data-action="notificaciones:marcar-leida"]').click();
+  await tick();
+  var avisoLeido = q('#notification-list .notification-item');
+  ok('AV.4 Marcar leído actualiza el estado y oculta el contador',
+     q('#notification-count').hidden && avisoLeido.querySelector('.notification-item-state').textContent === 'Leído');
+  MediModules.aviso('Otra confirmación de prueba');
+  await tick();
+  q('#notification-read-all').click();
+  await tick();
+  ok('AV.5 Marcar todas leídas actualiza el centro completo',
+     q('#notification-count').hidden &&
+     Array.prototype.every.call(qa('#notification-list .notification-item-state'), function (estado) {
+       return estado.textContent === 'Leído';
+     }));
+  document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await tick();
+  ok('AV.6 Escape cierra el centro y devuelve el foco a la campana',
+     !vis(panelAvisos) && document.activeElement === botonAvisos);
+  window.MediNotifications.clear();
+  ok('AV.7 El centro vacío se restablece sin persistir avisos',
+     q('#notification-list').children.length === 0 && vis(q('#notification-empty')));
 
   // Registro de acciones: todas las vistas viven en el DOM (solo ocultas),
   // asi que un recorrido del documento cubre el marcado completo. Un control
