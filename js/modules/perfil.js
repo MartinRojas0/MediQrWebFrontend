@@ -61,7 +61,9 @@
         <label>Apellidos: <input type="text" id="inp-lastname" value=""></label>
               <label>DNI: <input type="text" id="inp-dni" value="00000000" required></label>
               <label>Fecha Nacimiento: <input type="date" id="inp-birth" value="1990-01-01" required></label>
-              <label>Correo: <input type="email" id="inp-email" value="paciente.demo@ejemplo.invalid" required></label>
+              <label>Correo: <input type="email" id="inp-email" value="paciente.demo@ejemplo.invalid" required>
+                <small id="email-readonly-hint" class="text-muted hidden">El correo de acceso no se cambia desde el perfil.</small>
+              </label>
               <label>Teléfono: <input type="text" id="inp-phone" value="+51 000 000 000" required></label>
               <label class="data-grid-full">Dirección:
                 <input type="text" id="inp-street" value="" placeholder="Calle y número"
@@ -117,19 +119,15 @@
 
           <!-- 11. CONFIGURACIÓN -->
           <article id="ptab-configuracion" class="card card-full profile-tab-content hidden">
-            <h3><i data-icon="bell"></i> Notificaciones</h3>
+            <h3><i data-icon="bell"></i> Notificaciones y avisos</h3>
+            <p class="text-muted mt-1">Las confirmaciones de esta sesión aparecen en la campana de la cabecera y se borran al salir.</p>
             <div class="settings-list mt-1">
               <div class="setting-item">
-                <span>Recordatorios de medicamentos</span>
-                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
-              </div>
-              <div class="setting-item">
-                <span>Recordatorios de citas</span>
-                <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
-              </div>
-              <div class="setting-item">
-                <span>Avisos importantes</span>
-                <label class="switch"><input type="checkbox"><span class="slider"></span></label>
+                <span>
+                  <strong>Recordatorios automáticos</strong>
+                  <small>Los recordatorios de medicamentos y citas aún no están disponibles.</small>
+                </span>
+                <span class="badge badge-warning">No disponible</span>
               </div>
             </div>
 
@@ -147,7 +145,7 @@
               <button class="btn btn-outline"  data-action="perfil:cambiar-password"><i data-icon="key"></i> Cambiar contraseña</button>
               <button class="btn btn-danger"  data-action="perfil:cerrar-sesion"><i data-icon="right-from-bracket"></i> Cerrar sesión</button>
             </div>
-            <p class="text-muted mt-1"><small>Sesión de demostración: no hay servidor, la sesión vive solo en esta pestaña y se pierde al recargar.</small></p>
+            <p class="text-muted mt-1"><small>Al cerrar sesión se elimina el acceso de esta pestaña. Para volver, inicia sesión con tu cuenta.</small></p>
           </article>
 
         </main>
@@ -219,6 +217,7 @@
 
     document.getElementById('val-name').textContent = paciente.nombre || 'Sin registrar';
     document.getElementById('val-lastname').textContent = paciente.apellidos || 'Sin registrar';
+    document.getElementById('val-dni').textContent = paciente.dni || 'Sin registrar';
 
     const cabecera = document.getElementById('perfil-nombre');
     if (cabecera) {
@@ -274,6 +273,12 @@
     document.getElementById('inp-phone').value = p.telefono;
     document.getElementById('inp-street').value = p.calle;
     document.getElementById('inp-district').value = p.distrito;
+    const emailInput = document.getElementById('inp-email');
+    const emailHint = document.getElementById('email-readonly-hint');
+    const sesionServidor = window.MediApi && window.MediApi.storage &&
+      window.MediApi.storage.getToken();
+    if (emailInput) emailInput.readOnly = Boolean(sesionServidor);
+    if (emailHint) emailHint.classList.toggle('hidden', !sesionServidor);
 
     document.getElementById('personal-read-view').classList.add('hidden');
     document.getElementById('personal-edit-form').classList.remove('hidden');
@@ -334,37 +339,61 @@
     error.classList.add('hidden');
 
     const paciente = MediModules.paciente;
-    paciente.nombre = valores.nombre;
-    paciente.apellidos = valores.apellido;
-    paciente.nacimiento = valores.nacimiento;
-    paciente.dni = valores.dni;
-    paciente.email = valores.email;
-    paciente.telefono = valores.telefono;
-    paciente.calle = valores.calle;
-    paciente.distrito = valores.distrito;
+    const formulario = document.getElementById('personal-edit-form');
+    const sesionServidor = Boolean(window.MediApi && window.MediApi.storage &&
+      window.MediApi.storage.getToken());
 
-    // Persistencia bidireccional en el backend si hay sesión activa
-    if (window.MediApi && window.MediApi.storage.getToken() && paciente.id) {
+    if (sesionServidor) {
+      if (paciente.id == null) {
+        error.textContent = 'No se encontró el perfil del paciente en el servidor. No se guardaron los cambios.';
+        error.classList.remove('hidden');
+        return;
+      }
+
       try {
-        const direccionCompleta = [paciente.calle, paciente.distrito].filter(Boolean).join(", ");
-        await window.MediApi.pacientes.update(paciente.id, {
-          nombres: paciente.nombre,
-          apellidos: paciente.apellidos || "Sin registrar",
-          documentoIdentidad: paciente.dni,
-          fechaNacimiento: paciente.nacimiento || null,
-          telefono: paciente.telefono,
+        const direccionCompleta = [valores.calle, valores.distrito].filter(Boolean).join(", ");
+        const guardado = await window.MediApi.pacientes.update(paciente.id, {
+          nombres: valores.nombre,
+          apellidos: valores.apellido || "Sin registrar",
+          documentoIdentidad: valores.dni,
+          fechaNacimiento: valores.nacimiento || null,
+          telefono: valores.telefono,
           direccion: direccionCompleta,
           sexo: paciente.sexo || "NO_ESPECIFICADO"
         });
+        if (!guardado || guardado.id == null) {
+          throw new Error('El servidor no devolvió el perfil actualizado.');
+        }
+
+        paciente.nombre = guardado.nombres || '';
+        paciente.apellidos = guardado.apellidos || '';
+        paciente.nacimiento = guardado.fechaNacimiento || '';
+        paciente.dni = guardado.documentoIdentidad || '';
+        paciente.telefono = guardado.telefono || '';
+        paciente.calle = guardado.direccion || '';
+        paciente.distrito = '';
+        const cuenta = window.MediApi.storage.getUser();
+        paciente.email = cuenta && cuenta.email ? cuenta.email : paciente.email;
         MediModules.aviso('Información personal guardada en el servidor.');
       } catch (err) {
-        console.warn("[MediQR] Error guardando paciente en el backend:", err);
-        MediModules.avisoLocal('Información personal actualizada localmente (servidor no disponible).');
+        error.textContent = 'No se pudieron guardar los cambios en el servidor: ' +
+          (err && err.message ? err.message : 'inténtalo nuevamente.');
+        error.classList.remove('hidden');
+        return;
       }
     } else {
+      paciente.nombre = valores.nombre;
+      paciente.apellidos = valores.apellido;
+      paciente.nacimiento = valores.nacimiento;
+      paciente.dni = valores.dni;
+      paciente.email = valores.email;
+      paciente.telefono = valores.telefono;
+      paciente.calle = valores.calle;
+      paciente.distrito = valores.distrito;
       MediModules.avisoLocal('Información personal actualizada.');
     }
 
+    MediFormularios.marcar(formulario);
     pintarDerivados();
     if (window.MediRefrescarPaciente) window.MediRefrescarPaciente();
     cancelPersonalEdit();
@@ -565,18 +594,15 @@
       MediModules.close();
       MediModules.avisoLocal('Contacto eliminado.');
     },
-    // Sin servidor de autenticacion, cambiar la contrasena aqui no cambiaria
-    // nada: se guardaria en memoria y se perderia al recargar, dando la
-    // impresion de que la cuenta esta protegida cuando no lo esta. Se
-    // muestra el formulario con la accion desactivada y el motivo a la vista.
+    // El flujo de cambio de contraseña no está conectado en esta versión.
+    // Se mantiene desactivado y se explica el motivo antes de pedir datos.
     cambiarPassword() {
       MediModules.modal('Cambiar contraseña', `
         <div class="card pending-card" role="note" id="password-pendiente">
           <p class="pending-head">
             <i data-icon="shield-halved"></i> Cambio de contraseña pendiente
           </p>
-          <p>No hay servidor de autenticación conectado, así que aquí no se puede
-             cambiar ninguna contraseña.</p>
+          <p>El cambio de contraseña todavía no está disponible en esta versión.</p>
           <p class="text-muted">Escribirla aquí solo daría la impresión de que la
              cuenta está protegida cuando no lo está.</p>
         </div>
@@ -594,13 +620,11 @@
         </form>
       `);
     },
-    // La sesión de demostración vive solo en memoria. "Cerrar sesión" la
-    // descarta de verdad y devuelve al login de demostración. No se afirma
-    // ninguna revocación de token: no hay servidor ni token que revocar.
+    // Elimina el acceso local mediante el flujo de sesión existente.
     cerrarSesion() {
-      MediModules.modal('¿Salir de la demostración?', `
-        <p>Volverás a la pantalla de acceso. Los datos que hayas cambiado en esta
-        sesión se perderán, porque no están guardados en ningún sitio.</p>
+      MediModules.modal('¿Cerrar sesión?', `
+        <p>Volverás a la pantalla de acceso. Los cambios que hayas guardado en tu
+        cuenta permanecerán; cualquier cambio sin guardar puede perderse.</p>
         <div class="module-actions">
           <button type="button" class="btn btn-outline" data-action="modal:cerrar">Cancelar</button>
           <button type="button" class="btn btn-danger" data-action="perfil:confirmar-cierre">Salir</button>
@@ -620,8 +644,7 @@
     e.preventDefault();
 
     const errBox = document.getElementById('pass-error');
-    errBox.textContent =
-      'El cambio de contraseña todavía no está disponible: falta conectar el servidor de autenticación.';
+    errBox.textContent = 'El cambio de contraseña todavía no está disponible en esta versión.';
     errBox.classList.remove('hidden');
 
     ['pass-curr', 'pass-new', 'pass-conf'].forEach(function (id) {

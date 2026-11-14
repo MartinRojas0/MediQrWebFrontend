@@ -1,4 +1,8 @@
-# MediQR — Qué falta para conectar el backend
+# MediQR — Estado previo a la integración del backend
+
+> Este documento describe el estado anterior a la integración parcial de autenticación
+> y perfil. Para la configuración actual del frontend consulta `DEPLOYMENT.md`; esta
+> suite local no valida las respuestas de Render ni la persistencia en Neon.
 
 El portal funciona entero sin servidor. Eso es deliberado: en una etapa sin
 backend es fácil que una pantalla "funcione" y dé la impresión de que los

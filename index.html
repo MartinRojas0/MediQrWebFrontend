@@ -22,11 +22,66 @@
   <!-- NAVBAR PRINCIPAL -->
 <!-- Barra superior: marca. En movil cede el sitio a la barra inferior. -->
   <header class="app-bar">
-    <a class="app-brand" data-action="nav:ir" data-ruta="inicio">
+    <a class="app-brand" data-action="nav:ir" data-ruta="inicio" aria-label="MediQR, ir al inicio">
       <span class="app-brand-mark" aria-hidden="true"></span>
       <span class="app-brand-name">MediQR</span>
     </a>
     <div class="app-bar-crumb" aria-live="polite" id="app-crumb"></div>
+    <div class="app-bar-actions">
+      <div class="notification-wrap">
+        <button
+          type="button"
+          class="notification-toggle"
+          id="notification-button"
+          aria-label="Notificaciones"
+          aria-expanded="false"
+          aria-controls="notification-panel"
+          data-action="notificaciones:alternar"
+        >
+          <i data-icon="bell" aria-hidden="true"></i>
+          <span class="notification-count" id="notification-count" aria-hidden="true" hidden>0</span>
+        </button>
+        <section
+          class="notification-panel hidden"
+          id="notification-panel"
+          aria-labelledby="notification-heading"
+          aria-label="Avisos de esta sesión"
+        >
+          <div class="notification-panel-heading">
+            <div>
+              <h2 id="notification-heading">Avisos de esta sesión</h2>
+              <p>Se borran al cerrar sesión; no son avisos del servidor.</p>
+            </div>
+            <button
+              type="button"
+              class="notification-read-all"
+              id="notification-read-all"
+              data-action="notificaciones:leer-todas"
+              disabled
+            >Marcar todas leídas</button>
+          </div>
+          <ul class="notification-list" id="notification-list"></ul>
+          <p class="notification-empty" id="notification-empty">
+            No hay avisos nuevos. Las confirmaciones de esta sesión aparecerán aquí.
+          </p>
+        </section>
+      </div>
+      <button
+        type="button"
+        class="app-user"
+        id="app-user-button"
+        aria-label="Abrir perfil de usuario"
+        data-action="nav:ir"
+        data-ruta="perfil"
+      >
+        <span class="app-user-avatar" id="app-user-avatar" aria-hidden="true">M</span>
+        <span class="app-user-details">
+          <span class="app-user-name" id="app-user-name">Mi cuenta</span>
+          <span class="app-user-email" id="app-user-email"></span>
+        </span>
+        <i class="app-user-chevron" data-icon="chevron-right" aria-hidden="true"></i>
+      </button>
+    </div>
   </header>
 
   <!-- Navegacion principal.
@@ -35,6 +90,7 @@
        secciones siguen la app movil; Documentos se conserva como seccion
        propia porque la web tambien lo ofrece. -->
   <nav class="app-nav" aria-label="Navegación principal">
+    <span class="nav-section-label">ESPACIO PERSONAL</span>
     <a id="nav-inicio" class="nav-item" data-action="nav:ir" data-ruta="inicio">
       <span class="nav-item-icon"><i data-icon="home"></i></span>
       <span class="nav-item-label">Inicio</span>
@@ -244,6 +300,7 @@
 <script src="js/modules/onboarding.js"></script>
 <script src="js/components/navbar.js"></script>
 <script src="js/components/modal.js"></script>
+<script src="js/components/notificaciones.js"></script>
 <script src="js/modules/citas.js"></script>
 <script src="js/modules/documentos.js"></script>
 <script src="js/data/store.js"></script>

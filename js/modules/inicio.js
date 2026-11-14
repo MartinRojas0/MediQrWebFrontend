@@ -67,6 +67,7 @@
     if (!destino) return;
     destino.dataset.renderizado = "";
     render();
+    if (window.MediRefrescarCabecera) window.MediRefrescarCabecera();
   };
 
   function accesos() {
@@ -100,7 +101,7 @@
 
     destino.innerHTML = `
       <h1 data-titulo-vista class="heading-1">Hola, ${esc(saludo())} <i data-icon="hand" class="icon-wave"></i></h1>
-      <p class="text-muted">Tu ecosistema médico está al día</p>
+      <p class="text-muted">Consulta el resumen de tu perfil y accede a tus secciones personales.</p>
 
       <!-- Identidad medica: el QR es lo primero, igual que en el movil -->
       <article class="card identity-card">

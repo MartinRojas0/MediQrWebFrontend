@@ -33,9 +33,11 @@ window.MediPartes.modal = {
 
   aviso(mensaje) {
     const aviso = document.getElementById("module-notice");
+    const texto = String(mensaje);
 
-    aviso.textContent = mensaje;
+    aviso.textContent = texto;
     aviso.classList.remove("hidden");
+    window.dispatchEvent(new CustomEvent("mediqr:aviso", { detail: { mensaje: texto } }));
 
     clearTimeout(this.temporizadorAviso);
 

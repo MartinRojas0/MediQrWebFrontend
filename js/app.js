@@ -12,6 +12,55 @@
   // DOC_SLUG y DOC_VISTA se definen en js/components/navbar.js, que es
   // donde se usan.
 
+  function actualizarCabecera(base) {
+    const rutaCompleta = (base || (window.Router && window.Router.rutaActual) || "inicio").split("/");
+    const ruta = rutaCompleta[0];
+    const titulos = {
+      inicio: "Inicio",
+      salud: "Salud",
+      citas: "Citas",
+      documentos: "Documentos",
+      perfil: "Perfil",
+      historial: "Historial",
+      onboarding: "Configuración inicial",
+      acceso: "Acceso",
+    };
+    const subtitulos = {
+      calendario: "Calendario",
+      proximas: "Próximas",
+      historial: "Historial",
+      agendar: "Agendar",
+      recetas: "Recetas",
+      examenes: "Exámenes",
+    };
+    const titulo = titulos[ruta] || "MediQR";
+    const subtitulo = subtitulos[rutaCompleta[1]] || "";
+    const migas = document.getElementById("app-crumb");
+    if (migas) migas.textContent = subtitulo ? titulo + " · " + subtitulo : titulo;
+
+    const api = window.MediApi;
+    const token = api && api.storage && api.storage.getToken();
+    const cuenta = token && api.storage.getUser ? api.storage.getUser() || {} : {};
+    const paciente = window.MediModules && window.MediModules.paciente || {};
+    const correo = token ? (cuenta.email || paciente.email || "") : "";
+    const nombrePerfil = token ? [paciente.nombre, paciente.apellidos].filter(Boolean).join(" ").trim() : "";
+    const nombre = nombrePerfil || (correo ? correo.split("@")[0] : "Mi cuenta");
+
+    const nombreEl = document.getElementById("app-user-name");
+    const correoEl = document.getElementById("app-user-email");
+    const avatarEl = document.getElementById("app-user-avatar");
+    const boton = document.getElementById("app-user-button");
+    if (nombreEl) nombreEl.textContent = nombre;
+    if (correoEl) correoEl.textContent = correo;
+    if (avatarEl) {
+      avatarEl.textContent = nombre.split(/\s+/).filter(Boolean).slice(0, 2)
+        .map((parte) => parte.charAt(0)).join("").toUpperCase() || "M";
+    }
+    if (boton) boton.setAttribute("aria-label", "Abrir perfil de " + nombre);
+  }
+
+  window.MediRefrescarCabecera = actualizarCabecera;
+
   // Marcas de arranque.
   function routerAlEntrar(base, sub) {
     if (typeof MediModules === "undefined") return;
@@ -40,6 +89,8 @@
     if (base === "perfil" && window.PerfilModulo && window.PerfilModulo.refrescar) {
       window.PerfilModulo.refrescar();
     }
+
+    actualizarCabecera(base + (sub ? "/" + sub : ""));
   }
 
   function registrarMenus() {

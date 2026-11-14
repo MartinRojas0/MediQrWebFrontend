@@ -5,65 +5,64 @@
    espaciado o tipografia se declara aqui; el resto de hojas lo
    consumen con var(). No se admiten literales sueltos.
 
-   Inspiracion: las superficies suaves y estratificadas de Samsung One UI
-   conviven con la identidad clinica de la app movil (azul medico,
-   acentos de severidad y degradado metalico para las zonas de riesgo).
+   Identidad propia de MediQR: superficies claras, jerarquia tipografica
+   y acentos azul verdosos para una experiencia clinica serena.
    ========================================================== */
 
 :root {
   /* ---------- Marca y estado ---------- */
-  --primary: #2563eb;
-  --primary-dark: #1e40af;
-  --primary-light: #dbeafe;
-  --primary-soft: #eff6ff;
-  --accent: #10b981;
-  --danger: #ef4444;
-  --danger-dark: #dc2626;
-  --danger-soft: #fee2e2;
-  --danger-text: #991b1b;
-  --warning: #f59e0b;
-  --warning-soft: #fef3c7;
-  --warning-text: #92400e;
-  --info: #0ea5e9;
-  --success: #16a34a;
-  --success-soft: #dcfce7;
-  --success-text: #166534;
+  --primary: #147589;
+  --primary-dark: #0e5d6e;
+  --primary-light: #d9eef1;
+  --primary-soft: #edf7f8;
+  --accent: #188b7b;
+  --danger: #c64048;
+  --danger-dark: #a92f38;
+  --danger-soft: #fcebed;
+  --danger-text: #8e2730;
+  --warning: #b87917;
+  --warning-soft: #fbf2df;
+  --warning-text: #80530f;
+  --info: #147589;
+  --success: #258264;
+  --success-soft: #e7f4ef;
+  --success-text: #1c664e;
 
   /* ---------- Superficies ----------
      Tres niveles, como las capas de One UI: fondo, tarjeta y elevado. */
-  --bg-app: #f5f7fa;
+  --bg-app: #f4f7f8;
   --bg-surface: #ffffff;
-  --bg-raised: #fbfcfe;
-  --bg-sunken: #eef2f7;
-  --bg-inverse: #0f172a;
-  --border-subtle: #eef2f7;
-  --border-default: #e2e8f0;
-  --border-strong: #cbd5e1;
+  --bg-raised: #f9fbfc;
+  --bg-sunken: #eef3f5;
+  --bg-inverse: #16313d;
+  --border-subtle: #edf1f3;
+  --border-default: #dce5e8;
+  --border-strong: #c5d2d7;
 
   /* ---------- Texto ---------- */
-  --text-strong: #0f172a;
-  --text-primary: #1e293b;
-  --text-secondary: #64748b;
-  --text-tertiary: #94a3b8;
+  --text-strong: #18313d;
+  --text-primary: #29424e;
+  --text-secondary: #637984;
+  --text-tertiary: #81939b;
   --text-inverse: #ffffff;
 
   /* ---------- Degradado premium (bg_premium_gradient) ---------- */
-  --metallic-start: #0f172a;
-  --metallic-mid: #1e293b;
-  --metallic-end: #334155;
+  --metallic-start: #173a47;
+  --metallic-mid: #20586a;
+  --metallic-end: #147589;
   --white: #ffffff;
   --glass-fill: rgba(255, 255, 255, 0.1);
   --glass-stroke: rgba(255, 255, 255, 0.2);
-  --btn-gradient-from: #3b82f6;
-  --btn-gradient-to: #2563eb;
+  --btn-gradient-from: #2797a0;
+  --btn-gradient-to: #147589;
 
   /* ---------- Radios ----------
      Generosos y consistentes; una sola escala, sin valores sueltos. */
-  --radius-xs: 8px;
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
   --radius-pill: 999px;
 
   /* ---------- Elevacion ----------
@@ -71,8 +70,8 @@
   --elevation-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 1px 3px rgba(15, 23, 42, 0.04);
   --elevation-2: 0 2px 6px rgba(15, 23, 42, 0.07), 0 4px 12px rgba(15, 23, 42, 0.05);
   --elevation-3: 0 8px 24px rgba(15, 23, 42, 0.12), 0 2px 8px rgba(15, 23, 42, 0.06);
-  --elevation-accent: 0 6px 18px rgba(37, 99, 235, 0.28);
-  --elevation-danger: 0 8px 20px rgba(239, 68, 68, 0.42);
+  --elevation-accent: 0 6px 18px rgba(20, 117, 137, 0.2);
+  --elevation-danger: 0 8px 20px rgba(198, 64, 72, 0.3);
 
   /* ---------- Espaciado ----------
      Escala de 4 px. Los nombres describen el uso, no la medida. */
@@ -89,8 +88,8 @@
   /* ---------- Tipografia ----------
      Escala taken de los estilos del movil (Heading1 28sp, SectionTitle 20sp,
      LabelSecondary 14sp, ValuePrimary 16sp) y ampliada hacia arriba. */
-  --font-sans: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-  --text-display: 2rem;      /* 32px */
+  --font-sans: Inter, "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --text-display: 2.125rem;  /* 34px */
   --text-title: 1.5rem;      /* 24px */
   --text-subtitle: 1.125rem; /* 18px */
   --text-body: 1rem;         /* 16px */
@@ -107,7 +106,8 @@
   /* ---------- Interaccion ----------
      48 px es el minimo comodo para el dedo (material y Apple coinciden). */
   --touch-min: 48px;
-  --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.35);
+  --focus-ring: 0 0 0 3px rgba(20, 117, 137, 0.22);
+  --focus-color: #147589;
 }
 
 /* ---------- Reset ---------- */
@@ -131,6 +131,7 @@ body {
 h1, h2, h3, h4 { margin: 0; font-weight: 700; color: var(--text-strong); }
 p { margin: 0; }
 button { font: inherit; }
+button:not(:disabled) { cursor: pointer; }
 
 /* Foco visible y coherente en toda la app */
 :focus-visible {
@@ -257,7 +258,7 @@ input:focus, select:focus, textarea:focus {
   box-shadow: var(--focus-ring);
   outline: none;
 }
-input:disabled, select:disabled { background: var(--bg-sunken); cursor: not-allowed; }
+input:disabled, select:disabled, textarea:disabled { background: var(--bg-sunken); cursor: not-allowed; }
 
 .field { display: flex; flex-direction: column; gap: var(--space-sm); }
 .error-msg { color: var(--danger-text); font-size: var(--text-label); }
@@ -268,8 +269,9 @@ input:disabled, select:disabled { background: var(--bg-sunken); cursor: not-allo
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   box-shadow: var(--elevation-1);
-  padding: var(--space-xl);
+  padding: var(--space-2xl);
 }
+.card:hover { border-color: var(--border-default); }
 .card-header {
   display: flex;
   align-items: center;
@@ -309,12 +311,22 @@ input:disabled, select:disabled { background: var(--bg-sunken); cursor: not-allo
 .badge-success { background: var(--success-soft); color: var(--success-text); }
 .badge-danger { background: var(--danger-soft); color: var(--danger-text); }
 .badge-warning { background: var(--warning-soft); color: var(--warning-text); }
+.badge-info { background: var(--primary-light); color: var(--primary-dark); }
 
 /* ---------- Estados vacios ---------- */
 .empty-state {
   padding: var(--space-4xl) var(--space-xl);
   text-align: center;
   color: var(--text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* ---------- Fila etiqueta/valor ---------- */
