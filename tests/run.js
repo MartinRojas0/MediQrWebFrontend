@@ -369,6 +369,13 @@ function extraer(salida) {
 
   console.log(texto);
 
+  if (process.env.MEDIQR_TEST_FAST === '1') {
+    servidor.close();
+    console.log('\nMEDIQR_TEST_FAST=1: se omiten enlaces directos y mediciones responsive.');
+    if (/HARNESS ERROR/.test(texto) || /FAIL \|/.test(texto)) process.exit(1);
+    process.exit(0);
+  }
+
   // Segunda pasada: abrir el portal directamente en cada ruta, como
   // ocurriria al recargar con la URL ya escrita.
   let fallosDirectos = 0;
