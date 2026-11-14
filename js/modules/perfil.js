@@ -295,7 +295,7 @@
     document.getElementById('personal-edit-form').classList.add('hidden');
     document.getElementById('btn-edit-personal').classList.remove('hidden');
   }
-  function savePersonalEdit(e) {
+  async function savePersonalEdit(e) {
     e.preventDefault();
 
     const valores = {
@@ -333,8 +333,6 @@
     error.textContent = '';
     error.classList.add('hidden');
 
-    // El nombre se escribe en el modelo, no solo en el DOM. Es lo que hacia que
-    // editar en Perfil no cambiara nada en Inicio ni en ninguna otra vista.
     const paciente = MediModules.paciente;
     paciente.nombre = valores.nombre;
     paciente.apellidos = valores.apellido;
@@ -345,10 +343,30 @@
     paciente.calle = valores.calle;
     paciente.distrito = valores.distrito;
 
+    // Persistencia bidireccional en el backend si hay sesión activa
+    if (window.MediApi && window.MediApi.storage.getToken() && paciente.id) {
+      try {
+        const direccionCompleta = [paciente.calle, paciente.distrito].filter(Boolean).join(", ");
+        await window.MediApi.pacientes.update(paciente.id, {
+          nombres: paciente.nombre,
+          apellidos: paciente.apellidos || "Sin registrar",
+          documentoIdentidad: paciente.dni,
+          fechaNacimiento: paciente.nacimiento || null,
+          telefono: paciente.telefono,
+          direccion: direccionCompleta,
+          sexo: paciente.sexo || "NO_ESPECIFICADO"
+        });
+        MediModules.aviso('Información personal guardada en el servidor.');
+      } catch (err) {
+        console.warn("[MediQR] Error guardando paciente en el backend:", err);
+        MediModules.avisoLocal('Información personal actualizada localmente (servidor no disponible).');
+      }
+    } else {
+      MediModules.avisoLocal('Información personal actualizada.');
+    }
+
     pintarDerivados();
     if (window.MediRefrescarPaciente) window.MediRefrescarPaciente();
-
-    MediModules.avisoLocal('Información personal actualizada.');
     cancelPersonalEdit();
   }
   // 4. Edición visual de Información Médica
@@ -370,13 +388,50 @@
     document.getElementById('medical-edit-form').classList.add('hidden');
     document.getElementById('btn-edit-medical').classList.remove('hidden');
   }
-  function saveMedicalEdit(e) {
+  async function saveMedicalEdit(e) {
     e.preventDefault();
-    document.getElementById('val-blood').textContent = document.getElementById('inp-blood').value;
-    document.getElementById('val-allergies').textContent = document.getElementById('inp-allergies').value;
-    document.getElementById('val-conditions').textContent = document.getElementById('inp-conditions').value;
-    document.getElementById('val-notes').textContent = document.getElementById('inp-notes').value;
-    MediModules.avisoLocal('Información médica actualizada.');
+    const blood = document.getElementById('inp-blood').value.trim();
+    const allergies = document.getElementById('inp-allergies').value.trim();
+    const conditions = document.getElementById('inp-conditions').value.trim();
+    const notes = document.getElementById('inp-notes').value.trim();
+
+    document.getElementById('val-blood').textContent = blood;
+    document.getElementById('val-allergies').textContent = allergies;
+    document.getElementById('val-conditions').textContent = conditions;
+    document.getElementById('val-notes').textContent = notes;
+
+    MediModules.salud.tipoSangre = blood;
+
+    // Persistencia bidireccional del historial clínico en el backend
+    const paciente = MediModules.paciente;
+    if (window.MediApi && window.MediApi.storage.getToken() && paciente.id) {
+      try {
+        const histExistente = await window.MediApi.historial.getMe().catch((error) => {
+          if (error && error.status === 404) return null;
+          throw error;
+        });
+
+        const payload = {
+          tipoSangre: blood,
+          alergias: allergies,
+          enfermedadesCronicas: conditions,
+          cirugias: histExistente ? histExistente.cirugias : "",
+          observaciones: notes
+        };
+
+        await window.MediApi.historial.updateMe(payload);
+        MediModules.aviso('Información médica guardada en el servidor.');
+      } catch (err) {
+        console.warn("[MediQR] Error guardando historial en el backend:", err);
+        MediModules.avisoLocal('Información médica actualizada localmente (servidor no disponible).');
+      }
+    } else {
+      MediModules.avisoLocal('Información médica actualizada.');
+    }
+
+    if (window.SaludModulo && typeof window.SaludModulo.refrescar === "function") {
+      window.SaludModulo.refrescar();
+    }
     cancelMedicalEdit();
   }
 

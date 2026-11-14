@@ -8,10 +8,14 @@
 #   - Node.js 18 o superior  (node --version)
 #   - Microsoft Edge o Google Chrome instalado
 #   - No hace falta instalar nada mas: no hay dependencias.
+#   - MEDIQR_TEST_FAST=1 ejecuta las 378 comprobaciones funcionales e
+#     inmediatamente omite las recargas por enlace directo y las mediciones
+#     responsive, que requieren muchos lanzamientos del navegador.
 #
 # USO
 #   node tests/run.js
 #   node tests/run.js /ruta/otra/copia/del/proyecto
+#   $env:MEDIQR_TEST_FAST = "1"; node tests/run.js
 #   set BROWSER="C:\Program Files\Google\Chrome\Application\chrome.exe"
 #   node tests/run.js
 #   set PORT=8800 && node tests/run.js

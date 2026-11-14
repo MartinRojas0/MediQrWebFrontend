@@ -1,4 +1,4 @@
-﻿// ==========================================================
+// ==========================================================
 // MediQR · Estado de la aplicacion
 //
 // Une los datos ficticios, el estado en memoria y los metodos de cada
@@ -132,6 +132,84 @@ cirugias: [
     borrador: null,
     citaPendiente: null,
     temporizadorAviso: null,
+
+    // Sincronización asíncrona con el backend MediQR
+    async cargarDatosServidor() {
+      if (!window.MediApi || !window.MediApi.storage.getToken()) return;
+
+      try {
+        const usuario = window.MediApi.storage.getUser();
+        if (!usuario) return;
+
+        this.paciente.id = null;
+        this.paciente.nombre = "";
+        this.paciente.apellidos = "";
+        this.paciente.nacimiento = "";
+        this.paciente.dni = "";
+        this.paciente.email = usuario.email || "";
+        this.paciente.telefono = "";
+        this.paciente.calle = "";
+        this.paciente.distrito = "";
+        this.citas = [];
+        this.documentos = [];
+        this.salud.tipoSangre = "";
+        this.salud.alergias = [];
+        this.salud.condicionesCronicas = [];
+        this.salud.medicamentosActuales = [];
+        this.salud.vacunas = [];
+        this.salud.cirugias = [];
+        this.salud.contactos = [];
+
+        // 1. Obtener únicamente el perfil asociado al usuario autenticado.
+        // El backend deriva el usuario desde el JWT; no se listan otros pacientes.
+        const pacActual = await window.MediApi.pacientes.getMe();
+
+        if (pacActual) {
+          this.paciente.id = pacActual.id;
+          this.paciente.nombre = pacActual.nombres || "";
+          this.paciente.apellidos = pacActual.apellidos || "";
+          this.paciente.nacimiento = pacActual.fechaNacimiento || "";
+          this.paciente.dni = pacActual.documentoIdentidad || "";
+          this.paciente.telefono = pacActual.telefono || "";
+          this.paciente.calle = pacActual.direccion || "";
+          this.paciente.email = usuario.email || this.paciente.email;
+
+          // 2. Historial clínico del paciente
+          const hist = await window.MediApi.historial.getMe().catch((error) => {
+            if (error && error.status === 404) return null;
+            throw error;
+          });
+          if (hist) {
+            if (hist.tipoSangre) this.salud.tipoSangre = hist.tipoSangre;
+            if (hist.alergias) {
+              this.salud.alergias = hist.alergias.split(",").map(a => ({ nombre: a.trim(), severidad: "moderada" }));
+            }
+            if (hist.enfermedadesCronicas) {
+              this.salud.condicionesCronicas = hist.enfermedadesCronicas.split(",").map(c => ({
+                nombre: c.trim(),
+                diagnostico: "",
+                fechaDiagnostico: ""
+              }));
+            }
+          }
+
+          // Los módulos de citas y medicamentos se conectarán cuando sus
+          // endpoints apliquen autorización por propietario en el backend.
+          // No se consultan listados globales desde una sesión PACIENTE.
+
+        }
+
+        if (window.MediRefrescarPaciente) window.MediRefrescarPaciente();
+        if (window.SaludModulo && typeof window.SaludModulo.refrescar === "function") {
+          window.SaludModulo.refrescar();
+        }
+      } catch (e) {
+        console.warn("[MediQR] No se pudieron sincronizar datos del backend:", e);
+        this.aviso("No se pudo recuperar tu perfil del servidor. Inténtalo nuevamente.");
+        return false;
+      }
+      return Boolean(this.paciente.id);
+    },
 
     // Los "desp" son relativos a hoy: se resuelven una sola vez al arrancar.
     //

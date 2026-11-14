@@ -43,6 +43,7 @@
     extra:
       "Los datos del portal son de ejemplo y no están protegidos."
   };
+  const API_CONFIGURADA = Boolean(window.MEDIQR_CONFIG && window.MEDIQR_CONFIG.API_URL);
 
   // Estado de la demostración. Solo vive en memoria: recargar la página
   // cierra la sesión, que es lo honesto.
@@ -51,11 +52,35 @@
     correo: "",
     onboarding: "" // "", "hecho" u "omitido"
   };
+  let errorInicial = "";
 
   // Texto de los términos. Es una demostración: se deja claro que aceptar
   // no equivale a consentimiento médico ni a autorización clínica, y que
   // esa aceptación no se registra en ningún servidor porque no existe.
-  const TERMINOS = `
+  const TERMINOS = API_CONFIGURADA ? `
+    <div class="legal">
+      <h3>Aviso de uso del MVP</h3>
+      <p><strong>1. Alcance.</strong> Esta versión permite crear una cuenta e
+      ingresar datos del perfil. No es un sistema clínico ni un producto
+      sanitario y no debe usarse para tomar decisiones médicas.</p>
+
+      <h3>2. Datos y funciones</h3>
+      <ul>
+        <li>El correo y la contraseña se envían al servidor para crear o verificar
+            la cuenta; la contraseña se almacena como hash.</li>
+        <li>Los datos del perfil y los campos básicos de salud que ofrece la
+            pantalla Perfil se envían al servidor y se guardan en la base de
+            datos para recuperarlos al iniciar sesión.</li>
+        <li>Citas, documentos, medicamentos, vacunas, contactos y alertas
+            todavía no están conectados como funciones persistentes.</li>
+        <li>El QR de emergencia no está disponible en esta versión.</li>
+      </ul>
+
+      <h3>3. Uso responsable</h3>
+      <p>No ingreses información médica sensible ni uses este MVP para una
+      emergencia. Aceptar este aviso no constituye consentimiento médico ni
+      acredita cumplimiento de requisitos regulatorios o de privacidad.</p>
+    </div>` : `
     <div class="legal">
       <h3>Condiciones de uso de la demostración</h3>
       <p><strong>1. Qué es esta aplicación.</strong> MediQR es una demostración
@@ -112,6 +137,16 @@
       </div>`;
   }
 
+  function bandaAcceso() {
+      if (!window.MEDIQR_CONFIG || !window.MEDIQR_CONFIG.API_URL) return bandaDemo();
+      return `
+        <div class="card pending-card" role="note">
+          <p class="pending-head"><i data-icon="shield-halved"></i> Cuenta MediQR</p>
+          <p>El servidor verifica tu correo y contraseña. El perfil se guarda en tu cuenta y puedes recuperarlo al volver a iniciar sesión.</p>
+          <p class="text-muted">Este MVP solo sincroniza el perfil. Citas, documentos y otros datos aún no están conectados.</p>
+        </div>`;
+  }
+
   function campo(clave, etiqueta, tipo, autocompletado, extra) {
     return `
       <label class="wide" for="acc-${clave}">
@@ -149,8 +184,10 @@
     },
 
     registro: {
-      titulo: "Crear una cuenta de demostración",
-      lead: "Registro visual, sin cuenta real.",
+      titulo: API_CONFIGURADA ? "Crear una cuenta" : "Crear una cuenta de demostración",
+      lead: API_CONFIGURADA
+        ? "Registra una cuenta para guardar y recuperar tu perfil."
+        : "Registro visual, sin cuenta real.",
       campos:
         campo("correo", "Correo electrónico", "email", "username",
               'inputmode="email" autocapitalize="none" spellcheck="false"') +
@@ -165,7 +202,9 @@
 
     recuperar: {
       titulo: "Recuperar acceso",
-      lead: "En la demostración no se envía ningún correo.",
+      lead: API_CONFIGURADA
+        ? "La recuperación de contraseña aún no está disponible."
+        : "En la demostración no se envía ningún correo.",
       campos:
         campo("correo", "Correo electrónico", "email", "username",
               'inputmode="email" autocapitalize="none" spellcheck="false"'),
@@ -210,9 +249,15 @@
       return false;
     }
 
+    if (sub === "registro" && (clave.value.length < 8 || clave.value.length > 100)) {
+      errores.textContent = "La contraseña debe tener entre 8 y 100 caracteres.";
+      return false;
+    }
+
     if (terminos && !terminos.checked) {
-      errores.textContent =
-        "Tienes que leer y aceptar las condiciones para continuar con la demostración.";
+      errores.textContent = API_CONFIGURADA
+        ? "Tienes que leer y aceptar el aviso para continuar."
+        : "Tienes que leer y aceptar las condiciones para continuar con la demostración.";
       return false;
     }
 
@@ -230,7 +275,7 @@
   }
 
   function mostrarTerminos() {
-    MediModules.modal("Condiciones de la demostración", TERMINOS + `
+    MediModules.modal(API_CONFIGURADA ? "Aviso de uso" : "Condiciones de la demostración", TERMINOS + `
       <div class="module-actions wide">
         <button type="button" class="btn btn-primary" data-action="acceso:aceptar-terminos">
           He leído y acepto
@@ -240,31 +285,134 @@
     `, true);
   }
 
-  // --- Entrada en la demostración ---
-  function entrar(correo) {
-    sesion.activa = true;
-    sesion.correo = correo;
+  // --- Entrada en la aplicacion ---
+  async function entrar(correo, password, esRegistro) {
+    const errorElem = document.getElementById(esRegistro ? "registro-error" : "acceso-error");
 
-    // Al entrar se muestra lo que falte: la configuración inicial o el
-    // portal. Nunca se vuelve al login, asi que no hay bucle posible.
-    Router.ir(sesion.onboarding ? "inicio" : "onboarding");
+    // Keep demo-only test runs separate from configured deployments.
+    if (!window.MEDIQR_CONFIG || !window.MEDIQR_CONFIG.API_URL) {
+      sesion.activa = true;
+      sesion.esDemo = true;
+      sesion.correo = correo;
+      sesion.onboarding = "hecho";
+      Router.ir("inicio");
+      return;
+    }
+
+    try {
+      if (!window.MediApi) {
+        throw new Error("No se pudo cargar el cliente de la API de MediQR.");
+      }
+
+      if (esRegistro) {
+        await window.MediApi.auth.registro(correo, password, "PACIENTE");
+      }
+
+      const authData = await window.MediApi.auth.login(correo, password);
+      if (!authData || !authData.token) {
+        throw new Error("El servidor no devolvió una sesión válida.");
+      }
+
+      window.MediApi.storage.setToken(authData.token, true);
+      window.MediApi.storage.setUser({
+        id: authData.id,
+        email: authData.email,
+        rol: authData.rol
+      }, true);
+
+      sesion.activa = true;
+      sesion.esDemo = false;
+      sesion.correo = correo;
+      sesion.onboarding = "hecho";
+
+      if (!window.MediModules || typeof window.MediModules.cargarDatosServidor !== "function" ||
+          !(await window.MediModules.cargarDatosServidor())) {
+        throw new Error("La sesión inició, pero no se pudo recuperar el perfil desde el servidor. Inténtalo nuevamente.");
+      }
+
+      Router.ir("inicio");
+    } catch (err) {
+      console.error("[Auth Error]", err);
+      if (window.MediApi && window.MediApi.storage) window.MediApi.storage.clear();
+      sesion.activa = false;
+      sesion.esDemo = false;
+      sesion.correo = "";
+      sesion.onboarding = "";
+
+      // Si el backend no está disponible o falla, informarlo claramente y NO simular una sesión real
+      if (errorElem) {
+        if (err.message && err.message.includes("Failed to fetch")) {
+          errorElem.textContent = "No se pudo conectar con el servidor de MediQR. Comprueba tu conexión e inténtalo nuevamente.";
+        } else {
+          errorElem.textContent = err.message || "Error al autenticar con el servidor.";
+        }
+      }
+    }
+  }
+
+  async function restaurarSesion() {
+    if (!window.MEDIQR_CONFIG || !window.MEDIQR_CONFIG.API_URL ||
+        !window.MediApi || !window.MediApi.storage.getToken()) {
+      return false;
+    }
+
+    try {
+      const usuario = await window.MediApi.auth.me();
+      if (!usuario || !usuario.id || !usuario.email) {
+        throw new Error("El servidor no devolvió una cuenta válida.");
+      }
+
+      window.MediApi.storage.setUser({
+        id: usuario.id,
+        email: usuario.email,
+        rol: usuario.rol
+      }, true);
+      sesion.activa = true;
+      sesion.esDemo = false;
+      sesion.correo = usuario.email;
+      sesion.onboarding = "hecho";
+
+      if (!window.MediModules || !(await window.MediModules.cargarDatosServidor())) {
+        throw new Error("No se pudo recuperar el perfil de la cuenta.");
+      }
+      return true;
+    } catch (error) {
+      console.warn("[MediQR] No se pudo restaurar la sesión:", error);
+      window.MediApi.storage.clear();
+      sesion.activa = false;
+      sesion.esDemo = false;
+      sesion.correo = "";
+      sesion.onboarding = "";
+      errorInicial = "No se pudo restaurar la sesión anterior. Inicia sesión nuevamente.";
+      return false;
+    }
+  }
+
+  // Entrada explícita en modo demostración (aislado y declarado)
+  function entrarModoDemo() {
+    sesion.activa = true;
+    sesion.esDemo = true;
+    sesion.correo = "paciente.demo@ejemplo.invalid";
+    sesion.onboarding = "hecho";
+    limpiarClaves();
+    Router.ir("inicio");
   }
 
   function enviar(sub, errorId) {
     const formulario = document.getElementById(sub + "-form");
     if (!formulario) return;
 
-    formulario.addEventListener("submit", function (evento) {
+    formulario.addEventListener("submit", async function (evento) {
       evento.preventDefault();
 
       if (!revisar(sub, errorId)) return;
 
       const correo = document.getElementById("acc-correo").value.trim();
+      const clave = document.getElementById("acc-contrasena").value;
 
-      // El registro visual no crea ninguna cuenta: continua por el mismo
-      // camino que el login, sin decir que nada se guardo en ningun sitio.
+      const esRegistro = (sub === "registro");
       limpiarClaves();
-      entrar(correo);
+      await entrar(correo, clave, esRegistro);
     });
   }
 
@@ -287,7 +435,7 @@
         </form>
       </article>
 
-      ${sub === "registro" ? bandaDemo() : bandaDemo()}
+      ${bandaAcceso()}
       ${sub === "recuperar" ? avisoPendiente("recuperar-demo") : ""}
 
       <p class="auth-alt">${vista.prefijo}${vista.pie}</p>`;
@@ -302,13 +450,18 @@
             <input type="checkbox" id="acc-terminos">
             <span>He leído y acepto las
               <button type="button" class="enlace-terminos" data-action="acceso:terminos">
-                condiciones de la demostración</button>
+                ${API_CONFIGURADA ? "aviso de uso" : "condiciones de la demostración"}</button>
             </span>
           </label>
         </div>`);
     }
 
     enviar(sub, vista.error);
+    if (sub === "acceso" && errorInicial) {
+      const error = document.getElementById(vista.error);
+      if (error) error.textContent = errorInicial;
+      errorInicial = "";
+    }
   }
 
   MediAcciones.definirVarias({
@@ -351,8 +504,12 @@
   // --- Sesión ---
   const AccesoModulo = {
     render,
+    restaurarSesion,
     sesion,
     terminar: function () {
+      if (window.MediApi && window.MediApi.storage) {
+        window.MediApi.storage.clear();
+      }
       sesion.activa = false;
       sesion.correo = "";
       sesion.onboarding = "";

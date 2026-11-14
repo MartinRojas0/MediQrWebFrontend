@@ -65,6 +65,16 @@ function crearServidor(harness) {
       return res.end(buf);
     }
 
+    if (ruta === '/js/config.js') {
+      const buf = Buffer.from('window.MEDIQR_CONFIG = Object.freeze({ API_URL: "" });', 'utf8');
+      res.writeHead(200, {
+        'Content-Type': TIPOS['.js'],
+        'Content-Length': buf.length,
+        'Cache-Control': 'no-store'
+      });
+      return res.end(buf);
+    }
+
     if (ruta === '/__test__/marco.html') {
       // Marco de medida: la pagina padre mide el iframe y escribe el
       // resultado en su propio DOM, porque --dump-dom solo serializa el
@@ -358,6 +368,13 @@ function extraer(salida) {
   }
 
   console.log(texto);
+
+  if (process.env.MEDIQR_TEST_FAST === '1') {
+    servidor.close();
+    console.log('\nMEDIQR_TEST_FAST=1: se omiten enlaces directos y mediciones responsive.');
+    if (/HARNESS ERROR/.test(texto) || /FAIL \|/.test(texto)) process.exit(1);
+    process.exit(0);
+  }
 
   // Segunda pasada: abrir el portal directamente en cada ruta, como
   // ocurriria al recargar con la URL ya escrita.
