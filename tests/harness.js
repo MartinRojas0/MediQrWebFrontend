@@ -2062,6 +2062,71 @@ ok('P.4 Hay una regla de foco visible con contorno',
      !vis(q('#personal-edit-form')),
      JSON.stringify(MediModules.paciente.nombre));
 
+  // El perfil conectado solo cambia en pantalla después de la respuesta API.
+  const api = window.MediApi;
+  const getTokenOriginal = api.storage.getToken;
+  const getUserOriginal = api.storage.getUser;
+  const updateOriginal = api.pacientes.update;
+  const confirmOriginalApi = window.confirm;
+  const pacienteAntesApi = {
+    id: MediModules.paciente.id,
+    nombre: MediModules.paciente.nombre,
+    apellidos: MediModules.paciente.apellidos,
+    dni: MediModules.paciente.dni,
+    nacimiento: MediModules.paciente.nacimiento,
+    email: MediModules.paciente.email,
+    telefono: MediModules.paciente.telefono,
+    calle: MediModules.paciente.calle,
+    distrito: MediModules.paciente.distrito
+  };
+  let confirmacionesApi = 0;
+  try {
+    api.storage.getToken = function () { return 'token-de-prueba'; };
+    api.storage.getUser = function () { return { email: pacienteAntesApi.email }; };
+    MediModules.paciente.id = 77;
+    window.confirm = function () { confirmacionesApi++; return true; };
+
+    q('#btn-edit-personal').click(); await tick();
+    ok('API.1 El correo de acceso no se puede editar desde el perfil',
+       q('#inp-email').readOnly && !q('#email-readonly-hint').classList.contains('hidden'));
+
+    api.pacientes.update = async function () { throw new Error('HTTP 500 de prueba'); };
+    q('#inp-name').value = 'No persistido';
+    q('#personal-edit-form').dispatchEvent(new Event('input', { bubbles: true }));
+    q('#personal-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await tick();
+    ok('API.2 Si el servidor falla no se cambia el modelo y el formulario sigue abierto',
+       MediModules.paciente.nombre === pacienteAntesApi.nombre &&
+       vis(q('#personal-edit-form')) &&
+       /HTTP 500 de prueba/.test(q('#personal-error').textContent));
+
+    api.pacientes.update = async function (id, datos) {
+      return Object.assign({ id: id }, datos);
+    };
+    q('#inp-name').value = 'Perfil persistido';
+    q('#inp-dni').value = '76543210';
+    q('#personal-edit-form').dispatchEvent(new Event('input', { bubbles: true }));
+    q('#personal-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await tick();
+    ok('API.3 La respuesta del servidor actualiza el perfil y muestra el DNI',
+       MediModules.paciente.nombre === 'Perfil persistido' &&
+       q('#val-name').textContent === 'Perfil persistido' &&
+       q('#val-dni').textContent === '76543210');
+    ok('API.4 Guardar correctamente no vuelve a pedir confirmacion de descarte',
+       confirmacionesApi === 0 && !vis(q('#personal-edit-form')),
+       confirmacionesApi + ' confirmacion(es)');
+  } finally {
+    api.storage.getToken = getTokenOriginal;
+    api.storage.getUser = getUserOriginal;
+    api.pacientes.update = updateOriginal;
+    window.confirm = confirmOriginalApi;
+    Object.keys(pacienteAntesApi).forEach(function (key) {
+      if (key === 'id' && pacienteAntesApi.id == null) delete MediModules.paciente.id;
+      else MediModules.paciente[key] = pacienteAntesApi[key];
+    });
+    if (window.PerfilModulo) window.PerfilModulo.refrescar();
+  }
+
   } catch (errorPac) {
     ok('PAC.0 El bloque completo se pudo ejecutar', false,
        (errorPac && errorPac.message ? errorPac.message : String(errorPac)) +

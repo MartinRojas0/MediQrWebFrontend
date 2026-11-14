@@ -61,7 +61,9 @@
         <label>Apellidos: <input type="text" id="inp-lastname" value=""></label>
               <label>DNI: <input type="text" id="inp-dni" value="00000000" required></label>
               <label>Fecha Nacimiento: <input type="date" id="inp-birth" value="1990-01-01" required></label>
-              <label>Correo: <input type="email" id="inp-email" value="paciente.demo@ejemplo.invalid" required></label>
+              <label>Correo: <input type="email" id="inp-email" value="paciente.demo@ejemplo.invalid" required>
+                <small id="email-readonly-hint" class="text-muted hidden">El correo de acceso no se cambia desde el perfil.</small>
+              </label>
               <label>Teléfono: <input type="text" id="inp-phone" value="+51 000 000 000" required></label>
               <label class="data-grid-full">Dirección:
                 <input type="text" id="inp-street" value="" placeholder="Calle y número"
@@ -215,6 +217,7 @@
 
     document.getElementById('val-name').textContent = paciente.nombre || 'Sin registrar';
     document.getElementById('val-lastname').textContent = paciente.apellidos || 'Sin registrar';
+    document.getElementById('val-dni').textContent = paciente.dni || 'Sin registrar';
 
     const cabecera = document.getElementById('perfil-nombre');
     if (cabecera) {
@@ -270,6 +273,12 @@
     document.getElementById('inp-phone').value = p.telefono;
     document.getElementById('inp-street').value = p.calle;
     document.getElementById('inp-district').value = p.distrito;
+    const emailInput = document.getElementById('inp-email');
+    const emailHint = document.getElementById('email-readonly-hint');
+    const sesionServidor = window.MediApi && window.MediApi.storage &&
+      window.MediApi.storage.getToken();
+    if (emailInput) emailInput.readOnly = Boolean(sesionServidor);
+    if (emailHint) emailHint.classList.toggle('hidden', !sesionServidor);
 
     document.getElementById('personal-read-view').classList.add('hidden');
     document.getElementById('personal-edit-form').classList.remove('hidden');
@@ -330,37 +339,61 @@
     error.classList.add('hidden');
 
     const paciente = MediModules.paciente;
-    paciente.nombre = valores.nombre;
-    paciente.apellidos = valores.apellido;
-    paciente.nacimiento = valores.nacimiento;
-    paciente.dni = valores.dni;
-    paciente.email = valores.email;
-    paciente.telefono = valores.telefono;
-    paciente.calle = valores.calle;
-    paciente.distrito = valores.distrito;
+    const formulario = document.getElementById('personal-edit-form');
+    const sesionServidor = Boolean(window.MediApi && window.MediApi.storage &&
+      window.MediApi.storage.getToken());
 
-    // Persistencia bidireccional en el backend si hay sesión activa
-    if (window.MediApi && window.MediApi.storage.getToken() && paciente.id) {
+    if (sesionServidor) {
+      if (paciente.id == null) {
+        error.textContent = 'No se encontró el perfil del paciente en el servidor. No se guardaron los cambios.';
+        error.classList.remove('hidden');
+        return;
+      }
+
       try {
-        const direccionCompleta = [paciente.calle, paciente.distrito].filter(Boolean).join(", ");
-        await window.MediApi.pacientes.update(paciente.id, {
-          nombres: paciente.nombre,
-          apellidos: paciente.apellidos || "Sin registrar",
-          documentoIdentidad: paciente.dni,
-          fechaNacimiento: paciente.nacimiento || null,
-          telefono: paciente.telefono,
+        const direccionCompleta = [valores.calle, valores.distrito].filter(Boolean).join(", ");
+        const guardado = await window.MediApi.pacientes.update(paciente.id, {
+          nombres: valores.nombre,
+          apellidos: valores.apellido || "Sin registrar",
+          documentoIdentidad: valores.dni,
+          fechaNacimiento: valores.nacimiento || null,
+          telefono: valores.telefono,
           direccion: direccionCompleta,
           sexo: paciente.sexo || "NO_ESPECIFICADO"
         });
+        if (!guardado || guardado.id == null) {
+          throw new Error('El servidor no devolvió el perfil actualizado.');
+        }
+
+        paciente.nombre = guardado.nombres || '';
+        paciente.apellidos = guardado.apellidos || '';
+        paciente.nacimiento = guardado.fechaNacimiento || '';
+        paciente.dni = guardado.documentoIdentidad || '';
+        paciente.telefono = guardado.telefono || '';
+        paciente.calle = guardado.direccion || '';
+        paciente.distrito = '';
+        const cuenta = window.MediApi.storage.getUser();
+        paciente.email = cuenta && cuenta.email ? cuenta.email : paciente.email;
         MediModules.aviso('Información personal guardada en el servidor.');
       } catch (err) {
-        console.warn("[MediQR] Error guardando paciente en el backend:", err);
-        MediModules.avisoLocal('Información personal actualizada localmente (servidor no disponible).');
+        error.textContent = 'No se pudieron guardar los cambios en el servidor: ' +
+          (err && err.message ? err.message : 'inténtalo nuevamente.');
+        error.classList.remove('hidden');
+        return;
       }
     } else {
+      paciente.nombre = valores.nombre;
+      paciente.apellidos = valores.apellido;
+      paciente.nacimiento = valores.nacimiento;
+      paciente.dni = valores.dni;
+      paciente.email = valores.email;
+      paciente.telefono = valores.telefono;
+      paciente.calle = valores.calle;
+      paciente.distrito = valores.distrito;
       MediModules.avisoLocal('Información personal actualizada.');
     }
 
+    MediFormularios.marcar(formulario);
     pintarDerivados();
     if (window.MediRefrescarPaciente) window.MediRefrescarPaciente();
     cancelPersonalEdit();

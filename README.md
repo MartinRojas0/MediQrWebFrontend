@@ -22,9 +22,23 @@ consulta [`DEPLOYMENT.md`](DEPLOYMENT.md) para producción.
   tomar decisiones médicas o atender emergencias.
 
 El alcance inicial y sus pendientes están documentados en
-[`INTEGRACION-BACKEND.md`](INTEGRACION-BACKEND.md); ese documento precede a la
-integración parcial. La configuración actual está en
-[`DEPLOYMENT.md`](DEPLOYMENT.md).
+[`INTEGRACION-BACKEND.md`](INTEGRACION-BACKEND.md), que es histórico. La
+configuración actual está en [`DEPLOYMENT.md`](DEPLOYMENT.md).
+
+## Estado verificado
+
+Verificación manual con datos sintéticos el 2026-11-14:
+
+- La web pública de Vercel respondió HTTP 200 y carga la API HTTPS de Render.
+- Registro e inicio de sesión completados; el token de sesión se restauró
+  después de recargar la misma pestaña.
+- El perfil personal se actualizó y volvió a leerse desde la API después de
+  recargar. `/api/health` respondió HTTP 200 con CORS para el origen de Vercel.
+- Neon no se modificó durante estas pruebas. La suite local no prueba Neon.
+
+El aviso `404` de `/api/historial-clinico/me` para una cuenta nueva significa
+que todavía no hay fila de historial; el frontend lo trata como historial vacío.
+No se introdujo información médica real.
 
 ## Requisitos
 
@@ -32,7 +46,7 @@ integración parcial. La configuración actual está en
   dependencias de ejecución.
 - Un navegador: Microsoft Edge o Google Chrome.
 
-## Cómo abrirlo
+## Ejecución local
 
 El sitio es estático, así que basta con servir la carpeta por HTTP y abrir la
 raíz. Con Node, que ya hace falta para las pruebas, sin instalar nada:
@@ -42,9 +56,10 @@ node -e "const h=require('http'),f=require('fs'),p=require('path');const M={'.ht
 ```
 
 Y luego <http://localhost:8000>. Para desarrollo local, `js/config.js` apunta
-a `http://localhost:8080/api`; el backend debe estar disponible para iniciar
-sesión y sincronizar el perfil. Si no está accesible, la aplicación muestra el
-error del servicio en lugar de simular un inicio de sesión.
+a `http://localhost:8080/api`; ejecuta el backend según su
+[`README.md`](../MedyQR_BACKEND/README.md). Debe estar disponible para
+registrarse, iniciar sesión y sincronizar el perfil. Si no está accesible, la
+aplicación muestra el error en lugar de simular una sesión.
 
 > Abrir `index.html` con doble clic también funciona, pero algunos navegadores
 > restringen ciertas cosas con el protocolo `file://`. Servirlo por HTTP es lo
@@ -76,10 +91,12 @@ tests/
   capturar.js         capturas de cada vista en móvil, tableta y escritorio
 ```
 
-Las responsabilidades van así: `store.js` guarda el estado y los datos de
-ejemplo; cada módulo de `js/modules/` pinta su vista y su lógica; `router.js`
-decide qué vista se ve; `acciones.js` reparte los clics y el envío de
-formularios. Para añadir una vista hay que tocar esos cuatro sitios, no más.
+`js/data/api.js` envía las llamadas autenticadas al backend. `js/modules/acceso.js`
+registra e inicia sesión y valida la sesión restaurada; `js/data/store.js`
+carga el perfil del paciente desde la API. `js/modules/perfil.js` envía y
+presenta los cambios del perfil; en modo API, un error mantiene el borrador en
+el formulario y no modifica el estado local como si se hubiera guardado.
+Las vistas que aún no están conectadas usan datos de demostración en memoria.
 
 ## Rutas
 
@@ -100,7 +117,7 @@ formularios. Para añadir una vista hay que tocar esos cuatro sitios, no más.
 node tests/run.js
 ```
 
-Ejecuta en un navegador real (Edge o Chrome, en modo headless) **385
+Ejecuta en un navegador real (Edge o Chrome, en modo headless) **389
 comprobaciones** del recorrido principal, **8 por cada uno de los 10 enlaces
 directos** (recarga con la URL ya escrita) y **56 mediciones responsive** (8
 vistas × 7 anchos: 360, 390, 430, 540, 768, 1024 y 1440 px).
@@ -122,11 +139,14 @@ Las deja en `.capturas/`, que está en `.gitignore`.
 
 ## Qué hay que mirar antes de dar algo por terminado
 
-- El acceso es de demostración y la sesión no se guarda. Al recargar se vuelve
-  a pedir el acceso. No es un fallo.
+- La sesión se guarda en `sessionStorage` y se restaura al recargar la misma
+  pestaña; no se conserva al cerrar la pestaña o el navegador.
+- El correo de acceso no se modifica desde el formulario del perfil. El cambio
+  de correo/contraseña y la recuperación de contraseña siguen pendientes.
 - Los datos de ejemplo son ficticios y hay que mantenerlos como tales: si
   aparece un nombre real, un DNI real o un historial clínico real, hay que
   quitarlo antes de compartir el repositorio.
+- El perfil médico no formó parte de la prueba de persistencia final.
 - El QR no funciona. No hay que presentarlo como implementado.
 
 ## Documentación
