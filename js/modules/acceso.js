@@ -68,10 +68,11 @@
       <ul>
         <li>El correo y la contraseña se envían al servidor para crear o verificar
             la cuenta; la contraseña se almacena como hash.</li>
-        <li>Los datos del perfil se envían al servidor y se guardan en la base
-            de datos para recuperarlos al iniciar sesión.</li>
-        <li>Citas, documentos, expediente clínico, contactos y alertas todavía
-            no están conectados como funciones persistentes.</li>
+        <li>Los datos del perfil y los campos básicos de salud que ofrece la
+            pantalla Perfil se envían al servidor y se guardan en la base de
+            datos para recuperarlos al iniciar sesión.</li>
+        <li>Citas, documentos, medicamentos, vacunas, contactos y alertas
+            todavía no están conectados como funciones persistentes.</li>
         <li>El QR de emergencia no está disponible en esta versión.</li>
       </ul>
 
