@@ -4,6 +4,11 @@
 **Alcance:** inspección estática del repositorio `mediqr-front`. No se modificó ningún archivo del proyecto.
 **Método:** lectura completa de los 9 archivos, búsquedas dirigidas y una verificación de ejecución con Node (solo módulos built-in, en carpeta temporal, sin instalar dependencias).
 
+> **Documento histórico:** sus hallazgos describen el estado previo a la integración
+> de backend, QR, documentos y citas. No representan el estado actual. Consulta el
+> `README.md` y `DEPLOYMENT.md` de esta rama para el alcance y las verificaciones
+> locales actuales.
+
 ---
 
 ## 0. Estado actual (actualización posterior a la auditoría)

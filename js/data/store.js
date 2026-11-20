@@ -1,8 +1,9 @@
 // ==========================================================
 // MediQR · Estado de la aplicacion
 //
-// Une los datos ficticios, el estado en memoria y los metodos de cada
-// modulo en un unico objeto: MediModules.
+// Une los datos de demostración, el estado de sesión y los metodos de cada
+// modulo en un unico objeto: MediModules. El perfil y el historial del usuario
+// autenticado se sustituyen con los datos recuperados desde la API.
 //
 // Object.assign conserva 'this.' dentro de los metodos sin reescribirlos.
 // Cuando se conecte el backend, este archivo es la unica capa que habra
@@ -13,8 +14,8 @@
 
   var MediModules = {
     /* ------------------------------------------------------
-       DATOS FICTICIOS
-       Unica fuente de datos del portal mientras no haya backend.
+       DATOS DE DEMOSTRACION
+       Los modulos sin integración propia siguen usando estos datos.
     ------------------------------------------------------ */
     lugares: {
       "Clínica Dental MediQR": "Av. Javier Prado Este 1234, San Borja",
@@ -122,88 +123,175 @@ cirugias: [
 
     /* ------------------------------------------------------
        ESTADO EN MEMORIA
-       Se pierde al recargar: es una demostracion con datos
-       simulados, todavia no hay persistencia.
+       Estado efimero de la interfaz; no se usa como sustituto de la
+       persistencia del perfil e historial sincronizados desde la API.
     ------------------------------------------------------ */
     pestaña: "calendario",
     docVista: "Todos",
     mes: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
     diaSeleccionado: "",
+    historialClinico: null,
+    configuracionInicialCompleta: false,
     borrador: null,
     citaPendiente: null,
     temporizadorAviso: null,
+    citasServidorToken: null,
+    citasServidorCargadas: false,
+    citasServidorCargando: false,
+    profesionalesServidor: [],
+    profesionalesServidorToken: null,
+    profesionalesServidorCargados: false,
+    profesionalesServidorCargando: false,
+    citaServidorGuardando: false,
+    documentosServidor: [],
+    documentosServidorToken: null,
+    documentosServidorCargados: false,
+    documentosServidorCargando: false,
+    documentoPreviewUrl: null,
+
+    aplicarHistorialServidor(historial) {
+      this.historialClinico = historial || null;
+      this.salud.tipoSangre = historial && historial.tipoSangre || "";
+
+      const lista = (valor) => String(valor || "")
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+      this.salud.alergias = lista(historial && historial.alergias).map((item) => {
+        const coincidencia = /^(.*?)\s*\((leve|moderada|grave)\)\s*$/i.exec(item);
+        return coincidencia
+          ? { nombre: coincidencia[1].trim(), severidad: coincidencia[2].toLowerCase() }
+          : { nombre: item, severidad: "moderada" };
+      });
+      this.salud.condicionesCronicas = lista(historial && historial.enfermedadesCronicas)
+        .map((nombre) => ({ nombre: nombre, diagnostico: "", fechaDiagnostico: "" }));
+      this.salud.cirugias = lista(historial && historial.cirugias)
+        .map((nombre) => ({ nombre: nombre, fecha: "", hospital: "" }));
+    },
+
+    async guardarHistorialServidor(cambios) {
+      const api = window.MediApi;
+      if (!api || !api.storage.getToken()) {
+        throw new Error("No hay una sesión conectada a la API.");
+      }
+
+      let actual = this.historialClinico;
+      if (!actual) {
+        actual = await api.historial.getMe().catch((error) => {
+          if (error && error.status === 404) return null;
+          throw error;
+        });
+      }
+
+      const payload = {
+        tipoSangre: actual && actual.tipoSangre || "",
+        alergias: actual && actual.alergias || "",
+        enfermedadesCronicas: actual && actual.enfermedadesCronicas || "",
+        cirugias: actual && actual.cirugias || "",
+        observaciones: actual && actual.observaciones || ""
+      };
+      Object.assign(payload, cambios || {});
+
+      const guardado = await api.historial.updateMe(payload);
+      if (!guardado) {
+        throw new Error("El servidor no devolvió el historial actualizado.");
+      }
+
+      const confirmado = await api.historial.getMe();
+      if (!confirmado) {
+        throw new Error("No se pudo volver a leer el historial desde el servidor.");
+      }
+
+      this.aplicarHistorialServidor(confirmado);
+      if (window.SaludModulo && typeof window.SaludModulo.refrescar === "function") {
+        window.SaludModulo.refrescar();
+      }
+      if (window.PerfilModulo && typeof window.PerfilModulo.refrescar === "function") {
+        window.PerfilModulo.refrescar();
+      }
+      return confirmado;
+    },
 
     // Sincronización asíncrona con el backend MediQR
     async cargarDatosServidor() {
-      if (!window.MediApi || !window.MediApi.storage.getToken()) return;
+      const api = window.MediApi;
+      const token = api && api.storage.getToken();
+      this.limpiarEstadoSesion(false);
+      if (!api || !token || token !== api.storage.getToken()) return false;
 
       try {
-        const usuario = window.MediApi.storage.getUser();
-        if (!usuario) return;
+        const usuario = api.storage.getUser();
+        if (!usuario) return false;
 
-        this.paciente.id = null;
-        this.paciente.nombre = "";
-        this.paciente.apellidos = "";
-        this.paciente.nacimiento = "";
-        this.paciente.dni = "";
         this.paciente.email = usuario.email || "";
-        this.paciente.telefono = "";
-        this.paciente.calle = "";
-        this.paciente.distrito = "";
-        this.citas = [];
-        this.documentos = [];
-        this.salud.tipoSangre = "";
-        this.salud.alergias = [];
-        this.salud.condicionesCronicas = [];
-        this.salud.medicamentosActuales = [];
-        this.salud.vacunas = [];
-        this.salud.cirugias = [];
-        this.salud.contactos = [];
 
         // 1. Obtener únicamente el perfil asociado al usuario autenticado.
         // El backend deriva el usuario desde el JWT; no se listan otros pacientes.
-        const pacActual = await window.MediApi.pacientes.getMe();
+        const pacActual = await api.pacientes.getMe().catch((error) => {
+          if (error && error.status === 404) return null;
+          throw error;
+        });
+        if (token !== api.storage.getToken()) return false;
 
+        let historial = null;
         if (pacActual) {
-          this.paciente.id = pacActual.id;
+          this.paciente.id = pacActual.id || null;
           this.paciente.nombre = pacActual.nombres || "";
           this.paciente.apellidos = pacActual.apellidos || "";
           this.paciente.nacimiento = pacActual.fechaNacimiento || "";
           this.paciente.dni = pacActual.documentoIdentidad || "";
           this.paciente.telefono = pacActual.telefono || "";
           this.paciente.calle = pacActual.direccion || "";
+          this.paciente.sexo = pacActual.sexo || "";
           this.paciente.email = usuario.email || this.paciente.email;
 
-          // 2. Historial clínico del paciente
-          const hist = await window.MediApi.historial.getMe().catch((error) => {
-            if (error && error.status === 404) return null;
-            throw error;
-          });
-          if (hist) {
-            if (hist.tipoSangre) this.salud.tipoSangre = hist.tipoSangre;
-            if (hist.alergias) {
-              this.salud.alergias = hist.alergias.split(",").map(a => ({ nombre: a.trim(), severidad: "moderada" }));
-            }
-            if (hist.enfermedadesCronicas) {
-              this.salud.condicionesCronicas = hist.enfermedadesCronicas.split(",").map(c => ({
-                nombre: c.trim(),
-                diagnostico: "",
-                fechaDiagnostico: ""
-              }));
-            }
-          }
-
-          // Los módulos de citas y medicamentos se conectarán cuando sus
-          // endpoints apliquen autorización por propietario en el backend.
-          // No se consultan listados globales desde una sesión PACIENTE.
-
+          // 2. Patient-owned medical data and emergency contact.
+          const resultados = await Promise.all([
+            api.historial.getMe().catch((error) => {
+              if (error && error.status === 404) return null;
+              throw error;
+            }),
+            api.pacientes.getEmergencyContactMe().catch((error) => {
+              if (error && error.status === 404) return null;
+              throw error;
+            }),
+            usuario.rol === "PACIENTE" ? api.citas.listMine() : Promise.resolve([])
+          ]);
+          if (token !== api.storage.getToken()) return false;
+          historial = resultados[0];
+          const contacto = resultados[1];
+          this.citas = (resultados[2] || []).map((cita) => this.citaDesdeServidor(cita));
+          this.citasServidorToken = token;
+          this.citasServidorCargadas = true;
+          this.paciente.contactoEmergenciaNombre = contacto && contacto.nombre || "";
+          this.paciente.contactoEmergenciaParentesco = contacto && contacto.parentesco || "";
+          this.paciente.contactoEmergenciaTelefono = contacto && contacto.telefono || "";
+          this.salud.contactos = contacto && contacto.nombre && contacto.telefono
+            ? [{
+                id: "servidor",
+                nombre: contacto.nombre,
+                parentesco: contacto.parentesco || "Contacto",
+                telefono: contacto.telefono
+              }]
+            : [];
         }
+
+        if (token !== api.storage.getToken()) return false;
+        this.aplicarHistorialServidor(historial);
+        this.configuracionInicialCompleta = Boolean(
+          pacActual && historial && this.paciente.nombre && this.paciente.apellidos
+        );
 
         if (window.MediRefrescarPaciente) window.MediRefrescarPaciente();
         if (window.SaludModulo && typeof window.SaludModulo.refrescar === "function") {
           window.SaludModulo.refrescar();
         }
+        if (window.PerfilModulo && typeof window.PerfilModulo.refrescar === "function") {
+          window.PerfilModulo.refrescar();
+        }
       } catch (e) {
+        if (token !== api.storage.getToken()) return false;
         console.warn("[MediQR] No se pudieron sincronizar datos del backend:", e);
         this.aviso("No se pudo recuperar tu perfil del servidor. Inténtalo nuevamente.");
         return false;
@@ -270,6 +358,90 @@ cirugias: [
     partes.citas,
     partes.documentos
   );
+
+  const DATOS_DEMO = JSON.parse(JSON.stringify({
+    paciente: MediModules.paciente,
+    salud: MediModules.salud,
+    citas: MediModules.citas,
+    documentos: MediModules.documentos
+  }));
+
+  MediModules.limpiarEstadoSesion = function (modoDemo) {
+    if (this.temporizadorAviso) clearTimeout(this.temporizadorAviso);
+    this.temporizadorAviso = null;
+
+    if (modoDemo) {
+      const datos = JSON.parse(JSON.stringify(DATOS_DEMO));
+      this.paciente = datos.paciente;
+      this.salud = datos.salud;
+      this.citas = datos.citas;
+      this.documentos = datos.documentos;
+    } else {
+      this.paciente = {
+        id: null,
+        nombre: "",
+        apellidos: "",
+        nacimiento: "",
+        dni: "",
+        email: "",
+        telefono: "",
+        calle: "",
+        distrito: "",
+        sexo: ""
+      };
+      this.salud = {
+        tipoSangre: "",
+        alergias: [],
+        condicionesCronicas: [],
+        medicamentosActuales: [],
+        vacunas: [],
+        cirugias: [],
+        contactos: []
+      };
+      this.citas = [];
+      this.documentos = [];
+    }
+
+    this.pestaña = "calendario";
+    this.docVista = "Todos";
+    this.mes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    this.historialClinico = null;
+    this.configuracionInicialCompleta = Boolean(modoDemo);
+    this.citaPendiente = null;
+    this.citasServidorToken = null;
+    this.citasServidorCargadas = false;
+    this.citasServidorCargando = false;
+    this.profesionalesServidor = [];
+    this.profesionalesServidorToken = null;
+    this.profesionalesServidorCargados = false;
+    this.profesionalesServidorCargando = false;
+    this.citaServidorGuardando = false;
+    if (typeof this.liberarPreviewDocumento === "function") this.liberarPreviewDocumento();
+    this.documentosServidor = [];
+    this.documentosServidorToken = null;
+    this.documentosServidorCargados = false;
+    this.documentosServidorCargando = false;
+    if (window.QrModulo && typeof window.QrModulo.limpiarSesion === "function") {
+      window.QrModulo.limpiarSesion();
+    }
+    this.resolverFechas();
+
+    if (typeof this.close === "function") this.close();
+    if (typeof this.cerrarMenus === "function") this.cerrarMenus();
+    if (window.MediNotifications) window.MediNotifications.clear();
+    if (window.MediRefrescarPaciente) window.MediRefrescarPaciente();
+    if (window.SaludModulo && typeof window.SaludModulo.refrescar === "function") {
+      window.SaludModulo.refrescar();
+    }
+    if (window.PerfilModulo) {
+      window.PerfilModulo.refrescar();
+      window.PerfilModulo.pintarContactos();
+    }
+    if (window.HistorialModulo) window.HistorialModulo.render();
+    this.limpiarFiltrosDoc();
+    this.render();
+    this.documents();
+  };
 
   global.MediModules = MediModules;
 

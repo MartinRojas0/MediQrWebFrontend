@@ -1,38 +1,19 @@
 // ==========================================================
-// MediQR · Acceso en modo demostración
+// MediQR · Acceso del paciente
 //
-// Qué es y qué NO es
-//   Este módulo deja entrar al portal con cualquier correo y contraseña
-//   no vacíos, porque el objetivo es poder demostrar el producto de
-//   principio a fin.
-//
-//   NO es autenticación, y no lo aparenta:
-//     - No se comprueba si la cuenta existe.
-//     - No se verifica ninguna credencial: no hay servidor.
-//     - No se llama a la red en ningún momento.
-//     - La contraseña no se guarda en ninguna parte: ni memoria, ni
-//       localStorage, ni sessionStorage, ni cookie. Se borra del DOM en
-//       cuanto se pulsa el botón.
-//     - El estado de la sesión es un dato en memoria (un booleano y el
-//       correo escrito). Se pierde al recargar, y con él la sesión: eso
-//       es lo correcto, porque fingir una sesión persistente daría una
-//       sensación de protección que no existe.
-//
-//   La pantalla lo dice de forma discreta y permanente, y los avisos
-//   nunca dicen que el usuario se haya autenticado.
+// Con una URL de API, registro y login se verifican en el backend y la sesión
+// se restaura validando el JWT. Sin API, solo se permite una demostración
+// explícita con datos ficticios en memoria.
 // ==========================================================
 (function () {
   "use strict";
 
   const PENDIENTE = {
-    titulo: "Acceso pendiente de integración",
+    titulo: "Recuperación de acceso no disponible",
     texto:
-      "El inicio de sesión necesita un servidor que verifique las credenciales. " +
-      "Esta versión del portal no se conecta a ninguno, así que todavía no se puede " +
-      "iniciar sesión ni registrar una cuenta.",
+      "Esta versión no puede restablecer contraseñas ni enviar enlaces de recuperación.",
     extra:
-      "Mientras tanto, los datos que ves son de demostración y están disponibles " +
-      "sin ningún tipo de acceso: no están protegidos."
+      "Contacta al equipo del proyecto. No compartas tu contraseña por correo o chat."
   };
 
   const DEMO = {
@@ -45,8 +26,7 @@
   };
   const API_CONFIGURADA = Boolean(window.MEDIQR_CONFIG && window.MEDIQR_CONFIG.API_URL);
 
-  // Estado de la demostración. Solo vive en memoria: recargar la página
-  // cierra la sesión, que es lo honesto.
+  // Estado de navegación común al modo API y a la demostración aislada.
   const sesion = {
     activa: false,
     correo: "",
@@ -54,9 +34,8 @@
   };
   let errorInicial = "";
 
-  // Texto de los términos. Es una demostración: se deja claro que aceptar
-  // no equivale a consentimiento médico ni a autorización clínica, y que
-  // esa aceptación no se registra en ningún servidor porque no existe.
+  // El aviso distingue la cuenta conectada de la demostración local y evita
+  // presentarlos como consentimiento clínico.
   const TERMINOS = API_CONFIGURADA ? `
     <div class="legal">
       <h3>Aviso de uso del MVP</h3>
@@ -66,14 +45,16 @@
 
       <h3>2. Datos y funciones</h3>
       <ul>
-        <li>El correo y la contraseña se envían al servidor para crear o verificar
-            la cuenta; la contraseña se almacena como hash.</li>
-        <li>Los datos del perfil y los campos básicos de salud que ofrece la
-            pantalla Perfil se envían al servidor y se guardan en la base de
-            datos para recuperarlos al iniciar sesión.</li>
-        <li>Citas, documentos, medicamentos, vacunas, contactos y alertas
-            todavía no están conectados como funciones persistentes.</li>
-        <li>El QR de emergencia no está disponible en esta versión.</li>
+        <li>El correo, nombre de usuario y contraseña se verifican en el servidor;
+            la contraseña se almacena como hash.</li>
+        <li>El perfil, el historial clínico básico y el contacto de emergencia
+            se guardan en la cuenta y se vuelven a consultar al iniciar sesión.</li>
+        <li>Las citas, los documentos privados y el QR usan el backend. La
+            disponibilidad de citas depende del personal y los horarios
+            configurados; los documentos requieren almacenamiento persistente.</li>
+        <li>La ficha pública del QR solo muestra los campos médicos seleccionados.
+            Medicamentos y recordatorios respetan los permisos del rol y no son
+            editables por pacientes en esta versión.</li>
       </ul>
 
       <h3>3. Uso responsable</h3>
@@ -138,13 +119,13 @@
   }
 
   function bandaAcceso() {
-      if (!window.MEDIQR_CONFIG || !window.MEDIQR_CONFIG.API_URL) return bandaDemo();
-      return `
-        <div class="card pending-card" role="note">
-          <p class="pending-head"><i data-icon="shield-halved"></i> Cuenta MediQR</p>
-          <p>El servidor verifica tu correo y contraseña. El perfil se guarda en tu cuenta y puedes recuperarlo al volver a iniciar sesión.</p>
-          <p class="text-muted">Este MVP solo sincroniza el perfil. Citas, documentos y otros datos aún no están conectados.</p>
-        </div>`;
+    if (!API_CONFIGURADA) return bandaDemo();
+    return `
+      <div class="card pending-card" role="note">
+        <p class="pending-head"><i data-icon="shield-halved"></i> Cuenta MediQR</p>
+        <p>Inicia sesión con correo o nombre de usuario. El perfil, el historial clínico básico y el contacto de emergencia se recuperan desde tu cuenta.</p>
+        <p class="text-muted">Citas, documentos y QR usan el backend configurado. La disponibilidad de citas depende del personal activo; medicamentos y recordatorios conservan las autorizaciones por rol.</p>
+      </div>`;
   }
 
   function campo(clave, etiqueta, tipo, autocompletado, extra) {
@@ -173,8 +154,8 @@
       titulo: "Iniciar sesión",
       lead: "Tu salud, tu identidad.",
       campos:
-        campo("correo", "Correo electrónico", "email", "username",
-              'inputmode="email" autocapitalize="none" spellcheck="false"') +
+        campo("correo", "Correo electrónico o nombre de usuario", "text", "username",
+              'autocapitalize="none" spellcheck="false"') +
         campo("contrasena", "Contraseña", "password", "current-password", 'required'),
       boton: boton("Iniciar sesión", "acceso-demo"),
       pie: '¿No tienes cuenta? <a href="#/acceso/registro" data-action="acceso:ir" data-destino="registro">Regístrate aquí</a>',
@@ -189,8 +170,11 @@
         ? "Registra una cuenta para guardar y recuperar tu perfil."
         : "Registro visual, sin cuenta real.",
       campos:
-        campo("correo", "Correo electrónico", "email", "username",
+        campo("correo", "Correo electrónico", "email", "email",
               'inputmode="email" autocapitalize="none" spellcheck="false"') +
+        campo("usuario", "Nombre de usuario", "text", "username",
+              'autocapitalize="none" spellcheck="false" minlength="3" maxlength="30"') +
+        '<small class="wide">3–30 caracteres: letras ASCII, números, punto, guion o guion bajo.</small>' +
         campo("contrasena", "Contraseña", "password", "new-password", 'minlength="8"') +
         campo("repetir", "Confirmar contraseña", "password", "new-password", 'minlength="8"'),
       boton: boton("Continuar", "registro-demo"),
@@ -206,7 +190,7 @@
         ? "La recuperación de contraseña aún no está disponible."
         : "En la demostración no se envía ningún correo.",
       campos:
-        campo("correo", "Correo electrónico", "email", "username",
+        campo("correo", "Correo electrónico", "email", "email",
               'inputmode="email" autocapitalize="none" spellcheck="false"'),
       boton: boton("Enviar enlace", "recuperar-demo"),
       pie: '<a href="#/acceso" data-action="acceso:ir" data-destino="acceso">Volver a iniciar sesión</a>',
@@ -216,26 +200,37 @@
     }
   };
 
-  // --- Validación mínima de interacción ---
-  // Solo campos vacíos, coincidencia de contraseñas y aceptación de los
-  // términos. Nada de reglas de credenciales: en una demostración cualquier
-  // correo y contraseña sirven.
+  // --- Validación de formularios ---
   function revisar(sub, errorId) {
     const errores = document.getElementById(errorId);
     if (!errores) return true;
 
     const correo = document.getElementById("acc-correo");
+    const usuario = document.getElementById("acc-usuario");
     const clave = document.getElementById("acc-contrasena");
     const repetida = document.getElementById("acc-repetir");
     const terminos = document.getElementById("acc-terminos");
 
-    if (!correo.value.trim()) {
-      errores.textContent = "Escribe un correo para continuar.";
+    const identificador = correo.value.trim();
+    if (!identificador) {
+      errores.textContent = sub === "acceso"
+        ? "Escribe tu correo o nombre de usuario para continuar."
+        : "Escribe un correo para continuar.";
       return false;
     }
 
-    if (!correo.validity.valid) {
-      errores.textContent = "Revisa el correo electrónico.";
+    const validacionIdentificador = sub === "acceso"
+      ? MediValidaciones.identificadorAcceso(identificador)
+      : MediValidaciones.email(identificador);
+    if (!validacionIdentificador.ok) {
+      errores.textContent = sub === "acceso" && identificador.indexOf("@") < 0
+        ? validacionIdentificador.mensaje
+        : "Revisa el correo electrónico.";
+      return false;
+    }
+
+    if (sub === "registro" && !MediValidaciones.nombreUsuario(usuario.value).ok) {
+      errores.textContent = MediValidaciones.nombreUsuario(usuario.value).mensaje;
       return false;
     }
 
@@ -286,7 +281,7 @@
   }
 
   // --- Entrada en la aplicacion ---
-  async function entrar(correo, password, esRegistro) {
+  async function entrar(correo, password, esRegistro, username) {
     const errorElem = document.getElementById(esRegistro ? "registro-error" : "acceso-error");
 
     // Keep demo-only test runs separate from configured deployments.
@@ -305,12 +300,15 @@
       }
 
       if (esRegistro) {
-        await window.MediApi.auth.registro(correo, password, "PACIENTE");
+        await window.MediApi.auth.registro(correo, password, username);
       }
 
       const authData = await window.MediApi.auth.login(correo, password);
       if (!authData || !authData.token) {
         throw new Error("El servidor no devolvió una sesión válida.");
+      }
+      if (authData.rol !== "PACIENTE") {
+        throw new Error("Esta aplicación web está disponible solo para cuentas de paciente.");
       }
 
       window.MediApi.storage.setToken(authData.token, true);
@@ -322,15 +320,15 @@
 
       sesion.activa = true;
       sesion.esDemo = false;
-      sesion.correo = correo;
-      sesion.onboarding = "hecho";
+      sesion.correo = authData.email;
 
       if (!window.MediModules || typeof window.MediModules.cargarDatosServidor !== "function" ||
           !(await window.MediModules.cargarDatosServidor())) {
         throw new Error("La sesión inició, pero no se pudo recuperar el perfil desde el servidor. Inténtalo nuevamente.");
       }
 
-      Router.ir("inicio");
+      sesion.onboarding = window.MediModules.configuracionInicialCompleta ? "hecho" : "";
+      Router.ir(sesion.onboarding ? "inicio" : "onboarding");
     } catch (err) {
       console.error("[Auth Error]", err);
       if (window.MediApi && window.MediApi.storage) window.MediApi.storage.clear();
@@ -338,6 +336,9 @@
       sesion.esDemo = false;
       sesion.correo = "";
       sesion.onboarding = "";
+      if (window.MediModules && window.MediModules.limpiarEstadoSesion) {
+        window.MediModules.limpiarEstadoSesion(false);
+      }
 
       // Si el backend no está disponible o falla, informarlo claramente y NO simular una sesión real
       if (errorElem) {
@@ -361,6 +362,9 @@
       if (!usuario || !usuario.id || !usuario.email) {
         throw new Error("El servidor no devolvió una cuenta válida.");
       }
+      if (usuario.rol !== "PACIENTE") {
+        throw new Error("Esta aplicación web está disponible solo para cuentas de paciente.");
+      }
 
       window.MediApi.storage.setUser({
         id: usuario.id,
@@ -370,11 +374,11 @@
       sesion.activa = true;
       sesion.esDemo = false;
       sesion.correo = usuario.email;
-      sesion.onboarding = "hecho";
 
       if (!window.MediModules || !(await window.MediModules.cargarDatosServidor())) {
         throw new Error("No se pudo recuperar el perfil de la cuenta.");
       }
+      sesion.onboarding = window.MediModules.configuracionInicialCompleta ? "hecho" : "";
       return true;
     } catch (error) {
       console.warn("[MediQR] No se pudo restaurar la sesión:", error);
@@ -383,6 +387,9 @@
       sesion.esDemo = false;
       sesion.correo = "";
       sesion.onboarding = "";
+      if (window.MediModules && window.MediModules.limpiarEstadoSesion) {
+        window.MediModules.limpiarEstadoSesion(false);
+      }
       errorInicial = "No se pudo restaurar la sesión anterior. Inicia sesión nuevamente.";
       return false;
     }
@@ -390,6 +397,9 @@
 
   // Entrada explícita en modo demostración (aislado y declarado)
   function entrarModoDemo() {
+    if (window.MediModules && window.MediModules.limpiarEstadoSesion) {
+      window.MediModules.limpiarEstadoSesion(true);
+    }
     sesion.activa = true;
     sesion.esDemo = true;
     sesion.correo = "paciente.demo@ejemplo.invalid";
@@ -411,8 +421,11 @@
       const clave = document.getElementById("acc-contrasena").value;
 
       const esRegistro = (sub === "registro");
+      const username = esRegistro
+        ? MediValidaciones.nombreUsuario(document.getElementById("acc-usuario").value).valor
+        : "";
       limpiarClaves();
-      await entrar(correo, clave, esRegistro);
+      await entrar(correo, clave, esRegistro, username);
     });
   }
 
@@ -507,12 +520,17 @@
     restaurarSesion,
     sesion,
     terminar: function () {
+      const eraDemo = sesion.esDemo;
       if (window.MediApi && window.MediApi.storage) {
         window.MediApi.storage.clear();
       }
       sesion.activa = false;
+      sesion.esDemo = false;
       sesion.correo = "";
       sesion.onboarding = "";
+      if (!eraDemo && window.MediModules && window.MediModules.limpiarEstadoSesion) {
+        window.MediModules.limpiarEstadoSesion(false);
+      }
       Router.ir("acceso");
     },
     estaActiva: function () { return sesion.activa; }

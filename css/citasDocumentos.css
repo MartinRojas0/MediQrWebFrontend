@@ -606,6 +606,14 @@ a.btn {
   border-radius: 10px;
 }
 
+.doc-preview-frame {
+  display: block;
+  width: 100%;
+  min-height: 65vh;
+  border: 0;
+  margin-bottom: 0.75rem;
+}
+
 .file-help {
   font-size: 0.8rem;
   font-weight: 400;

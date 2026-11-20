@@ -56,28 +56,10 @@ window.MediPartes.modal = {
     this.aviso(mensaje + " Solo en este dispositivo: no se sincroniza con ningún servidor y se pierde al recargar.");
   },
 
-  // El QR de emergencia se muestra desde Inicio y desde Perfil, asi que
-  // vive en el componente de ventana y no en una vista concreta.
-  //
-  // Antes aqui se dibujaba un SVG con aspecto de codigo QR. No lo es: no
-  // contiene ningun dato ni se puede escanear. En una emergencia, un
-  // personal sanitario podria intentar escanearlo y perder tiempo
-  // esperando algo que nunca va a llegar. Se sustituye por un estado
-  // pendiente, sin patron que parezca escaneable.
+  // La vista de QR usa el servicio autenticado y no debe mostrar un codigo
+  // local o simulado.
   verQr() {
-    this.modal("Código QR de emergencia", `
-      <div class="card pending-card" role="note">
-        <p class="pending-head">
-          <i data-icon="qrcode"></i> Código QR en desarrollo
-        </p>
-        <p>El código QR de emergencia todavía no existe: necesita un servicio
-           que lo genere y que valide a quién pertenece.</p>
-        <p class="text-muted">No se muestra un patrón de ejemplo porque
-           podría escanearse por error creyendo que es una credencial
-           válida. Mientras tanto, lleva contigo tu documento de identidad
-           y muéstralo en la tarjeta de emergencia.</p>
-      </div>
-    `, true);
+    Router.ir("qr");
   },
 };
 
