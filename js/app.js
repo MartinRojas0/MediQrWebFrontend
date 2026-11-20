@@ -44,8 +44,12 @@
     const token = api && api.storage && api.storage.getToken();
     const cuenta = token && api.storage.getUser ? api.storage.getUser() || {} : {};
     const paciente = window.MediModules && window.MediModules.paciente || {};
-    const correo = token ? (cuenta.email || paciente.email || "") : "";
-    const nombrePerfil = token ? [paciente.nombre, paciente.apellidos].filter(Boolean).join(" ").trim() : "";
+    const sesion = window.AccesoModulo && window.AccesoModulo.sesion;
+    const nombrePerfil = (token || (sesion && sesion.esDemo))
+      ? [paciente.nombre, paciente.apellidos].filter(Boolean).join(" ").trim()
+      : "";
+    const correo = token ? (cuenta.email || paciente.email || "")
+      : (sesion && sesion.esDemo ? paciente.email || "" : "");
     const nombre = nombrePerfil || (correo ? correo.split("@")[0] : "Mi cuenta");
 
     const nombreEl = document.getElementById("app-user-name");

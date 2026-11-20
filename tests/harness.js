@@ -1678,7 +1678,17 @@ ok('P.4 Hay una regla de foco visible con contorno',
   const guardarAcceso = {
     activa: window.AccesoModulo.sesion.activa,
     correo: window.AccesoModulo.sesion.correo,
-    onboarding: window.AccesoModulo.sesion.onboarding
+    onboarding: window.AccesoModulo.sesion.onboarding,
+    rol: window.AccesoModulo.sesion.rol,
+    esDemo: window.AccesoModulo.sesion.esDemo,
+    demoPersona: window.AccesoModulo.sesion.demoPersona,
+    datos: {
+      paciente: JSON.parse(JSON.stringify(MediModules.paciente)),
+      salud: JSON.parse(JSON.stringify(MediModules.salud)),
+      citas: JSON.parse(JSON.stringify(MediModules.citas)),
+      documentos: JSON.parse(JSON.stringify(MediModules.documentos)),
+      configuracionInicialCompleta: MediModules.configuracionInicialCompleta
+    }
   };
 
   // --- El portal no se ve sin entrar ---
@@ -1946,10 +1956,91 @@ ok('P.4 Hay una regla de foco visible con contorno',
        return location.hash === '#/acceso';
      })(), 'una ruta del portal devuelve al acceso');
 
+  const demoRedInicial = window.__red.length;
+  const perfilesDemo = [
+    { id: 'pedro', nombre: 'Pedro', correo: 'pedro.demo@ejemplo.invalid', sangre: 'A+' },
+    { id: 'martin', nombre: 'Martin', correo: 'martin.demo@ejemplo.invalid', sangre: 'O+' },
+    { id: 'veronica', nombre: 'Verónica', correo: 'veronica.demo@ejemplo.invalid', sangre: 'AB+' }
+  ];
+  const datosDemo = [];
+  for (const perfil of perfilesDemo) {
+    q('#view-acceso [data-action="acceso:demo"][data-persona="' + perfil.id + '"]').click();
+    await tick();
+    datosDemo.push({
+      nombre: MediModules.paciente.nombre,
+      correo: MediModules.paciente.email,
+      sangre: MediModules.salud.tipoSangre,
+      cita: MediModules.citas[0].id
+    });
+    ok('L.42.' + perfil.id + ' Entra al perfil ficticio PACIENTE sin API',
+       window.AccesoModulo.sesion.esDemo === true &&
+       window.AccesoModulo.sesion.rol === 'PACIENTE' &&
+       window.AccesoModulo.sesion.demoPersona === perfil.id &&
+       MediModules.paciente.nombre === perfil.nombre &&
+       MediModules.paciente.email === perfil.correo &&
+       /DEMO/.test(q('#demo-session-banner').textContent),
+       perfil.id + ' / ' + window.AccesoModulo.sesion.rol);
+    ok('L.42.' + perfil.id + ' No persiste ni transmite datos',
+       window.__red.length === demoRedInicial &&
+       localStorage.length === 0 && sessionStorage.length === 0,
+       'red=' + (window.__red.length - demoRedInicial));
+    if (perfil.id === 'pedro') {
+      Router.ir('qr'); await tick();
+      q('#qr-blood').checked = true;
+      q('#qr-allergies').checked = true;
+      q('[data-action="qr:issue"]').click(); await tick();
+      ok('QR.demo Muestra una ficha ficticia no escaneable',
+         !q('#qr-result').classList.contains('hidden') &&
+         /no es un QR real/i.test(q('#qr-result').textContent) &&
+         /A\+/.test(q('#qr-result').textContent) &&
+         /Polen/.test(q('#qr-result').textContent) &&
+         window.__red.length === demoRedInicial,
+         q('#qr-result').textContent.replace(/\s+/g, ' ').trim());
+      Router.ir('perfil'); await tick();
+      q('#btn-edit-personal').click(); await tick();
+      q('#inp-name').value = 'No debe filtrarse';
+    } else if (perfil.id === 'martin') {
+      Router.ir('perfil'); await tick();
+      ok('L.42.aislamiento El formulario no conserva datos del usuario anterior',
+         q('#personal-edit-form').classList.contains('hidden') &&
+         q('#val-name').textContent === 'Martin' &&
+         q('#inp-name').value === 'Martin',
+         q('#val-name').textContent + ' / ' + q('#inp-name').value);
+    }
+    window.AccesoModulo.terminar();
+    await tick();
+  }
+  ok('L.42.datos Los tres perfiles tienen expedientes separados',
+     new Set(datosDemo.map(function (dato) {
+       return [dato.nombre, dato.correo, dato.sangre, dato.cita].join('|');
+     })).size === perfilesDemo.length,
+     JSON.stringify(datosDemo));
+  ok('L.42.salida Cerrar sesión borra el perfil demo de memoria',
+     window.AccesoModulo.estaActiva() === false &&
+     !window.AccesoModulo.sesion.demoPersona &&
+     MediModules.paciente.email === "" &&
+     q('#demo-session-banner').classList.contains('hidden'));
+
   // Se restablece la sesion para el resto de la suite
   window.AccesoModulo.sesion.activa = guardarAcceso.activa;
   window.AccesoModulo.sesion.correo = guardarAcceso.correo;
   window.AccesoModulo.sesion.onboarding = guardarAcceso.onboarding;
+  window.AccesoModulo.sesion.rol = guardarAcceso.rol;
+  window.AccesoModulo.sesion.esDemo = guardarAcceso.esDemo;
+  window.AccesoModulo.sesion.demoPersona = guardarAcceso.demoPersona;
+  MediModules.paciente = guardarAcceso.datos.paciente;
+  MediModules.salud = guardarAcceso.datos.salud;
+  MediModules.citas = guardarAcceso.datos.citas;
+  MediModules.documentos = guardarAcceso.datos.documentos;
+  MediModules.configuracionInicialCompleta = guardarAcceso.datos.configuracionInicialCompleta;
+  MediModules.resolverFechas();
+  window.MediRefrescarPaciente();
+  window.SaludModulo.refrescar();
+  window.PerfilModulo.resetEditForms();
+  window.PerfilModulo.refrescar();
+  window.HistorialModulo.render();
+  MediModules.limpiarFiltrosDoc();
+  MediModules.documents();
   Router.ir('inicio'); await tick();
 
   ok('L.43 La navegacion principal sigue disponible tras entrar',

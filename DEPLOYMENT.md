@@ -4,6 +4,10 @@ This integration work is on `feat/integracion-final`. Do not deploy it until it
 has been reviewed and the backend/database prerequisites below are resolved.
 Vercel should use the repository root, run `npm run build`, and publish `dist/`.
 
+The isolated demo profiles are frontend-only and do not need a Render or Neon
+change. They may be exposed through a separate Vercel Preview after code
+review; this does not make the real API integration ready for production.
+
 The production frontend is available at
 `https://mediqrwebfrontend-qahy.vercel.app`; its backend is
 `https://mediqr-backend-tacn.onrender.com`.

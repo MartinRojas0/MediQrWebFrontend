@@ -16,21 +16,28 @@
       "Contacta al equipo del proyecto. No compartas tu contraseña por correo o chat."
   };
 
+  const API_CONFIGURADA = Boolean(window.MEDIQR_CONFIG && window.MEDIQR_CONFIG.API_URL);
   const DEMO = {
     titulo: "Modo demostración",
-    texto:
-      "Entra con cualquier correo y contraseña. No se comprueba nada: no hay " +
-      "servidor detrás y nadie verifica tus credenciales.",
-    extra:
-      "Los datos del portal son de ejemplo y no están protegidos."
+    texto: API_CONFIGURADA
+      ? "Explora el portal con perfiles ficticios. La demo no usa la API ni modifica cuentas."
+      : "No hay servidor local; la demo no autentica ni verifica credenciales.",
+    extra: "La identidad PACIENTE es simulada; los cambios solo viven en esta pestaña."
   };
-  const API_CONFIGURADA = Boolean(window.MEDIQR_CONFIG && window.MEDIQR_CONFIG.API_URL);
+  const CUENTAS_DEMO = [
+    { id: "pedro", nombre: "Pedro Demo", correo: "pedro.demo@ejemplo.invalid" },
+    { id: "martin", nombre: "Martin Demo", correo: "martin.demo@ejemplo.invalid" },
+    { id: "veronica", nombre: "Verónica Demo", correo: "veronica.demo@ejemplo.invalid" }
+  ];
 
   // Estado de navegación común al modo API y a la demostración aislada.
   const sesion = {
     activa: false,
     correo: "",
-    onboarding: "" // "", "hecho" u "omitido"
+    onboarding: "", // "", "hecho" u "omitido"
+    rol: "",
+    esDemo: false,
+    demoPersona: ""
   };
   let errorInicial = "";
 
@@ -109,17 +116,26 @@
       </div>`;
   }
 
-  function bandaDemo() {
+  function bandaDemo(mostrarPersonas) {
+    const personas = mostrarPersonas ? `
+        <div class="demo-personas-grid" aria-label="Perfiles ficticios de demostración">
+          ${CUENTAS_DEMO.map((cuenta) => `
+            <button type="button" class="btn btn-outline demo-persona"
+              data-action="acceso:demo" data-persona="${cuenta.id}">
+              Entrar como ${esc(cuenta.nombre)}
+            </button>`).join("")}
+        </div>` : "";
     return `
-      <div class="card demo-card" role="note">
+      <section class="card demo-card" aria-label="Modo demostración">
         <p class="demo-head"><i data-icon="stethoscope"></i> ${esc(DEMO.titulo)}</p>
         <p>${esc(DEMO.texto)}</p>
         <p class="text-muted">${esc(DEMO.extra)}</p>
-      </div>`;
+        ${personas}
+      </section>`;
   }
 
   function bandaAcceso() {
-    if (!API_CONFIGURADA) return bandaDemo();
+    if (!API_CONFIGURADA) return "";
     return `
       <div class="card pending-card" role="note">
         <p class="pending-head"><i data-icon="shield-halved"></i> Cuenta MediQR</p>
@@ -286,10 +302,16 @@
 
     // Keep demo-only test runs separate from configured deployments.
     if (!window.MEDIQR_CONFIG || !window.MEDIQR_CONFIG.API_URL) {
+      if (window.MediModules && window.MediModules.limpiarEstadoSesion) {
+        window.MediModules.limpiarEstadoSesion(true);
+      }
       sesion.activa = true;
       sesion.esDemo = true;
       sesion.correo = correo;
       sesion.onboarding = "hecho";
+      sesion.rol = "PACIENTE";
+      sesion.demoPersona = "";
+      mostrarAvisoDemo("Modo demostración local: perfil y datos ficticios.");
       Router.ir("inicio");
       return;
     }
@@ -321,6 +343,9 @@
       sesion.activa = true;
       sesion.esDemo = false;
       sesion.correo = authData.email;
+      sesion.rol = authData.rol;
+      sesion.demoPersona = "";
+      ocultarAvisoDemo();
 
       if (!window.MediModules || typeof window.MediModules.cargarDatosServidor !== "function" ||
           !(await window.MediModules.cargarDatosServidor())) {
@@ -336,6 +361,9 @@
       sesion.esDemo = false;
       sesion.correo = "";
       sesion.onboarding = "";
+      sesion.rol = "";
+      sesion.demoPersona = "";
+      ocultarAvisoDemo();
       if (window.MediModules && window.MediModules.limpiarEstadoSesion) {
         window.MediModules.limpiarEstadoSesion(false);
       }
@@ -374,6 +402,9 @@
       sesion.activa = true;
       sesion.esDemo = false;
       sesion.correo = usuario.email;
+      sesion.rol = usuario.rol;
+      sesion.demoPersona = "";
+      ocultarAvisoDemo();
 
       if (!window.MediModules || !(await window.MediModules.cargarDatosServidor())) {
         throw new Error("No se pudo recuperar el perfil de la cuenta.");
@@ -387,6 +418,9 @@
       sesion.esDemo = false;
       sesion.correo = "";
       sesion.onboarding = "";
+      sesion.rol = "";
+      sesion.demoPersona = "";
+      ocultarAvisoDemo();
       if (window.MediModules && window.MediModules.limpiarEstadoSesion) {
         window.MediModules.limpiarEstadoSesion(false);
       }
@@ -396,14 +430,44 @@
   }
 
   // Entrada explícita en modo demostración (aislado y declarado)
-  function entrarModoDemo() {
+  function mostrarAvisoDemo(mensaje) {
+    const banner = document.getElementById("demo-session-banner");
+    if (!banner) return;
+    banner.textContent = mensaje;
+    banner.classList.remove("hidden");
+  }
+
+  function ocultarAvisoDemo() {
+    const banner = document.getElementById("demo-session-banner");
+    if (banner) {
+      banner.textContent = "";
+      banner.classList.add("hidden");
+    }
+  }
+
+  function entrarModoDemo(personaId) {
+    const cuenta = CUENTAS_DEMO.find((item) => item.id === personaId);
+    if (!cuenta) {
+      const error = document.getElementById("acceso-error");
+      if (error) error.textContent = "Selecciona un perfil de demostración válido.";
+      return;
+    }
+
+    if (window.MediApi && window.MediApi.storage) window.MediApi.storage.clear();
     if (window.MediModules && window.MediModules.limpiarEstadoSesion) {
-      window.MediModules.limpiarEstadoSesion(true);
+      window.MediModules.limpiarEstadoSesion(true, cuenta.id);
     }
     sesion.activa = true;
     sesion.esDemo = true;
-    sesion.correo = "paciente.demo@ejemplo.invalid";
+    sesion.correo = cuenta.correo;
     sesion.onboarding = "hecho";
+    sesion.rol = "PACIENTE";
+    sesion.demoPersona = cuenta.id;
+    ["acc-correo", "acc-contrasena", "acc-repetir"].forEach((id) => {
+      const campo = document.getElementById(id);
+      if (campo) campo.value = "";
+    });
+    mostrarAvisoDemo("DEMO · " + cuenta.nombre + " · PACIENTE simulado. Datos ficticios; no se envían a ningún servidor.");
     limpiarClaves();
     Router.ir("inicio");
   }
@@ -449,6 +513,7 @@
       </article>
 
       ${bandaAcceso()}
+      ${sub === "acceso" ? bandaDemo(true) : !API_CONFIGURADA ? bandaDemo(false) : ""}
       ${sub === "recuperar" ? avisoPendiente("recuperar-demo") : ""}
 
       <p class="auth-alt">${vista.prefijo}${vista.pie}</p>`;
@@ -486,6 +551,7 @@
     },
     "acceso:recuperar": function () { Router.ir("acceso/recuperar"); },
     "acceso:terminos": function () { mostrarTerminos(); },
+    "acceso:demo": function (el) { entrarModoDemo(el.dataset.persona); },
 
     "acceso:aceptar-terminos": function () {
       const casilla = document.getElementById("acc-terminos");
@@ -520,7 +586,6 @@
     restaurarSesion,
     sesion,
     terminar: function () {
-      const eraDemo = sesion.esDemo;
       if (window.MediApi && window.MediApi.storage) {
         window.MediApi.storage.clear();
       }
@@ -528,7 +593,10 @@
       sesion.esDemo = false;
       sesion.correo = "";
       sesion.onboarding = "";
-      if (!eraDemo && window.MediModules && window.MediModules.limpiarEstadoSesion) {
+      sesion.rol = "";
+      sesion.demoPersona = "";
+      ocultarAvisoDemo();
+      if (window.MediModules && window.MediModules.limpiarEstadoSesion) {
         window.MediModules.limpiarEstadoSesion(false);
       }
       Router.ir("acceso");

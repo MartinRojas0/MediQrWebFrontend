@@ -26,6 +26,69 @@ test("email and username login identifiers validate and normalize safely", () =>
   assert.equal(validation.nombreUsuario("a".repeat(31)).ok, false);
 });
 
+test("demo persona entry stays isolated when the production API is configured", () => {
+  const actions = {};
+  const form = { insertAdjacentHTML() {}, addEventListener() {} };
+  const destination = { innerHTML: "" };
+  const banner = {
+    textContent: "",
+    classList: { remove() {}, add() {} }
+  };
+  let apiCalls = 0;
+  let cleared = 0;
+  let demoReset;
+  let route;
+  const modules = { limpiarEstadoSesion: (...args) => { demoReset = args; } };
+  const document = {
+    readyState: "complete",
+    getElementById(id) {
+      if (id === "view-acceso") return destination;
+      if (id === "acceso-form") return form;
+      if (id === "demo-session-banner") return banner;
+      return null;
+    },
+    addEventListener() {}
+  };
+  const window = {
+    MEDIQR_CONFIG: { API_URL: "https://api.example.test/api" },
+    MediModules: modules,
+    MediApi: {
+      storage: { clear() { cleared += 1; } },
+      auth: {
+        login() { apiCalls += 1; },
+        registro() { apiCalls += 1; }
+      }
+    }
+  };
+
+  vm.runInNewContext(
+    fs.readFileSync(path.join(root, "js", "modules", "acceso.js"), "utf8"),
+    {
+      window,
+      document,
+      MediPartes: { dom: { escapar: (value) => String(value) } },
+      MediAcciones: { definirVarias: (definitions) => Object.assign(actions, definitions) },
+      MediModules: modules,
+      Router: { ir: (value) => { route = value; } },
+      console
+    }
+  );
+
+  for (const id of ["pedro", "martin", "veronica"]) {
+    assert.match(destination.innerHTML, new RegExp(`data-persona="${id}"`));
+  }
+  actions["acceso:demo"]({ dataset: { persona: "pedro" } });
+
+  assert.equal(apiCalls, 0);
+  assert.equal(cleared, 1);
+  assert.deepEqual(demoReset, [true, "pedro"]);
+  assert.equal(route, "inicio");
+  assert.equal(window.AccesoModulo.sesion.esDemo, true);
+  assert.equal(window.AccesoModulo.sesion.rol, "PACIENTE");
+  assert.equal(window.AccesoModulo.sesion.demoPersona, "pedro");
+  assert.match(banner.textContent, /no se envían a ningún servidor/i);
+});
+
 test("login keeps the legacy email JSON key and registration sends the username", async () => {
   let sent;
   let responseStatus = 200;

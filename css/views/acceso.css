@@ -96,6 +96,28 @@ body.solo-acceso #view-acceso h1 {
   flex: none;
 }
 
+.demo-session-banner {
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: var(--primary-soft);
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
+.demo-personas-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-xs);
+  margin-top: var(--space-sm);
+}
+
+.demo-persona {
+  min-height: var(--touch-min);
+  white-space: normal;
+}
+
 /* ---------- Contraseña con mostrar/ocultar ---------- */
 .input-con-icon {
   position: relative;
@@ -363,5 +385,9 @@ body.solo-acceso #view-acceso h1 {
   .onb-resumen-fila {
     grid-template-columns: 1fr;
     gap: 0;
+  }
+
+  .demo-personas-grid {
+    grid-template-columns: 1fr;
   }
 }

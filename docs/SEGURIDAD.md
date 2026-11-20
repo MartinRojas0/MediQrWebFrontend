@@ -13,6 +13,13 @@
   controles de autorización vigentes; una junta médica por sí sola no concede
   acceso a un expediente.
 
+## Demo pública aislada
+
+Los botones de perfiles demo abren una sesión simulada solo en el frontend.
+No emiten JWT, no llaman a la API y no representan autenticación o autorización
+del servidor. Sus datos clínicos son ficticios y se borran al cerrar sesión o
+recargar; no reutilices esos datos como información real.
+
 ## QR
 
 El servidor genera un token aleatorio de 256 bits, almacena su hash SHA-256,

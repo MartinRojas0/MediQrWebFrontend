@@ -466,6 +466,21 @@
     document.getElementById('medical-edit-form').classList.add('hidden');
     document.getElementById('btn-edit-medical').classList.remove('hidden');
   }
+  function resetEditForms() {
+    if (document.getElementById('personal-edit-form')) enablePersonalEdit();
+    if (document.getElementById('medical-edit-form')) enableMedicalEdit();
+    [
+      ['personal-read-view', false],
+      ['personal-edit-form', true],
+      ['btn-edit-personal', false],
+      ['medical-read-view', false],
+      ['medical-edit-form', true],
+      ['btn-edit-medical', false]
+    ].forEach(function ([id, ocultar]) {
+      const element = document.getElementById(id);
+      if (element) element.classList.toggle('hidden', ocultar);
+    });
+  }
   async function saveMedicalEdit(e) {
     e.preventDefault();
     const blood = document.getElementById('inp-blood').value.trim();
@@ -845,7 +860,8 @@
   // contactos, igual que Salud expone refrescar().
   window.PerfilModulo = {
     pintarContactos,
-    refrescar: function () { pintarDerivados(); pintarContactos(); }
+    refrescar: function () { pintarDerivados(); pintarContactos(); },
+    resetEditForms
   };
 
   if (document.readyState === "loading") {

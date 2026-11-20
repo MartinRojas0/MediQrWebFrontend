@@ -12,6 +12,15 @@ Medicamentos y recordatorios mantienen las autorizaciones actuales y no son
 editables por pacientes. La URL de API se configura al compilar; consulta
 [`DEPLOYMENT.md`](DEPLOYMENT.md).
 
+- **Demo pública aislada:** en la pantalla de acceso se puede entrar como
+  Pedro, Martin o Verónica Demo. Son perfiles sintéticos de rol PACIENTE
+  simulado, independientes entre sí y solo en memoria. Este recorrido no
+  llama al API, no crea credenciales y no modifica Render, Neon ni cuentas
+  reales. La vista del QR es una ficha ilustrativa no escaneable.
+- **Autenticación real:** iniciar sesión o registrarse con el formulario
+  habitual sigue usando el backend configurado y sus controles de acceso.
+- Los datos y cambios de demo desaparecen al recargar o cerrar sesión. La demo
+  no equivale a autenticación ni autorización verificadas por el servidor.
 - **Las confirmaciones de la campana son de esta sesión.** Se generan a partir
   de acciones reales de la interfaz, se mantienen solo en memoria y se borran
   al salir; no son notificaciones ni recordatorios del servidor.
@@ -131,8 +140,9 @@ Las deja en `.capturas/`, que está en `.gitignore`.
 
 ## Límites conocidos
 
-- La sesión se conserva en `sessionStorage` y se valida contra el backend al
-  restaurarse; cerrar sesión borra el estado del paciente anterior.
+- Las sesiones reales se conservan en `sessionStorage` y se validan contra el
+  backend al restaurarse; las demos no se guardan. Cerrar sesión borra el
+  estado del paciente anterior.
 - El cambio/recuperación de contraseña sigue pendiente.
 - Reservar citas requiere que existan profesionales activos y horarios válidos.
 - El almacenamiento local de documentos sirve para pruebas; producción requiere

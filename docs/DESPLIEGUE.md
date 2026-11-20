@@ -9,6 +9,10 @@ despliegue ni se verificaron los servicios publicados durante esta integración.
 - Configura `MEDIQR_API_URL` con la URL HTTPS del backend que se haya aprobado.
 - El valor no es secreto. No uses `http://localhost` ni la URL H2 en producción.
 - Las rutas usan fragmentos `#/...`; no requieren rewrites de rutas SPA.
+- La demo de perfiles ficticios es solo frontend y no requiere desplegar cambios
+  en Render ni modificar Neon. Para publicarla, basta desplegar el frontend;
+  el despliegue de producción sigue sujeto a revisión de la configuración real
+  de API descrita abajo.
 
 ## Render y PostgreSQL/Neon
 

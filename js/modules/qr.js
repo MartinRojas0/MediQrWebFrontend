@@ -14,6 +14,11 @@
       .replace(/'/g, "&#39;");
   }
 
+  function esDemo() {
+    return Boolean(window.AccesoModulo && window.AccesoModulo.sesion &&
+      window.AccesoModulo.sesion.esDemo);
+  }
+
   function clearImage() {
     if (imageUrl) URL.revokeObjectURL(imageUrl);
     imageUrl = null;
@@ -52,10 +57,15 @@
   function render() {
     const destination = document.getElementById("view-qr");
     if (!destination) return;
+    const demo = esDemo();
 
     destination.innerHTML = `
       <h1 class="heading-1" data-titulo-vista>Identidad médica digital</h1>
       <p class="view-lead">Genera y administra tu QR de emergencia desde aquí. El código no contiene información médica.</p>
+      ${demo ? `<div class="card pending-card" role="note">
+        <p class="pending-head">Vista aislada de demostración</p>
+        <p>La ficha siguiente es ficticia. No se crea un QR escaneable ni se envían datos al servidor.</p>
+      </div>` : ""}
       <section class="card qr-panel" aria-label="Paciente">
         <p class="identity-label">Paciente</p>
         <p class="identity-name">${esc([
@@ -76,22 +86,33 @@
         <p id="qr-error" class="error-msg hidden" role="alert"></p>
         <div class="module-actions qr-actions">
           <button type="button" class="btn btn-primary" data-action="qr:issue" data-qr-action>
-            Generar o renovar QR
+            ${demo ? "Mostrar ficha de muestra" : "Generar o renovar QR"}
           </button>
           <button type="button" class="btn btn-outline" data-action="qr:revoke" data-qr-action disabled>
-            Revocar QR activo
+            ${demo ? "Cerrar vista previa" : "Revocar QR activo"}
           </button>
         </div>
-        <p class="file-help">Generar otro código revoca el anterior. Los QR duran 30 días. Guarda la imagen antes de salir; el token solo se entrega una vez.</p>
+        <p class="file-help">${demo
+          ? "La vista previa solo muestra los campos seleccionados y se borra al salir."
+          : "Generar otro código revoca el anterior. Los QR duran 30 días. Guarda la imagen antes de salir; el token solo se entrega una vez."}</p>
       </section>
-      <section id="qr-result" class="card qr-result hidden" aria-live="polite">
-        <h2 class="section-title">Código listo para usar</h2>
-        <img id="qr-image" class="qr-image" alt="Código QR de emergencia">
-        <p><a id="qr-public-link" rel="noopener noreferrer"></a></p>
-        <a id="qr-download" class="btn btn-outline" download="mediqr-emergencia.png">Descargar QR PNG</a>
-        <button id="qr-image-retry" type="button" class="btn btn-outline hidden"
-                data-action="qr:image" data-qr-action>Volver a generar la imagen</button>
-      </section>`;
+      ${demo ? `
+        <section id="qr-result" class="card qr-result hidden" aria-live="polite">
+          <h2 class="section-title">Ficha de emergencia ficticia</h2>
+          <p>Vista previa ilustrativa: no es un QR real ni una ficha pública.</p>
+          <div id="qr-demo-fields"></div>
+          <p class="qr-privacy-note">Documento, fecha de nacimiento, dirección y contacto de emergencia no se incluyen.</p>
+          <button id="qr-image-retry" type="button" class="btn btn-outline"
+                  data-action="qr:image" data-qr-action>Actualizar vista previa</button>
+        </section>` : `
+        <section id="qr-result" class="card qr-result hidden" aria-live="polite">
+          <h2 class="section-title">Código listo para usar</h2>
+          <img id="qr-image" class="qr-image" alt="Código QR de emergencia">
+          <p><a id="qr-public-link" rel="noopener noreferrer"></a></p>
+          <a id="qr-download" class="btn btn-outline" download="mediqr-emergencia.png">Descargar QR PNG</a>
+          <button id="qr-image-retry" type="button" class="btn btn-outline hidden"
+                  data-action="qr:image" data-qr-action>Volver a generar la imagen</button>
+        </section>`}`;
 
     clearImage();
     issuedToken = null;
@@ -101,6 +122,12 @@
   async function loadStatus() {
     const status = document.getElementById("qr-status");
     const revokeButton = document.querySelector('[data-action="qr:revoke"]');
+    if (esDemo()) {
+      activeQr = false;
+      if (status) status.textContent = "Demo: todavía no se muestra la ficha de ejemplo.";
+      if (revokeButton) revokeButton.disabled = true;
+      return;
+    }
     if (!status || !window.MediApi || !window.MediApi.storage.getToken()) {
       if (status) status.textContent = "Inicia sesión como paciente para gestionar tu QR.";
       return;
@@ -123,7 +150,48 @@
     }
   }
 
+  function renderDemoPreview() {
+    const result = document.getElementById("qr-result");
+    const fields = document.getElementById("qr-demo-fields");
+    const status = document.getElementById("qr-status");
+    const revokeButton = document.querySelector('[data-action="qr:revoke"]');
+    const paciente = window.MediModules && window.MediModules.paciente || {};
+    const salud = window.MediModules && window.MediModules.salud || {};
+    const alergias = (salud.alergias || []).map((item) =>
+      typeof item === "string" ? item : item.nombre
+    ).filter(Boolean).join(", ");
+    const condiciones = (salud.condicionesCronicas || []).map((item) =>
+      typeof item === "string" ? item : item.nombre
+    ).filter(Boolean).join(", ");
+    const medicamentos = (salud.medicamentosActuales || []).map((item) =>
+      [item.nombre, item.dosis].filter(Boolean).join(" ")
+    ).filter(Boolean).join(", ");
+    const rows = [
+      [document.getElementById("qr-blood")?.checked, "Grupo sanguíneo", salud.tipoSangre],
+      [document.getElementById("qr-allergies")?.checked, "Alergias", alergias],
+      [document.getElementById("qr-conditions")?.checked, "Enfermedades crónicas", condiciones],
+      [document.getElementById("qr-medicines")?.checked, "Medicamentos", medicamentos]
+    ].filter(([selected, _label, value]) => selected && value);
+
+    if (fields) {
+      fields.innerHTML = `
+        <p><strong>Paciente ficticio:</strong> ${esc([paciente.nombre, paciente.apellidos].filter(Boolean).join(" ") || "Perfil de muestra")}</p>
+        ${rows.length ? `<dl class="qr-medical-list">${rows.map(([_, label, value]) =>
+          `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join("")}</dl>`
+          : "<p>No se seleccionaron datos médicos para esta vista previa.</p>"}`;
+    }
+    if (result) result.classList.remove("hidden");
+    if (status) status.textContent = "Vista previa ficticia; no hay un QR activo.";
+    activeQr = true;
+    if (revokeButton) revokeButton.disabled = false;
+  }
+
   async function issue() {
+    if (esDemo()) {
+      showError("qr-error", "");
+      renderDemoPreview();
+      return;
+    }
     if (!window.MediApi || !window.MediApi.storage.getToken()) {
       showError("qr-error", "Inicia sesión con una cuenta paciente para continuar.");
       return;
@@ -186,6 +254,10 @@
   }
 
   async function retryImage() {
+    if (esDemo()) {
+      renderDemoPreview();
+      return;
+    }
     setBusy(true);
     try {
       await generateImage();
@@ -199,6 +271,15 @@
   }
 
   async function revoke() {
+    if (esDemo()) {
+      const result = document.getElementById("qr-result");
+      const status = document.getElementById("qr-status");
+      if (result) result.classList.add("hidden");
+      activeQr = false;
+      if (status) status.textContent = "Vista previa cerrada; no había un QR real que revocar.";
+      setBusy(false);
+      return;
+    }
     if (!window.MediApi || !window.MediApi.storage.getToken()) return;
     showError("qr-error", "");
     setBusy(true);

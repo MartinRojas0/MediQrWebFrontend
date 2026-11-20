@@ -1,5 +1,19 @@
 # Guía de demostración local
 
+## Demo pública del frontend
+
+En la pantalla de acceso elige **Entrar como Pedro Demo**, **Martin Demo** o
+**Verónica Demo**. No se requiere contraseña. Cada perfil tiene datos
+ficticios propios para recorrer perfil, citas, consultas, expediente,
+medicamentos y la vista previa de la ficha QR.
+
+Esta ruta es solo una simulación de frontend: el rol PACIENTE no se verifica
+contra el backend, no se emite un token y no se realizan llamadas a la API.
+La ficha QR es ilustrativa, no escaneable y no pública. Los cambios se guardan
+solo en memoria y se pierden al recargar o cerrar sesión. El formulario de
+acceso habitual sigue siendo la ruta de autenticación real y conserva las
+autorizaciones del backend.
+
 ## Alcance
 
 Esta versión local usa datos ficticios y una base H2 aislada. No es un sistema

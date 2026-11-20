@@ -366,16 +366,116 @@ cirugias: [
     documentos: MediModules.documentos
   }));
 
-  MediModules.limpiarEstadoSesion = function (modoDemo) {
+  const DEMO_PERSONAS = {
+    pedro: {
+      paciente: {
+        nombre: "Pedro",
+        apellidos: "Demo",
+        nacimiento: "1988-05-12",
+        dni: "00000001",
+        email: "pedro.demo@ejemplo.invalid",
+        telefono: "+51 000 000 101",
+        calle: "Dirección ficticia 101",
+        distrito: "Distrito Demo",
+        sexo: "MASCULINO"
+      },
+      salud: {
+        tipoSangre: "A+",
+        alergias: [{ nombre: "Polen", severidad: "leve" }],
+        condicionesCronicas: [{ nombre: "Asma leve", diagnostico: "Dato ficticio", fechaDiagnostico: "2023-02-10" }],
+        medicamentosActuales: [{ nombre: "Inhalador de muestra", dosis: "1 dosis", frecuencia: "Según indicación ficticia", fechaInicio: "2026-01-10", fechaFin: null }],
+        vacunas: [{ nombre: "Influenza (muestra)", fechaAplicacion: "2025-04-20", dosis: 1 }],
+        cirugias: [],
+        contactos: [{ id: 101, nombre: "Contacto Demo Pedro", parentesco: "Familiar ficticio", telefono: "+51 000 000 201" }]
+      },
+      citas: [
+        { id: 101, especialidad: "Medicina General", medico: "Dra. Ana Martínez", desp: -12, hora: "09:00", lugar: "Clínica MediSalud", estado: "Atendida", motivo: "Control preventivo ficticio." },
+        { id: 102, especialidad: "Cardiología", medico: "Dra. Lucía Ramos", desp: 5, hora: "15:00", lugar: "Centro Médico San Miguel", estado: "Próxima", motivo: "Revisión de muestra." },
+        { id: 103, especialidad: "Odontología", medico: "Dr. Carlos Pérez", desp: -30, hora: "10:30", lugar: "Clínica Dental MediQR", estado: "Atendida", motivo: "Consulta dental ficticia." }
+      ],
+      documentos: [
+        { id: 101, nombre: "Receta_demo_pedro.pdf", tipo: "Receta", citaId: 101 },
+        { id: 102, nombre: "Informe_demo_pedro.pdf", tipo: "Informe", citaId: 101 }
+      ]
+    },
+    martin: {
+      paciente: {
+        nombre: "Martin",
+        apellidos: "Demo",
+        nacimiento: "1990-01-01",
+        dni: "00000002",
+        email: "martin.demo@ejemplo.invalid",
+        telefono: "+51 000 000 102",
+        calle: "Dirección ficticia 102",
+        distrito: "Distrito Demo",
+        sexo: "MASCULINO"
+      },
+      salud: {
+        tipoSangre: "O+",
+        alergias: [{ nombre: "Aspirina", severidad: "leve" }],
+        condicionesCronicas: [{ nombre: "Hipertensión (muestra)", diagnostico: "Registro ficticio", fechaDiagnostico: "2024-03-12" }],
+        medicamentosActuales: [{ nombre: "Medicamento de muestra", dosis: "500 mg", frecuencia: "Cada 8 horas (muestra)", fechaInicio: "2026-08-10", fechaFin: null }],
+        vacunas: [{ nombre: "Influenza (muestra)", fechaAplicacion: "2025-04-20", dosis: 1 }],
+        cirugias: [{ nombre: "Procedimiento ficticio", fecha: "2025-11-05", hospital: "Centro Demo" }],
+        contactos: [{ id: 201, nombre: "Contacto Demo Martin", parentesco: "Familiar ficticio", telefono: "+51 000 000 202" }]
+      },
+      citas: [
+        { id: 201, especialidad: "Medicina General", medico: "Dr. Luis Torres", desp: 0, hora: "16:00", lugar: "Clínica MediSalud", estado: "Próxima", motivo: "Control de rutina ficticio." },
+        { id: 202, especialidad: "Dermatología", medico: "Dr. Diego Flores", desp: -14, hora: "10:00", lugar: "Clínica MediSalud", estado: "Atendida", motivo: "Consulta de muestra." },
+        { id: 203, especialidad: "Odontología", medico: "Dra. Rosa Quispe", desp: -45, hora: "11:00", lugar: "Clínica Dental MediQR", estado: "Atendida", motivo: "Control dental ficticio." }
+      ],
+      documentos: [
+        { id: 201, nombre: "Receta_demo_martin.pdf", tipo: "Receta", citaId: 202 },
+        { id: 202, nombre: "Examen_demo_martin.pdf", tipo: "Examen", subtipo: "Muestra", citaId: 202 }
+      ]
+    },
+    veronica: {
+      paciente: {
+        nombre: "Verónica",
+        apellidos: "Demo",
+        nacimiento: "1994-09-23",
+        dni: "00000003",
+        email: "veronica.demo@ejemplo.invalid",
+        telefono: "+51 000 000 103",
+        calle: "Dirección ficticia 103",
+        distrito: "Distrito Demo",
+        sexo: "FEMENINO"
+      },
+      salud: {
+        tipoSangre: "AB+",
+        alergias: [{ nombre: "Alimento de muestra", severidad: "moderada" }],
+        condicionesCronicas: [{ nombre: "Migraña (muestra)", diagnostico: "Registro ficticio", fechaDiagnostico: "2022-06-18" }],
+        medicamentosActuales: [{ nombre: "Tratamiento de muestra", dosis: "250 mg", frecuencia: "Una vez al día (muestra)", fechaInicio: "2026-02-01", fechaFin: null }],
+        vacunas: [{ nombre: "Refuerzo (muestra)", fechaAplicacion: "2025-09-15", dosis: 1 }],
+        cirugias: [],
+        contactos: [{ id: 301, nombre: "Contacto Demo Verónica", parentesco: "Familiar ficticio", telefono: "+51 000 000 203" }]
+      },
+      citas: [
+        { id: 301, especialidad: "Medicina General", medico: "Dra. Ana Martínez", desp: 3, hora: "09:30", lugar: "Clínica MediSalud", estado: "Próxima", motivo: "Seguimiento ficticio." },
+        { id: 302, especialidad: "Cardiología", medico: "Dr. Jorge Salazar", desp: -21, hora: "14:00", lugar: "Centro Médico San Miguel", estado: "Atendida", motivo: "Consulta de muestra." },
+        { id: 303, especialidad: "Dermatología", medico: "Dr. Diego Flores", desp: -50, hora: "11:00", lugar: "Clínica MediSalud", estado: "Atendida", motivo: "Revisión ficticia." }
+      ],
+      documentos: [
+        { id: 301, nombre: "Informe_demo_veronica.pdf", tipo: "Informe", citaId: 302 },
+        { id: 302, nombre: "Examen_demo_veronica.pdf", tipo: "Examen", subtipo: "Muestra", citaId: 302 }
+      ]
+    }
+  };
+
+  MediModules.limpiarEstadoSesion = function (modoDemo, personaDemo) {
     if (this.temporizadorAviso) clearTimeout(this.temporizadorAviso);
     this.temporizadorAviso = null;
 
     if (modoDemo) {
-      const datos = JSON.parse(JSON.stringify(DATOS_DEMO));
+      if (personaDemo && !DEMO_PERSONAS[personaDemo]) {
+        throw new Error("No existe ese perfil de demostración.");
+      }
+      const datos = JSON.parse(JSON.stringify(personaDemo ? DEMO_PERSONAS[personaDemo] : DATOS_DEMO));
       this.paciente = datos.paciente;
       this.salud = datos.salud;
       this.citas = datos.citas;
       this.documentos = datos.documentos;
+      this.demoPersona = personaDemo || "";
     } else {
       this.paciente = {
         id: null,
@@ -400,6 +500,7 @@ cirugias: [
       };
       this.citas = [];
       this.documentos = [];
+      this.demoPersona = "";
     }
 
     this.pestaña = "calendario";
@@ -434,9 +535,13 @@ cirugias: [
       window.SaludModulo.refrescar();
     }
     if (window.PerfilModulo) {
+      if (typeof window.PerfilModulo.resetEditForms === "function") {
+        window.PerfilModulo.resetEditForms();
+      }
       window.PerfilModulo.refrescar();
-      window.PerfilModulo.pintarContactos();
     }
+    const historialView = document.getElementById("view-historial");
+    if (historialView) historialView.dataset.renderizado = "";
     if (window.HistorialModulo) window.HistorialModulo.render();
     this.limpiarFiltrosDoc();
     this.render();
