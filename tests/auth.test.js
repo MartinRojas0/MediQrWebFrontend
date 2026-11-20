@@ -315,3 +315,57 @@ test("medical documents API is disabled without sending backend requests", async
   assert.equal(requests[0].url, "https://api.example.test/api/qr-emergencia/public/resolve");
   assert.equal("Authorization" in requests[0].options.headers, false);
 });
+
+test("medical document controls are disabled for authenticated server sessions", () => {
+  let documentRequests = 0;
+  let notices = 0;
+  const classes = new Set();
+  const elements = {
+    "doc-demo-note": { classList: { add() {}, remove() {} } },
+    "doc-title": { textContent: "" },
+    "doc-subtitle": { textContent: "" },
+    "documents-content": { innerHTML: "" },
+    "doc-count": { textContent: "" }
+  };
+  const uploadButton = { disabled: false };
+  const tabs = { classList: { add: (value) => classes.add(value), remove: (value) => classes.delete(value) } };
+  const filters = { classList: { add: (value) => classes.add(value), remove: (value) => classes.delete(value) } };
+  const window = {
+    MediApi: {
+      storage: { getToken: () => "patient-jwt" },
+      documentos: { listMine: () => { documentRequests += 1; } }
+    },
+    AccesoModulo: { sesion: { esDemo: false } }
+  };
+  const document = {
+    getElementById: (id) => elements[id] || null,
+    querySelector(selector) {
+      if (selector === '#view-documentos [data-action="documentos:form"]') return uploadButton;
+      if (selector === "#view-documentos .segmented") return tabs;
+      if (selector === "#view-documentos .document-filters") return filters;
+      return null;
+    }
+  };
+
+  vm.runInNewContext(
+    fs.readFileSync(path.join(root, "js", "modules", "documentos.js"), "utf8"),
+    { window, document }
+  );
+  const module = window.MediPartes.documentos;
+  const context = Object.assign({}, module, {
+    documentosServidorToken: null,
+    liberarPreviewDocumento() {},
+    aviso() { notices += 1; },
+    documentFormServidor() { throw new Error("disabled document form opened"); }
+  });
+
+  module.documents.call(context);
+  module.documentForm.call(context);
+
+  assert.equal(uploadButton.disabled, true);
+  assert.equal(classes.has("hidden"), true);
+  assert.equal(elements["doc-title"].textContent, "Documentos médicos");
+  assert.match(elements["documents-content"].innerHTML, /temporalmente deshabilitados/);
+  assert.equal(documentRequests, 0);
+  assert.equal(notices, 1);
+});

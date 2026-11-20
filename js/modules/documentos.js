@@ -63,8 +63,14 @@ window.MediPartes.documentos = {
 
   documents() {
     const demoNote = document.getElementById("doc-demo-note");
+    const uploadButton = document.querySelector('#view-documentos [data-action="documentos:form"]');
+    const tabs = document.querySelector("#view-documentos .segmented");
+    const filters = document.querySelector("#view-documentos .document-filters");
     if (sesionServidorDocumentos()) {
       if (demoNote) demoNote.classList.add("hidden");
+      if (uploadButton) uploadButton.disabled = true;
+      if (tabs) tabs.classList.add("hidden");
+      if (filters) filters.classList.add("hidden");
       const token = window.MediApi.storage.getToken();
       if (token !== this.documentosServidorToken) {
         this.liberarPreviewDocumento();
@@ -73,8 +79,12 @@ window.MediPartes.documentos = {
         this.documentosServidorCargados = false;
         this.documentosServidorCargando = false;
       }
+      const titulo = document.getElementById("doc-title");
+      const subtitulo = document.getElementById("doc-subtitle");
       const contenido = document.getElementById("documents-content");
       const contador = document.getElementById("doc-count");
+      if (titulo) titulo.textContent = "Documentos médicos";
+      if (subtitulo) subtitulo.textContent = "Función temporalmente deshabilitada.";
       if (contador) contador.textContent = "";
       if (contenido) {
         contenido.innerHTML = '<p class="empty-state" role="status">Los documentos médicos están temporalmente deshabilitados.</p>';
@@ -82,6 +92,9 @@ window.MediPartes.documentos = {
       return;
     }
     if (demoNote) demoNote.classList.remove("hidden");
+    if (uploadButton) uploadButton.disabled = false;
+    if (tabs) tabs.classList.remove("hidden");
+    if (filters) filters.classList.remove("hidden");
 
     const info = this.vistasDoc[this.docVista];
     const tipoFijo = info.tipo;
@@ -518,7 +531,7 @@ window.MediPartes.documentos = {
 
   documentForm(citaId = null) {
     if (sesionServidorDocumentos()) {
-      this.documentFormServidor();
+      this.aviso("Los documentos médicos están temporalmente deshabilitados.");
       return;
     }
     const hoy = this.hoyISO();
