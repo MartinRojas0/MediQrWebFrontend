@@ -20,6 +20,19 @@ No emiten JWT, no llaman a la API y no representan autenticación o autorizació
 del servidor. Sus datos clínicos son ficticios y se borran al cerrar sesión o
 recargar; no reutilices esos datos como información real.
 
+## Build de Vercel Preview
+
+Los Preview usan una página y un bundle independientes. Solo se publican
+`index.html`, `js/demo-app.js` y `css/demo.css`; no se copian el cliente HTTP,
+el formulario real de autenticación ni `MEDIQR_API_URL`. El selector acepta
+únicamente los tres perfiles ficticios. Las ediciones del perfil y las citas
+añadidas permanecen en memoria. La ficha de emergencia no genera códigos QR,
+tokens ni fichas públicas.
+
+Producción y el portal local conectado conservan el build y login reales. Un
+Preview no debe tratarse como autenticación PACIENTE del servidor ni usarse
+con datos clínicos reales.
+
 ## QR
 
 El servidor genera un token aleatorio de 256 bits, almacena su hash SHA-256,

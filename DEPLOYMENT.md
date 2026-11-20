@@ -1,12 +1,26 @@
 # Frontend deployment (Vercel)
 
-This integration work is on `feat/integracion-final`. Do not deploy it until it
-has been reviewed and the backend/database prerequisites below are resolved.
-Vercel should use the repository root, run `npm run build`, and publish `dist/`.
+The real portal integration must not be promoted to production until it has
+been reviewed and the backend/database prerequisites below are resolved. A
+Vercel Preview is a separate, isolated demo. Vercel should use the repository
+root, run `npm run build`, and publish `dist/`.
+The build selects its bundle from Vercel's reserved `VERCEL_ENV` value:
 
-The isolated demo profiles are frontend-only and do not need a Render or Neon
-change. They may be exposed through a separate Vercel Preview after code
-review; this does not make the real API integration ready for production.
+- `preview`: builds the isolated demo from `index.demo.html`, `js/demo-app.js`,
+  and `css/demo.css`. It does not read `MEDIQR_API_URL` or copy the real portal,
+  login, or API client into `dist/`.
+- `production` (and local builds): keeps the real portal build below and
+  requires `MEDIQR_API_URL`.
+
+Use `npm run build:demo` to create the isolated preview bundle locally without
+setting a backend URL. Do not change the Vercel build command to select a
+different project-wide variant.
+
+The isolated Preview has only three synthetic patient profiles. It has no
+password form, real authentication, backend client, or external data service.
+Its profile edits and appointment additions live in memory and disappear when
+the page reloads or the selected profile changes. The emergency QR screen is
+an illustrative, non-scannable card.
 
 The production frontend is available at
 `https://mediqrwebfrontend-qahy.vercel.app`; its backend is
@@ -14,14 +28,16 @@ The production frontend is available at
 These are the URLs supplied for the existing deployment; they were not checked
 or changed during this local integration.
 
-When deployment is authorized, set this environment variable in Vercel:
+The real production build requires this public configuration variable in the
+Vercel Production environment:
 
 | Variable | Value |
 | --- | --- |
 | `MEDIQR_API_URL` | `https://mediqr-backend-tacn.onrender.com/api` |
 
-This URL is public configuration, not a secret. The build fails if it is
-missing or is not HTTPS. Render's `MEDIQR_CORS_ALLOWED_ORIGINS` must include
+The Preview build ignores this variable and does not embed its value. This URL
+is public configuration, not a secret. The real build fails if it is missing
+or is not HTTPS. Render's `MEDIQR_CORS_ALLOWED_ORIGINS` must include
 the exact frontend origin, without a trailing slash. The SPA uses hash routes,
 so direct paths do not require a separate rewrite rule.
 

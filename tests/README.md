@@ -1,7 +1,7 @@
 # ==========================================================
 # MediQR - Pruebas funcionales
 #
-# Ejecuta 389 comprobaciones funcionales, 10 cargas por enlace directo y 56 mediciones responsive en un navegador real
+# Ejecuta 402 comprobaciones funcionales, 11 cargas por enlace directo y 56 mediciones responsive en un navegador real
 # (Microsoft Edge o Google Chrome) en modo headless.
 # La suite usa una configuración local sin API; no comprueba Render ni Neon.
 #
@@ -9,7 +9,7 @@
 #   - Node.js 18 o superior  (node --version)
 #   - Microsoft Edge o Google Chrome instalado
 #   - No hace falta instalar nada mas: no hay dependencias.
-#   - MEDIQR_TEST_FAST=1 ejecuta las 389 comprobaciones funcionales e
+#   - MEDIQR_TEST_FAST=1 ejecuta las 402 comprobaciones funcionales e
 #     inmediatamente omite las recargas por enlace directo y las mediciones
 #     responsive, que requieren muchos lanzamientos del navegador.
 #
@@ -65,7 +65,8 @@
 # horizontal. --window-size no baja de 492 px en headless, por eso la
 # medicion se hace con iframes de ancho exacto y no con la ventana.
 #
-# Ademas abre el portal en 9 rutas distintas (inicio, perfil, citas/agendar,
+# Ademas abre el portal en 11 rutas distintas (inicio, perfil, salud,
+# historial, QR, citas/agendar,
 # citas/historial, documentos/todos, recetas, examenes y una ruta
 # inexistente) para comprobar que restaura la vista correcta al cargar, que
 # es lo que ocurre al recargar con la URL ya escrita.
@@ -88,3 +89,15 @@ porque `--window-size` no baja de ~492 px en Windows y una captura
 directa sale recortada, haciendo creer que la pagina se desborda.
 Cada captura usa su propio perfil de navegador para evitar que el
 siguiente proceso compita por el bloqueo del anterior.
+
+## Variante DEMO aislada
+
+`npm test` ejecuta las pruebas Node de autenticación y del build aislado. La
+prueba DEMO construye sin `MEDIQR_API_URL`, comprueba que `dist/` solo contiene
+su HTML, CSS y JavaScript, y verifica que no incluye el cliente HTTP ni el
+formulario de acceso real. También recorre los seis módulos con perfiles
+ficticios y comprueba que los cambios en memoria no sobreviven al cambiar de
+perfil.
+
+Vercel selecciona esta variante con `VERCEL_ENV=preview`; los builds de
+producción y locales siguen usando el portal real.

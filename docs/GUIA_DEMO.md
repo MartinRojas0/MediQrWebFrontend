@@ -1,18 +1,22 @@
-# Guía de demostración local
+# Guía de demostración MediQR
 
-## Demo pública del frontend
+## Preview DEMO aislado
 
-En la pantalla de acceso elige **Entrar como Pedro Demo**, **Martin Demo** o
-**Verónica Demo**. No se requiere contraseña. Cada perfil tiene datos
-ficticios propios para recorrer perfil, citas, consultas, expediente,
-medicamentos y la vista previa de la ficha QR.
+En el Preview de Vercel elige **Entrar como Pedro**, **Martin** o **Verónica**.
+No se requiere contraseña. Cada perfil tiene datos ficticios propios para
+recorrer perfil, citas, consultas, historial clínico, medicamentos y la ficha
+de emergencia.
 
-Esta ruta es solo una simulación de frontend: el rol PACIENTE no se verifica
-contra el backend, no se emite un token y no se realizan llamadas a la API.
-La ficha QR es ilustrativa, no escaneable y no pública. Los cambios se guardan
-solo en memoria y se pierden al recargar o cerrar sesión. El formulario de
-acceso habitual sigue siendo la ruta de autenticación real y conserva las
-autorizaciones del backend.
+Esta variante separada solo contiene esos perfiles ficticios. No incluye
+formulario de contraseña, autenticación real, cliente del backend ni URL de
+API. No emite tokens ni realiza peticiones externas. El rol PACIENTE es una
+etiqueta simulada, no una autorización del servidor. El perfil y las citas se
+pueden editar solo en memoria. La ficha de emergencia no es escaneable ni
+pública. Al recargar o cambiar de perfil, los cambios desaparecen.
+
+Vercel selecciona esta variante al compilar un Preview. Para generar la misma
+variante localmente sin configurar un servidor, ejecuta `npm run build:demo`.
+Producción y el portal local con backend conservan su propio flujo real.
 
 ## Alcance
 
@@ -56,6 +60,13 @@ npm run serve
 ```
 
 Abre <http://127.0.0.1:8810>. Para cerrar, usa `Ctrl+C` en ambas terminales.
+
+Para servir en local la variante DEMO aislada, en lugar del portal conectado:
+
+```powershell
+npm run build:demo
+npm run serve
+```
 
 ## Recorrido sugerido
 
