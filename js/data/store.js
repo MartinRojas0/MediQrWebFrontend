@@ -255,15 +255,11 @@ cirugias: [
             api.pacientes.getEmergencyContactMe().catch((error) => {
               if (error && error.status === 404) return null;
               throw error;
-            }),
-            usuario.rol === "PACIENTE" ? api.citas.listMine() : Promise.resolve([])
+            })
           ]);
           if (token !== api.storage.getToken()) return false;
           historial = resultados[0];
           const contacto = resultados[1];
-          this.citas = (resultados[2] || []).map((cita) => this.citaDesdeServidor(cita));
-          this.citasServidorToken = token;
-          this.citasServidorCargadas = true;
           this.paciente.contactoEmergenciaNombre = contacto && contacto.nombre || "";
           this.paciente.contactoEmergenciaParentesco = contacto && contacto.parentesco || "";
           this.paciente.contactoEmergenciaTelefono = contacto && contacto.telefono || "";

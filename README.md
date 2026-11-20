@@ -86,9 +86,10 @@ tests/
 
 `js/data/api.js` envía las llamadas autenticadas al backend. `js/modules/acceso.js`
 registra e inicia sesión y valida la sesión restaurada; `js/data/store.js`
-sincroniza el perfil, el historial y las citas. Los módulos de QR y documentos
-usan rutas autenticadas y borran el estado al cambiar de sesión. Los fallos de
-API se muestran sin presentar una operación no persistida como guardada.
+sincroniza el perfil, el historial y el contacto de emergencia; las citas se
+cargan aparte al abrir su módulo. Los documentos médicos del servidor están
+deshabilitados y no generan peticiones API. Los fallos de API se muestran sin
+presentar una operación no persistida como guardada.
 
 ## Rutas
 
@@ -135,8 +136,8 @@ Las deja en `.capturas/`, que está en `.gitignore`.
   restaurarse; cerrar sesión borra el estado del paciente anterior.
 - El cambio/recuperación de contraseña sigue pendiente.
 - Reservar citas requiere que existan profesionales activos y horarios válidos.
-- El almacenamiento local de documentos sirve para pruebas; producción requiere
-  un volumen persistente o almacenamiento privado de objetos.
+- Los documentos médicos de servidor están deshabilitados; habilitarlos requiere
+  almacenamiento privado persistente.
 - Las cuentas locales y todos sus datos son ficticios. No cargues información
   médica real ni compartas el archivo H2 o los documentos locales.
 

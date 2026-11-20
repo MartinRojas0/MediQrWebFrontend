@@ -169,9 +169,102 @@ test("appointment DTO adapter keeps backend status labels and hides expired acti
   assert.equal(adapter.citaEsProxima(expired), false);
 });
 
-test("documents use private multipart/blob routes and public QR resolution omits JWT", async () => {
+test("profile and history sync do not depend on appointment availability", async () => {
+  let appointmentCalls = 0;
+  const token = "patient-jwt";
+  const storage = {
+    getToken: () => token,
+    getUser: () => ({ email: "patient@example.test", rol: "PACIENTE" })
+  };
+  const window = {
+    MediApi: {
+      storage,
+      pacientes: {
+        getMe: async () => ({
+          id: 17,
+          nombres: "Paciente",
+          apellidos: "Prueba",
+          fechaNacimiento: "2000-01-01"
+        }),
+        getEmergencyContactMe: async () => null
+      },
+      historial: {
+        getMe: async () => ({ tipoSangre: "O+", alergias: "Polen" })
+      },
+      citas: {
+        listMine: async () => {
+          appointmentCalls += 1;
+          throw new Error("appointments unavailable");
+        }
+      }
+    },
+    MediPartes: {
+      fechas: {
+        fechaISO: (date) => date.toISOString().slice(0, 10),
+        nuevoBorrador: () => ({})
+      },
+      navbar: { render() {} },
+      citas: { render() {} },
+      documentos: {
+        limpiarFiltrosDoc() {},
+        documents() {},
+        liberarPreviewDocumento() {}
+      }
+    }
+  };
+  const document = { getElementById: () => null };
+
+  vm.runInNewContext(
+    fs.readFileSync(path.join(root, "js", "data", "store.js"), "utf8"),
+    {
+      window,
+      document,
+      Date,
+      console: { warn() {} },
+      clearTimeout() {}
+    }
+  );
+
+  assert.equal(await window.MediModules.cargarDatosServidor(), true);
+  assert.equal(window.MediModules.paciente.id, 17);
+  assert.equal(window.MediModules.historialClinico.tipoSangre, "O+");
+  assert.equal(appointmentCalls, 0);
+});
+
+test("optional appointment 401 keeps the authenticated session", async () => {
+  let cleared = 0;
+  const storage = {
+    getItem: () => null,
+    setItem: () => {},
+    removeItem: () => { cleared += 1; }
+  };
+  const window = { MEDIQR_CONFIG: { API_URL: "https://api.example.test/api" } };
+  const fetch = async () => ({
+    status: 401,
+    ok: false,
+    json: async () => ({ message: "unauthorized" })
+  });
+
+  vm.runInNewContext(
+    fs.readFileSync(path.join(root, "js", "data", "api.js"), "utf8"),
+    {
+      window,
+      fetch,
+      sessionStorage: storage,
+      localStorage: storage,
+      console: { warn() {} }
+    }
+  );
+  window.MediApi.storage.setToken("patient-jwt", false);
+  cleared = 0;
+
+  await assert.rejects(window.MediApi.citas.listMine(), { status: 401 });
+  assert.equal(window.MediApi.storage.getToken(), "patient-jwt");
+  assert.equal(cleared, 0);
+});
+
+test("medical documents API is disabled without sending backend requests", async () => {
   const requests = [];
-  const blob = { kind: "document-blob" };
   class FormDataMock {
     constructor() {
       this.values = [];
@@ -188,12 +281,11 @@ test("documents use private multipart/blob routes and public QR resolution omits
   const window = { MEDIQR_CONFIG: { API_URL: "https://api.example.test/api" } };
   const fetch = async (url, options) => {
     requests.push({ url, options });
-    const status = options.method === "DELETE" ? 204 : 201;
     return {
-      status,
+      status: 200,
       ok: true,
       json: async () => ({ id: 11 }),
-      blob: async () => blob
+      blob: async () => ({ kind: "qr-blob" })
     };
   };
   vm.runInNewContext(
@@ -210,23 +302,16 @@ test("documents use private multipart/blob routes and public QR resolution omits
   window.MediApi.storage.setToken("patient-jwt", false);
 
   const file = { name: "resultado.pdf" };
-  await window.MediApi.documentos.uploadMine(file, "Examen", "2026-11-19", 5);
-  assert.equal(requests[0].url, "https://api.example.test/api/documentos/me");
-  assert.equal(requests[0].options.headers.Authorization, "Bearer patient-jwt");
-  assert.equal("Content-Type" in requests[0].options.headers, false);
-  assert.equal(requests[0].options.body instanceof FormDataMock, true);
-  assert.deepEqual(requests[0].options.body.values, [
-    ["archivo", file, "resultado.pdf"],
-    ["tipo", "Examen"],
-    ["fechaDocumento", "2026-11-19"],
-    ["citaId", "5"]
-  ]);
-
-  assert.equal(await window.MediApi.documentos.contentMine(11, true), blob);
-  assert.equal(requests[1].options.headers.Authorization, "Bearer patient-jwt");
-  assert.equal(requests[1].url, "https://api.example.test/api/documentos/me/11/contenido?descargar=true");
+  await assert.rejects(window.MediApi.documentos.listMine(), { status: 503 });
+  await assert.rejects(
+    window.MediApi.documentos.uploadMine(file, "Examen", "2026-11-19", 5),
+    { status: 503 }
+  );
+  await assert.rejects(window.MediApi.documentos.contentMine(11, true), { status: 503 });
+  await assert.rejects(window.MediApi.documentos.deleteMine(11), { status: 503 });
+  assert.equal(requests.length, 0);
 
   await window.MediApi.qr.resolvePublic("A".repeat(43));
-  assert.equal(requests[2].url, "https://api.example.test/api/qr-emergencia/public/resolve");
-  assert.equal("Authorization" in requests[2].options.headers, false);
+  assert.equal(requests[0].url, "https://api.example.test/api/qr-emergencia/public/resolve");
+  assert.equal("Authorization" in requests[0].options.headers, false);
 });

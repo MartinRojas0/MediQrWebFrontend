@@ -5,6 +5,7 @@
   "use strict";
 
   const BASE_URL = (global.MEDIQR_CONFIG && global.MEDIQR_CONFIG.API_URL) || "http://localhost:8080/api";
+  const DOCUMENTS_DISABLED_MESSAGE = "Los documentos médicos están temporalmente deshabilitados.";
 
   // Almacenamiento seguro en memoria del JWT (evita vulnerabilidad XSS en localStorage persistente).
   // Solo se almacena en memoria de sesión si el usuario no especificó recordar sesión,
@@ -101,6 +102,12 @@
     }
 
     try {
+      if (endpoint.startsWith("/documentos/")) {
+        const error = new Error(DOCUMENTS_DISABLED_MESSAGE);
+        error.status = 503;
+        throw error;
+      }
+
       const response = await fetch(url, fetchConfig);
 
       if (response.status === 401) {
@@ -111,7 +118,7 @@
           err.data = data;
           throw err;
         }
-        if (!config.skipAuth && token) {
+        if (!config.skipAuth && !config.preserveSessionOnUnauthorized && token) {
           Storage.clear();
           if (global.AccesoModulo && typeof global.AccesoModulo.terminar === "function") {
             global.AccesoModulo.terminar();
@@ -141,6 +148,12 @@
       console.warn("[MediQR API Error]:", endpoint, error.message);
       throw error;
     }
+  }
+
+  function requestOptional(endpoint, options) {
+    return request(endpoint, Object.assign({}, options || {}, {
+      preserveSessionOnUnauthorized: true
+    }));
   }
 
   const MediApi = {
@@ -205,17 +218,17 @@
       disponibilidad: function (personalId, fechaHoraISO) {
         return request(`/citas/disponibilidad?personalId=${personalId}&fechaHora=${encodeURIComponent(fechaHoraISO)}`);
       },
-      listMine: function () { return request("/citas/me"); },
-      getMine: function (id) { return request(`/citas/me/${id}`); },
-      listProfessionalsMine: function () { return request("/citas/me/opciones-personal"); },
+      listMine: function () { return requestOptional("/citas/me"); },
+      getMine: function (id) { return requestOptional(`/citas/me/${id}`); },
+      listProfessionalsMine: function () { return requestOptional("/citas/me/opciones-personal"); },
       availabilityMine: function (personalId, fechaHoraISO) {
-        return request(`/citas/me/disponibilidad?personalId=${encodeURIComponent(personalId)}&fechaHora=${encodeURIComponent(fechaHoraISO)}`);
+        return requestOptional(`/citas/me/disponibilidad?personalId=${encodeURIComponent(personalId)}&fechaHora=${encodeURIComponent(fechaHoraISO)}`);
       },
-      createMine: function (data) { return request("/citas/me", { method: "POST", body: data }); },
+      createMine: function (data) { return requestOptional("/citas/me", { method: "POST", body: data }); },
       rescheduleMine: function (id, fechaHora) {
-        return request(`/citas/me/${id}`, { method: "PUT", body: { fechaHora: fechaHora } });
+        return requestOptional(`/citas/me/${id}`, { method: "PUT", body: { fechaHora: fechaHora } });
       },
-      cancelMine: function (id) { return request(`/citas/me/${id}/cancelar`, { method: "PATCH" }); }
+      cancelMine: function (id) { return requestOptional(`/citas/me/${id}/cancelar`, { method: "PATCH" }); }
     },
 
     personalSalud: {

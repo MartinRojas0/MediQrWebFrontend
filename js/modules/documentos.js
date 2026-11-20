@@ -73,10 +73,11 @@ window.MediPartes.documentos = {
         this.documentosServidorCargados = false;
         this.documentosServidorCargando = false;
       }
-      if (!this.documentosServidorCargados && !this.documentosServidorCargando) {
-        this.cargarDocumentosServidor(token);
-      } else if (this.documentosServidorCargados) {
-        this.renderDocumentosServidor();
+      const contenido = document.getElementById("documents-content");
+      const contador = document.getElementById("doc-count");
+      if (contador) contador.textContent = "";
+      if (contenido) {
+        contenido.innerHTML = '<p class="empty-state" role="status">Los documentos médicos están temporalmente deshabilitados.</p>';
       }
       return;
     }
