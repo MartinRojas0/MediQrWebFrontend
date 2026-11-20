@@ -10,8 +10,42 @@
 // ==========================================================
 window.MediPartes = window.MediPartes || {};
 
+function sesionServidorCitas() {
+  return Boolean(window.MediApi && window.MediApi.storage &&
+    window.MediApi.storage.getToken() &&
+    !(window.AccesoModulo && window.AccesoModulo.sesion &&
+      window.AccesoModulo.sesion.esDemo));
+}
+
 window.MediPartes.citas = {
+  profesionalesServidor: [],
+  profesionalesServidorToken: null,
+  profesionalesServidorCargados: false,
+  profesionalesServidorCargando: false,
+  citaServidorGuardando: false,
+
   render() {
+    const contenido = document.getElementById("citas-content");
+    if (sesionServidorCitas()) {
+      const token = window.MediApi.storage.getToken();
+      if (token !== this.citasServidorToken) {
+        this.citasServidorToken = token;
+        this.citasServidorCargadas = false;
+        this.citasServidorCargando = false;
+        this.citas = [];
+        this.profesionalesServidorToken = null;
+        this.profesionalesServidorCargados = false;
+        this.profesionalesServidorCargando = false;
+        this.profesionalesServidor = [];
+      }
+      if (!this.citasServidorCargadas) {
+        if (!this.citasServidorCargando) this.cargarCitasServidor(token);
+        return;
+      }
+      this.renderServidor();
+      return;
+    }
+
     if (this.pestaña === "calendario") {
       this.calendario();
     } else if (this.pestaña === "agendar") {
@@ -21,6 +55,279 @@ window.MediPartes.citas = {
     }
 
     this.marcarMenu();
+  },
+
+  renderServidor() {
+    if (this.pestaña === "agendar") {
+      this.agendarServidor();
+    } else if (this.pestaña === "calendario") {
+      this.calendario();
+    } else {
+      this.listaCitas();
+    }
+    this.marcarMenu();
+  },
+
+  async cargarCitasServidor(token) {
+    const contenido = document.getElementById("citas-content");
+    this.citasServidorCargando = true;
+    if (contenido) contenido.innerHTML = '<p class="text-muted" role="status">Cargando tus citas...</p>';
+    try {
+      const citas = await window.MediApi.citas.listMine();
+      if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+      this.citas = citas.map((cita) => this.citaDesdeServidor(cita));
+      this.citasServidorCargadas = true;
+      this.renderServidor();
+    } catch (error) {
+      if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+      if (contenido) {
+        contenido.innerHTML = `
+          <h1 class="heading-1" data-titulo-vista>Citas</h1>
+          <p class="error-msg" role="alert">${this.escapar(
+            error.message || "No se pudieron cargar tus citas."
+          )}</p>
+          <button type="button" class="btn btn-outline" data-action="citas:hoy">Reintentar</button>`;
+      }
+    } finally {
+      if (token === this.citasServidorToken) this.citasServidorCargando = false;
+    }
+  },
+
+  citaDesdeServidor(cita) {
+    const fechaHora = new Date(cita.fechaHora);
+    if (!Number.isFinite(fechaHora.getTime())) {
+      throw new Error("El servidor devolvió una fecha de cita inválida.");
+    }
+    const estados = {
+      PENDIENTE: "Pendiente",
+      CONFIRMADA: "Confirmada",
+      ATENDIDA: "Atendida",
+      CANCELADA: "Cancelada"
+    };
+    if (!estados[cita.estado]) {
+      throw new Error("El servidor devolvió un estado de cita desconocido.");
+    }
+    const hora = `${String(fechaHora.getHours()).padStart(2, "0")}:` +
+      `${String(fechaHora.getMinutes()).padStart(2, "0")}`;
+    const activa = ["PENDIENTE", "CONFIRMADA"].includes(cita.estado) &&
+      fechaHora.getTime() > Date.now();
+    return {
+      id: cita.id,
+      personalId: cita.personalId,
+      profesional: cita.profesional || "Profesional no disponible",
+      medico: cita.profesional || "Profesional no disponible",
+      especialidad: cita.especialidad || "Especialidad no indicada",
+      fecha: this.fechaISO(fechaHora),
+      hora,
+      fechaHoraISO: cita.fechaHora,
+      estado: activa ? "Próxima" : estados[cita.estado],
+      estadoEtiqueta: estados[cita.estado],
+      activa,
+      estadoApi: cita.estado,
+      motivo: cita.motivo || ""
+    };
+  },
+
+  citaEsProxima(cita) {
+    if (!sesionServidorCitas()) return cita.estado === "Próxima";
+    return ["PENDIENTE", "CONFIRMADA"].includes(cita.estadoApi) &&
+      new Date(cita.fechaHoraISO).getTime() > Date.now();
+  },
+
+  estadoTextoCita(cita) {
+    return sesionServidorCitas() ? (cita.estadoEtiqueta || cita.estado) : cita.estado;
+  },
+
+  async recargarCitasServidor() {
+    const token = window.MediApi.storage.getToken();
+    const citas = await window.MediApi.citas.listMine();
+    if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return false;
+    this.citas = citas.map((cita) => this.citaDesdeServidor(cita));
+    this.citasServidorToken = token;
+    this.citasServidorCargadas = true;
+    return true;
+  },
+
+  fechaHoraLocal(valor) {
+    const fecha = new Date(valor);
+    if (!Number.isFinite(fecha.getTime())) return "";
+    const dos = (numero) => String(numero).padStart(2, "0");
+    return `${this.fechaISO(fecha)}T${dos(fecha.getHours())}:${dos(fecha.getMinutes())}`;
+  },
+
+  fechaHoraMinima() {
+    return this.fechaHoraLocal(Date.now() + 60 * 1000);
+  },
+
+  async agendarServidor() {
+    const contenido = document.getElementById("citas-content");
+    const token = window.MediApi.storage.getToken();
+    if (this.profesionalesServidorToken !== token) {
+      this.profesionalesServidorToken = token;
+      this.profesionalesServidorCargados = false;
+      this.profesionalesServidor = [];
+    }
+
+    if (!this.profesionalesServidorCargados) {
+      if (this.profesionalesServidorCargando) return;
+      this.profesionalesServidorCargando = true;
+      if (contenido) contenido.innerHTML = '<p class="text-muted" role="status">Cargando profesionales...</p>';
+      try {
+        const personal = await window.MediApi.citas.listProfessionalsMine();
+        if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+        this.profesionalesServidor = personal;
+        this.profesionalesServidorCargados = true;
+      } catch (error) {
+        if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+        if (contenido) {
+          contenido.innerHTML = `
+            ${this.tituloVista("Agendar cita", "No se pudieron cargar los profesionales disponibles.")}
+            <p class="error-msg" role="alert">${this.escapar(error.message || "Inténtalo nuevamente.")}</p>
+            <button type="button" class="btn btn-outline" data-action="citas:hoy">Reintentar</button>`;
+        }
+        return;
+      } finally {
+        if (token === this.profesionalesServidorToken) this.profesionalesServidorCargando = false;
+      }
+    }
+
+    if (!contenido) return;
+    if (this.profesionalesServidor.length === 0) {
+      contenido.innerHTML = `
+        ${this.tituloVista("Agendar cita", "No hay profesionales disponibles para reservar en este momento.")}
+        <p class="empty-state">Vuelve a intentarlo más tarde o contacta con el centro de salud.</p>`;
+      return;
+    }
+
+    const opciones = this.profesionalesServidor.map((personal) => `
+      <option value="${this.atributo(personal.id)}">
+        ${this.escapar(personal.especialidad)} · ${this.escapar(personal.nombre)}
+      </option>
+    `).join("");
+    contenido.innerHTML = `
+      ${this.tituloVista("Agendar cita", "Elige un profesional y un horario que no tenga otra cita reservada.")}
+      <article class="card schedule-card">
+        <form id="schedule-server-form" class="module-form" novalidate>
+          <label class="wide" for="cita-personal">Profesional y especialidad
+            <select id="cita-personal" name="personalId" required>
+              <option value="">Selecciona un profesional</option>
+              ${opciones}
+            </select>
+          </label>
+          <label class="wide" for="cita-fecha-hora">Fecha y hora
+            <input id="cita-fecha-hora" name="fechaHora" type="datetime-local"
+              min="${this.fechaHoraMinima()}" required>
+          </label>
+          <label class="wide" for="cita-motivo">Motivo (opcional)
+            <textarea id="cita-motivo" name="motivo" maxlength="255" rows="3"></textarea>
+          </label>
+          <p class="file-help wide">
+            La disponibilidad confirma que el horario no está ocupado en MediQR.
+            El sistema no registra sedes ni horarios laborales del centro; confirma la ubicación antes de asistir.
+          </p>
+          <p id="schedule-server-error" class="error-msg wide" role="alert"></p>
+          <div class="module-actions wide">
+            <button type="submit" class="btn btn-primary">Revisar disponibilidad</button>
+            <button type="button" class="btn btn-outline" data-action="citas:ir" data-vista="proximas">Volver a mis citas</button>
+          </div>
+        </form>
+      </article>`;
+
+    const formulario = document.getElementById("schedule-server-form");
+    formulario.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+      const datos = new FormData(formulario);
+      const personalId = Number(datos.get("personalId"));
+      const fechaValor = datos.get("fechaHora");
+      const fechaHora = new Date(fechaValor);
+      const error = document.getElementById("schedule-server-error");
+      if (!personalId || !Number.isFinite(fechaHora.getTime()) || fechaHora <= new Date()) {
+        error.textContent = "Selecciona un profesional y una fecha futura.";
+        return;
+      }
+      const fechaHoraISO = fechaHora.toISOString();
+      const boton = formulario.querySelector('[type="submit"]');
+      boton.disabled = true;
+      error.textContent = "";
+      const sessionToken = window.MediApi.storage.getToken();
+      try {
+        const disponibilidad = await window.MediApi.citas.availabilityMine(personalId, fechaHoraISO);
+        if (!sesionServidorCitas() || sessionToken !== window.MediApi.storage.getToken()) return;
+        if (!disponibilidad || disponibilidad.disponible !== true) {
+          error.textContent = "Ese horario ya no está disponible. Elige otra fecha u hora.";
+          return;
+        }
+        const personal = this.profesionalesServidor.find((item) => item.id === personalId);
+        this.citaPendiente = {
+          personalId,
+          profesional: personal ? personal.nombre : "",
+          medico: personal ? personal.nombre : "",
+          especialidad: personal ? personal.especialidad : "",
+          fecha: this.fechaISO(fechaHora),
+          hora: `${String(fechaHora.getHours()).padStart(2, "0")}:` +
+            `${String(fechaHora.getMinutes()).padStart(2, "0")}`,
+          fechaHoraISO,
+          motivo: String(datos.get("motivo") || "").trim(),
+          estado: "Próxima",
+          estadoApi: "PENDIENTE"
+        };
+        this.resumenCita();
+      } catch (requestError) {
+        error.textContent = requestError.message || "No se pudo verificar la disponibilidad.";
+      } finally {
+        if (boton.isConnected) boton.disabled = false;
+      }
+    });
+  },
+
+  async detailServidor(id) {
+    const token = window.MediApi.storage.getToken();
+    this.modal("Detalle de cita", '<p class="text-muted" role="status">Cargando la cita...</p>');
+    try {
+      const response = await window.MediApi.citas.getMine(id);
+      if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+      const cita = this.citaDesdeServidor(response);
+      const botones = `
+        ${cita.estadoApi === "PENDIENTE" && this.citaEsProxima(cita)
+          ? `<button type="button" class="btn btn-primary" data-action="citas:pedir-reprogramar" data-id="${cita.id}">Reprogramar</button>`
+          : ""}
+        ${this.citaEsProxima(cita)
+          ? `<button type="button" class="btn btn-danger" data-action="citas:pedir-cancelar" data-id="${cita.id}">Cancelar</button>`
+          : ""}
+      `;
+      this.modal("Detalle de cita", `
+        <div class="detail-sections">
+          <section class="detail-section">
+            <h3>Información de la cita</h3>
+            ${this.filas([
+              ["Especialidad", cita.especialidad],
+              ["Profesional", cita.profesional],
+              ["Fecha", this.fechaCorta(cita.fecha)],
+              ["Hora", this.horaTexto(cita.hora)],
+              ["Estado", this.insignia(this.estadoTextoCita(cita)), true]
+            ])}
+          </section>
+          ${cita.motivo ? `
+            <section class="detail-section">
+              <h3>Motivo</h3>
+              <p>${this.escapar(cita.motivo)}</p>
+            </section>` : ""}
+          <p class="file-help">
+            La sede no está registrada en MediQR. Confirma la ubicación con el centro de salud.
+          </p>
+        </div>
+        <div class="module-actions">
+          ${botones}
+          <button type="button" class="btn btn-outline" data-action="modal:cerrar">Cerrar</button>
+        </div>`);
+    } catch (error) {
+      if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+      this.modal("No se pudo cargar la cita", `
+        <p class="error-msg" role="alert">${this.escapar(error.message || "La cita no está disponible.")}</p>
+        <div class="module-actions">
+          <button type="button" class="btn btn-outline" data-action="modal:cerrar">Cerrar</button>
+        </div>`);
+    }
   },
 
   calendario() {
@@ -106,13 +413,13 @@ window.MediPartes.citas = {
           <div class="day-appointment">
             <div class="card-header">
               <strong>${this.escapar(cita.especialidad)}</strong>
-              ${this.insignia(cita.estado)}
+              ${this.insignia(this.estadoTextoCita(cita))}
             </div>
 
             ${this.filas([
               ["Médico", cita.medico],
               ["Hora", this.horaTexto(cita.hora)],
-              ["Lugar", cita.lugar]
+              cita.lugar ? ["Lugar", cita.lugar] : null
             ])}
 
             <div class="module-actions">
@@ -191,7 +498,7 @@ window.MediPartes.citas = {
     const proximas = this.pestaña === "proximas";
 
     const lista = this.citas
-      .filter((c) => (proximas ? c.estado === "Próxima" : c.estado !== "Próxima"))
+      .filter((c) => (proximas ? this.citaEsProxima(c) : !this.citaEsProxima(c)))
       .sort((a, b) => {
         const fa = a.fecha + "T" + a.hora;
         const fb = b.fecha + "T" + b.hora;
@@ -218,21 +525,28 @@ window.MediPartes.citas = {
           ["Médico", cita.medico],
           ["Fecha", this.fechaCorta(cita.fecha)],
           ["Hora", this.horaTexto(cita.hora)],
-          ["Clínica", cita.lugar],
-          ["Dirección", cita.direccion]
+          cita.lugar ? ["Clínica", cita.lugar] : null,
+          cita.direccion ? ["Dirección", cita.direccion] : null
         ]
       : [
           ["Médico", cita.medico],
           ["Fecha", this.fechaCorta(cita.fecha)],
           ["Hora", this.horaTexto(cita.hora)],
-          ["Lugar", cita.lugar]
+          cita.lugar ? ["Lugar", cita.lugar] : null
         ];
 
+    const puedeReprogramar = !sesionServidorCitas() ||
+      (cita.estadoApi === "PENDIENTE" && this.citaEsProxima(cita));
+    const puedeCancelar = !sesionServidorCitas() || this.citaEsProxima(cita);
     const acciones = conAcciones
       ? `
         <button type="button" class="btn btn-outline"  data-action="citas:detalle" data-id="${cita.id}">Ver detalle</button>
-        <button type="button" class="btn btn-secondary"  data-action="citas:pedir-reprogramar" data-id="${cita.id}">Reprogramar</button>
-        <button type="button" class="btn btn-danger"  data-action="citas:pedir-cancelar" data-id="${cita.id}">Cancelar</button>
+        ${puedeReprogramar
+          ? `<button type="button" class="btn btn-secondary" data-action="citas:pedir-reprogramar" data-id="${cita.id}">Reprogramar</button>`
+          : ""}
+        ${puedeCancelar
+          ? `<button type="button" class="btn btn-danger" data-action="citas:pedir-cancelar" data-id="${cita.id}">Cancelar</button>`
+          : ""}
       `
       : `
         <button type="button" class="btn btn-outline"  data-action="citas:detalle" data-id="${cita.id}">Ver detalle</button>
@@ -242,7 +556,7 @@ window.MediPartes.citas = {
       <article class="card">
         <div class="card-header">
           <h3>${this.escapar(cita.especialidad)}</h3>
-          ${this.insignia(cita.estado)}
+          ${this.insignia(this.estadoTextoCita(cita))}
         </div>
 
         ${this.filas(filas)}
@@ -253,6 +567,10 @@ window.MediPartes.citas = {
   },
 
   detail(id) {
+    if (sesionServidorCitas()) {
+      this.detailServidor(id);
+      return;
+    }
     const cita = this.buscarCita(id);
 
     if (!cita) return;
@@ -280,17 +598,19 @@ window.MediPartes.citas = {
             ["Médico", cita.medico],
             ["Fecha", this.fechaCorta(cita.fecha)],
             ["Hora", this.horaTexto(cita.hora)],
-            ["Estado", this.insignia(cita.estado), true]
+            ["Estado", this.insignia(this.estadoTextoCita(cita)), true]
           ])}
         </section>
 
-        <section class="detail-section">
-          <h3>Lugar</h3>
-          ${this.filas([
-            ["Clínica / hospital", cita.lugar],
-            ["Dirección", cita.direccion]
-          ])}
-        </section>
+        ${cita.lugar || cita.direccion ? `
+          <section class="detail-section">
+            <h3>Lugar</h3>
+            ${this.filas([
+              cita.lugar ? ["Clínica / hospital", cita.lugar] : null,
+              cita.direccion ? ["Dirección", cita.direccion] : null
+            ])}
+          </section>
+        ` : ""}
 
         ${cita.motivo ? `
           <section class="detail-section">
@@ -319,7 +639,9 @@ window.MediPartes.citas = {
   pedirCancelar(id) {
     const cita = this.buscarCita(id);
 
-    if (!cita || cita.estado !== "Próxima") return;
+    if (!cita || !this.citaEsProxima(cita)) return;
+    if (sesionServidorCitas() &&
+        !["PENDIENTE", "CONFIRMADA"].includes(cita.estadoApi)) return;
 
     this.modal("¿Deseas cancelar esta cita?", `
       ${this.resumenCompacto(cita)}
@@ -331,10 +653,52 @@ window.MediPartes.citas = {
     `, true);
   },
 
-  cancelar(id) {
+  async cancelar(id) {
     const cita = this.buscarCita(id);
 
-    if (!cita || cita.estado !== "Próxima") return;
+    if (!cita || !this.citaEsProxima(cita)) return;
+
+    if (sesionServidorCitas()) {
+      if (this.citaServidorGuardando) return;
+      this.citaServidorGuardando = true;
+      const token = window.MediApi.storage.getToken();
+      try {
+        await window.MediApi.citas.cancelMine(id);
+        if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+        cita.estado = "Cancelada";
+        cita.estadoEtiqueta = "Cancelada";
+        cita.estadoApi = "CANCELADA";
+        cita.activa = false;
+        this.citasServidorCargadas = true;
+        this.render();
+        this.modal("Cita cancelada", `
+          <div class="result-box result-ok">
+            <i data-icon="circle-check"></i>
+            <p>La cita se canceló y el cambio quedó guardado.</p>
+          </div>
+          ${this.filas([
+            ["Especialidad", cita.especialidad],
+            ["Profesional", cita.profesional],
+            ["Fecha", this.fechaCorta(cita.fecha)],
+            ["Hora", this.horaTexto(cita.hora)],
+            ["Estado", this.insignia("Cancelada"), true]
+          ])}
+          <div class="module-actions">
+            <button type="button" class="btn btn-primary" data-action="citas:ir" data-vista="historial">Ver historial</button>
+            <button type="button" class="btn btn-outline" data-action="modal:cerrar">Cerrar</button>
+          </div>`);
+      } catch (error) {
+        if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+        this.modal("No se pudo cancelar la cita", `
+          <p class="error-msg" role="alert">${this.escapar(error.message || "Inténtalo nuevamente.")}</p>
+          <div class="module-actions">
+            <button type="button" class="btn btn-outline" data-action="modal:cerrar">Cerrar</button>
+          </div>`);
+      } finally {
+        this.citaServidorGuardando = false;
+      }
+      return;
+    }
 
     cita.estado = "Cancelada";
     this.render();
@@ -367,7 +731,8 @@ window.MediPartes.citas = {
   pedirReprogramar(id) {
     const cita = this.buscarCita(id);
 
-    if (!cita || cita.estado !== "Próxima") return;
+    if (!cita || !this.citaEsProxima(cita)) return;
+    if (sesionServidorCitas() && cita.estadoApi !== "PENDIENTE") return;
 
     this.modal("¿Deseas modificar esta cita?", `
       ${this.resumenCompacto(cita)}
@@ -382,7 +747,11 @@ window.MediPartes.citas = {
   reprogramarForm(id) {
     const cita = this.buscarCita(id);
 
-    if (!cita || cita.estado !== "Próxima") return;
+    if (!cita || !this.citaEsProxima(cita)) return;
+    if (sesionServidorCitas()) {
+      this.reprogramarFormularioServidor(cita);
+      return;
+    }
 
     const hoy = this.hoyISO();
     const fechaInicial = cita.fecha >= hoy ? cita.fecha : hoy;
@@ -470,6 +839,79 @@ window.MediPartes.citas = {
         </div>
       `, true);
     };
+  },
+
+  reprogramarFormularioServidor(cita) {
+    this.modal("Reprogramar cita", `
+      <p class="text-muted">${this.escapar(cita.especialidad)} · ${this.escapar(cita.profesional)}</p>
+      <form id="reschedule-server-form" class="module-form mt-1" novalidate>
+        <label class="wide" for="rp-fecha-hora">Nueva fecha y hora
+          <input id="rp-fecha-hora" name="fechaHora" type="datetime-local"
+            min="${this.fechaHoraMinima()}" value="${this.atributo(this.fechaHoraLocal(cita.fechaHoraISO))}" required>
+        </label>
+        <p id="reschedule-server-error" class="error-msg wide" role="alert"></p>
+        <div class="module-actions wide">
+          <button type="submit" class="btn btn-primary">Confirmar cambio</button>
+          <button type="button" class="btn btn-outline" data-action="modal:cerrar">Volver</button>
+        </div>
+      </form>`);
+
+    const formulario = document.getElementById("reschedule-server-form");
+    formulario.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+      const datos = new FormData(formulario);
+      const fechaHora = new Date(datos.get("fechaHora"));
+      const error = document.getElementById("reschedule-server-error");
+      if (!Number.isFinite(fechaHora.getTime()) || fechaHora <= new Date()) {
+        error.textContent = "Selecciona una fecha y hora futuras.";
+        return;
+      }
+      const fechaHoraISO = fechaHora.toISOString();
+      const boton = formulario.querySelector('[type="submit"]');
+      if (this.citaServidorGuardando) return;
+      this.citaServidorGuardando = true;
+      const token = window.MediApi.storage.getToken();
+      boton.disabled = true;
+      try {
+        const disponibilidad = await window.MediApi.citas.availabilityMine(
+          cita.personalId,
+          fechaHoraISO
+        );
+        if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+        if (!disponibilidad || disponibilidad.disponible !== true) {
+          error.textContent = "Ese horario ya no está disponible. Elige otra fecha u hora.";
+          return;
+        }
+        const respuesta = await window.MediApi.citas.rescheduleMine(cita.id, fechaHoraISO);
+        if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+        const actualizada = this.citaDesdeServidor(respuesta);
+        this.citas = this.citas.map((item) => item.id === actualizada.id ? actualizada : item);
+        this.citasServidorCargadas = true;
+        this.render();
+        this.modal("Cita reprogramada", `
+          <div class="result-box result-ok">
+            <i data-icon="circle-check"></i>
+            <p>El cambio quedó guardado correctamente.</p>
+          </div>
+          ${this.filas([
+            ["Especialidad", actualizada.especialidad],
+            ["Profesional", actualizada.profesional],
+            ["Nueva fecha", this.fechaCorta(actualizada.fecha)],
+            ["Nueva hora", this.horaTexto(actualizada.hora)]
+          ])}
+          <p class="file-help">Confirma la sede con el centro de salud.</p>
+          <div class="module-actions">
+            <button type="button" class="btn btn-primary" data-action="citas:ir" data-vista="proximas">Ver próximas citas</button>
+            <button type="button" class="btn btn-outline" data-action="modal:cerrar">Cerrar</button>
+          </div>`);
+      } catch (requestError) {
+        if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+        error.textContent = requestError.message || "No se pudo reprogramar la cita.";
+      } finally {
+        this.citaServidorGuardando = false;
+        if (boton.isConnected) boton.disabled = false;
+      }
+    });
   },
 
   hash(texto) {
@@ -750,11 +1192,13 @@ agendar() {
     this.modal("Resumen de tu cita", `
       ${this.filas([
         ["Especialidad", cita.especialidad],
-        ["Médico", cita.medico],
+        ["Profesional", cita.profesional || cita.medico],
         ["Fecha", this.fechaCorta(cita.fecha)],
         ["Hora", this.horaTexto(cita.hora)],
-        ["Lugar", cita.lugar]
+        cita.lugar ? ["Lugar", cita.lugar] : null,
+        cita.motivo ? ["Motivo", cita.motivo] : null
       ])}
+      ${sesionServidorCitas() ? '<p class="file-help">La sede no está registrada. Confirma la ubicación con el centro de salud.</p>' : ""}
 
       <div class="module-actions">
         <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Volver / Modificar</button>
@@ -765,6 +1209,10 @@ agendar() {
 
   confirmarCita() {
     if (!this.citaPendiente) return;
+    if (sesionServidorCitas()) {
+      this.confirmarCitaServidor();
+      return;
+    }
 
     const nueva = { ...this.citaPendiente, id: Date.now() };
 
@@ -806,6 +1254,59 @@ agendar() {
         <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Agendar otra</button>
       </div>
     `, true);
+  },
+
+  async confirmarCitaServidor() {
+    if (this.citaServidorGuardando || !this.citaPendiente) return;
+    this.citaServidorGuardando = true;
+    const token = window.MediApi.storage.getToken();
+    const pendiente = this.citaPendiente;
+    try {
+      const creada = await window.MediApi.citas.createMine({
+        personalId: pendiente.personalId,
+        fechaHora: pendiente.fechaHoraISO,
+        motivo: pendiente.motivo || ""
+      });
+      if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+      const cita = this.citaDesdeServidor(creada);
+      this.citas = this.citas.filter((existente) => existente.id !== cita.id);
+      this.citas.push(cita);
+      this.citaPendiente = null;
+      this.borrador = this.nuevoBorrador();
+      this.citasServidorCargadas = true;
+      this.pestaña = "proximas";
+      this.mes = new Date(new Date(cita.fecha + "T12:00:00").getFullYear(),
+        new Date(cita.fecha + "T12:00:00").getMonth(), 1);
+      this.diaSeleccionado = cita.fecha;
+      this.render();
+      this.modal("Cita reservada", `
+        <div class="result-box result-ok">
+          <i data-icon="circle-check"></i>
+          <p>La cita se guardó en tu cuenta.</p>
+        </div>
+        ${this.filas([
+          ["Especialidad", cita.especialidad],
+          ["Profesional", cita.profesional],
+          ["Fecha", this.fechaCorta(cita.fecha)],
+          ["Hora", this.horaTexto(cita.hora)],
+          ["Estado", this.insignia(cita.estado), true]
+        ])}
+        <p class="file-help">Confirma la sede con el centro de salud antes de asistir.</p>
+        <div class="module-actions">
+          <button type="button" class="btn btn-primary" data-action="citas:ir" data-vista="proximas">Ver próximas citas</button>
+          <button type="button" class="btn btn-outline" data-action="modal:cerrar">Cerrar</button>
+        </div>`);
+    } catch (error) {
+      if (!sesionServidorCitas() || token !== window.MediApi.storage.getToken()) return;
+      this.modal("No se pudo reservar la cita", `
+        <p class="error-msg" role="alert">${this.escapar(error.message || "Inténtalo nuevamente.")}</p>
+        <div class="module-actions">
+          <button type="button" class="btn btn-primary" data-action="citas:confirmar">Reintentar</button>
+          <button type="button" class="btn btn-outline" data-action="modal:cerrar">Cerrar</button>
+        </div>`);
+    } finally {
+      this.citaServidorGuardando = false;
+    }
   },
 
   pedirFinalizar(id) {

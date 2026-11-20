@@ -116,6 +116,13 @@
   // FragmentoSalud.mostrarDialogoEdicion() abre un dialogo simple con el
   // valor actual y guarda tras confirmar.
   function editar(campo) {
+    const apiActiva = Boolean(window.MediApi && window.MediApi.storage &&
+      window.MediApi.storage.getToken());
+    if (apiActiva && !["alergias", "condicionesCronicas", "cirugias"].includes(campo)) {
+      MediModules.avisoLocal("Este dato todavía no se puede guardar en tu cuenta.");
+      return;
+    }
+
     const salud = MediModules.salud;
     const ETIQUETAS = {
       alergias: "Alergias",
@@ -164,6 +171,7 @@
             <span>${t}</span>
           </label>`).join("")}
       </div>
+      <p id="salud-save-error" class="error-msg" role="alert"></p>
       <div class="module-actions">
         <button type="button" class="btn btn-outline" data-action="modal:cerrar">Cancelar</button>
         <button type="button" class="btn btn-primary" data-action="salud:confirmar-sangre">Confirmar</button>
@@ -180,6 +188,7 @@
 
     MediModules.modal("Confirmar Cambios", `
       <p>¿Estás seguro de actualizar tu información médica?</p>
+      <p id="salud-save-error" class="error-msg" role="alert"></p>
       <div class="module-actions">
         <button type="button" class="btn btn-outline" data-action="modal:cerrar">Cancelar</button>
         <button type="button" class="btn btn-primary"
@@ -189,8 +198,37 @@
   }
 
   // Convierte el texto editado en la estructura que espera el modelo movil.
-  function aplicar(campo, texto) {
+  async function aplicar(campo, texto) {
     const partes = texto.split(",").map((s) => s.trim()).filter(Boolean);
+
+    if (window.MediApi && window.MediApi.storage && window.MediApi.storage.getToken()) {
+      const camposPermitidos = {
+        alergias: "alergias",
+        condicionesCronicas: "enfermedadesCronicas",
+        cirugias: "cirugias"
+      };
+      const campoServidor = camposPermitidos[campo];
+      if (!campoServidor) {
+        MediModules.avisoLocal("Este dato todavía no se puede guardar en tu cuenta.");
+        return;
+      }
+
+      try {
+        await MediModules.guardarHistorialServidor({
+          [campoServidor]: partes.join(", ")
+        });
+        MediModules.close();
+        MediModules.aviso("Información médica guardada en tu cuenta.");
+      } catch (error) {
+        console.warn("[MediQR] Error guardando el historial:", error);
+        const aviso = document.getElementById("salud-save-error");
+        if (aviso) {
+          aviso.textContent = "No se pudo guardar en el servidor: " +
+            (error && error.message ? error.message : "inténtalo nuevamente.");
+        }
+      }
+      return;
+    }
 
     if (campo === "alergias") {
       MediModules.salud.alergias = partes.map((n) => {
@@ -217,7 +255,23 @@
     MediModules.avisoLocal("Información médica actualizada.");
   }
 
-  function confirmarSangre(tipo) {
+  async function confirmarSangre(tipo) {
+    if (window.MediApi && window.MediApi.storage && window.MediApi.storage.getToken()) {
+      try {
+        await MediModules.guardarHistorialServidor({ tipoSangre: tipo });
+        MediModules.close();
+        MediModules.aviso("Información médica guardada en tu cuenta.");
+      } catch (error) {
+        console.warn("[MediQR] Error guardando el grupo sanguíneo:", error);
+        const aviso = document.getElementById("salud-save-error");
+        if (aviso) {
+          aviso.textContent = "No se pudo guardar en el servidor: " +
+            (error && error.message ? error.message : "inténtalo nuevamente.");
+        }
+      }
+      return;
+    }
+
     MediModules.salud.tipoSangre = tipo;
     refrescar();
     // Tras confirmar, el dialogo se cierra: si se dejaba abierto el
@@ -239,10 +293,10 @@
     "salud:elegir-sangre": function () { elegirSangre(); },
     "salud:confirmar-sangre": function () {
       const elegida = document.querySelector('#module-dialog input[name="sangre"]:checked');
-      if (elegida) confirmarSangre(elegida.value);
+      if (elegida) return confirmarSangre(elegida.value);
       else MediModules.close();
     },
-    "salud:aplicar": function (el) { aplicar(el.dataset.campo, el.dataset.valor); },
+    "salud:aplicar": function (el) { return aplicar(el.dataset.campo, el.dataset.valor); },
     "salud:guardar": function (el, evento) { confirmarGuardar(el.dataset.campo, evento.target.valor.value.trim()); }
   });
 

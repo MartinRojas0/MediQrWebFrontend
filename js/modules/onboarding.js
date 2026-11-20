@@ -1,13 +1,10 @@
 // ==========================================================
 // MediQR · Configuración inicial del paciente (onboarding)
 //
-// Flujo breve de tres pasos que aparece la primera vez que se entra a la
-// demostración. Los datos se escriben en el modelo en memoria del portal
-// (grupo sanguíneo, alergias, condiciones y contacto de emergencia), que
-// es de donde ya leen las vistas de Salud y Contactos.
-//
-// Es demostrativo: no se envía nada a ningún servicio y se pierde al
-// recargar, cosa que el resumen final dice de forma expresa.
+// Flujo inicial de tres pasos. En una sesión API se guardan el perfil y los
+// campos clínicos que soporta el backend y luego se vuelven a leer; el contacto
+// de emergencia sigue pendiente de un contrato persistente. En modo demo, los
+// datos solo se mantienen en memoria.
 // ==========================================================
 (function () {
   "use strict";
@@ -47,9 +44,16 @@
   };
 
   let paso = 0;
+  let guardando = false;
 
   function esc(texto) {
     return MediPartes.dom.escapar(texto);
+  }
+
+  function sesionServidor() {
+    return Boolean(window.MediApi &&
+      window.MediApi.storage.getToken() &&
+      !(window.AccesoModulo && window.AccesoModulo.sesion.esDemo));
   }
 
   function separacion(texto) {
@@ -91,8 +95,9 @@
                    min="1900-01-01" max="${MediPartes.fechas.hoyISO()}"
                    value="${esc(borrador.nacimiento)}"></label>
         </div>
-        <p class="file-help">La fecha es opcional en la demostración. Si se rellena,
-        el portal calcula la edad a partir de ella.</p>`;
+        <p class="file-help">${sesionServidor()
+          ? "Nombres y apellidos son obligatorios para guardar el perfil. La fecha es opcional."
+          : "La fecha es opcional en la demostración. Si se rellena, el portal calcula la edad."}</p>`;
     }
 
     if (paso === 1) {
@@ -127,8 +132,9 @@
           <input id="onb-telefono" type="tel" value="${esc(borrador.contactoTelefono)}"
                  placeholder="+51 900 000 000"></label>
       </div>
-      <p class="file-help">Se guardará con su botón de llamar, como los demás
-      contactos de emergencia.</p>`;
+      <p class="file-help">${sesionServidor()
+        ? "El contacto se guarda de forma privada en tu cuenta y solo puede recuperarlo el paciente autenticado."
+        : "En la demostración, el contacto solo vive en memoria y se pierde al recargar."}</p>`;
   }
 
   function acciones() {
@@ -204,15 +210,18 @@
       </div>
 
       <div class="card pending-card" role="note">
-        <p class="pending-head"><i data-icon="shield-halved"></i> Solo en este dispositivo</p>
-        <p>Esta configuración no se envía a ningún servicio y no se guarda en el
-        navegador: si recargas la página, se pierde y volverá a pedírtela.</p>
+        <p class="pending-head"><i data-icon="shield-halved"></i> ${sesionServidor() ? "Se guardará en tu cuenta" : "Solo en este dispositivo"}</p>
+        <p>${sesionServidor()
+          ? "Los datos personales, médicos y el contacto de emergencia se guardarán mediante la API."
+          : "Los datos de esta demostración se mantienen solo en memoria. No se envían a ningún servicio."}</p>
       </div>
 
+      <p id="onb-save-status" class="text-muted" role="status"></p>
+      <p id="onb-save-error" class="error-msg hidden" role="alert"></p>
       <div class="module-actions wide onb-acciones">
         <button type="button" class="btn btn-outline" data-action="onboarding:atras">Atrás</button>
         <button type="button" class="btn btn-outline" data-action="onboarding:omitir">Omitir</button>
-        <button type="button" class="btn btn-primary" data-action="onboarding:finalizar">Finalizar configuración</button>
+        <button id="onb-save-button" type="button" class="btn btn-primary" data-action="onboarding:finalizar">Finalizar configuración</button>
       </div>`;
   }
 
@@ -231,7 +240,9 @@
     const actual = PASOS[paso];
     destino.innerHTML = `
       <h1 class="heading-1" data-titulo-vista>Configura tu MediQR</h1>
-      <p class="view-lead">Tardarás menos de un minuto. Todo es opcional.</p>
+      <p class="view-lead">${sesionServidor()
+        ? "Nombres y apellidos son necesarios; los datos médicos son opcionales."
+        : "Tardarás menos de un minuto. Todo es opcional."}</p>
       ${progreso()}
 
       <article class="card onb-card">
@@ -305,29 +316,125 @@
     if (window.PerfilModulo) window.PerfilModulo.pintarContactos();
   }
 
-  function finalizar() {
-    recordar();
+  async function guardarEnServidor() {
+    const paciente = MediModules.paciente || {};
+    const nombres = borrador.nombre || paciente.nombre || "";
+    const apellidos = borrador.apellidos || paciente.apellidos || "";
+    if (!nombres.trim() || !apellidos.trim()) {
+      throw new Error("Escribe nombres y apellidos para guardar el perfil.");
+    }
 
-    // El paso de contacto puede quedar a medias: si no hay teléfono, no se
-    // crea un contacto sin él.
-    aplicar();
+    const perfilGuardado = await window.MediApi.pacientes.updateMe({
+      nombres: nombres.trim(),
+      apellidos: apellidos.trim(),
+      documentoIdentidad: paciente.dni || "",
+      fechaNacimiento: borrador.nacimiento || paciente.nacimiento || null,
+      telefono: paciente.telefono || "",
+      direccion: paciente.calle || "",
+      sexo: paciente.sexo || "NO_ESPECIFICADO"
+    });
+    if (!perfilGuardado || perfilGuardado.id == null) {
+      throw new Error("El servidor no devolvió el perfil actualizado.");
+    }
 
-    if (window.AccesoModulo) window.AccesoModulo.sesion.onboarding = "hecho";
+    const historial = MediModules.historialClinico || {};
+    await MediModules.guardarHistorialServidor({
+      tipoSangre: borrador.grupo.trim().toUpperCase(),
+      alergias: separacion(borrador.alergias).join(", "),
+      enfermedadesCronicas: separacion(borrador.condiciones).join(", "),
+      cirugias: historial.cirugias || "",
+      observaciones: historial.observaciones || ""
+    });
+
+    const contactoNombre = borrador.contactoNombre.trim();
+    const contactoTelefono = borrador.contactoTelefono.trim();
+    if ((contactoNombre && !contactoTelefono) || (!contactoNombre && contactoTelefono)) {
+      throw new Error("Completa el nombre y el teléfono del contacto de emergencia.");
+    }
+    if (contactoNombre && contactoTelefono) {
+      await window.MediApi.pacientes.updateEmergencyContact({
+        nombre: contactoNombre,
+        parentesco: borrador.contactoParentesco.trim(),
+        telefono: contactoTelefono
+      });
+    }
+
+    if (!(await MediModules.cargarDatosServidor()) ||
+        !MediModules.configuracionInicialCompleta) {
+      throw new Error("La API no confirmó la configuración al volver a leer los datos.");
+    }
+    if (contactoNombre && (
+      MediModules.paciente.contactoEmergenciaNombre !== contactoNombre ||
+      MediModules.paciente.contactoEmergenciaTelefono !== contactoTelefono
+    )) {
+      throw new Error("La API no confirmó el contacto de emergencia al volver a leerlo.");
+    }
+  }
+
+  function limpiarBorrador() {
     paso = 0;
     borrador.nombre = ""; borrador.apellidos = ""; borrador.nacimiento = "";
     borrador.grupo = ""; borrador.alergias = ""; borrador.condiciones = "";
     borrador.contactoNombre = ""; borrador.contactoParentesco = ""; borrador.contactoTelefono = "";
+  }
 
-    MediModules.avisoLocal("Configuración guardada en este dispositivo.");
+  async function finalizar() {
+    if (guardando) return;
+    recordar();
+
+    if (sesionServidor()) {
+      guardando = true;
+      const boton = document.getElementById("onb-save-button");
+      const estado = document.getElementById("onb-save-status");
+      const error = document.getElementById("onb-save-error");
+      if (boton) {
+        boton.disabled = true;
+        boton.textContent = "Guardando...";
+      }
+      if (estado) estado.textContent = "Guardando tu perfil y datos médicos...";
+      if (error) {
+        error.textContent = "";
+        error.classList.add("hidden");
+      }
+
+      try {
+        await guardarEnServidor();
+        if (window.AccesoModulo) window.AccesoModulo.sesion.onboarding = "hecho";
+        limpiarBorrador();
+        MediModules.aviso("Configuración guardada en tu cuenta.");
+        Router.ir("inicio");
+      } catch (err) {
+        if (error) {
+          error.textContent = "No se pudo guardar la configuración. " +
+            (err && err.status ? "La API respondió HTTP " + err.status + ". " : "") +
+            (err && err.message ? err.message : "Inténtalo nuevamente.");
+          error.classList.remove("hidden");
+        }
+        if (estado) estado.textContent = "";
+      } finally {
+        guardando = false;
+        const botonActual = document.getElementById("onb-save-button");
+        if (botonActual) {
+          botonActual.disabled = false;
+          botonActual.textContent = "Finalizar configuración";
+        }
+      }
+      return;
+    }
+
+    aplicar();
+    if (window.AccesoModulo) window.AccesoModulo.sesion.onboarding = "hecho";
+    limpiarBorrador();
+
+    MediModules.avisoLocal("Configuración guardada en esta demostración.");
     Router.ir("inicio");
   }
 
   function omitir() {
-    if (window.AccesoModulo) window.AccesoModulo.sesion.onboarding = "omitido";
-    paso = 0;
-    borrador.nombre = ""; borrador.apellidos = ""; borrador.nacimiento = "";
-    borrador.grupo = ""; borrador.alergias = ""; borrador.condiciones = "";
-    borrador.contactoNombre = ""; borrador.contactoParentesco = ""; borrador.contactoTelefono = "";
+    if (window.AccesoModulo && window.AccesoModulo.estaActiva()) {
+      window.AccesoModulo.sesion.onboarding = "omitido";
+    }
+    limpiarBorrador();
     Router.ir("inicio");
   }
 
@@ -350,12 +457,20 @@
     borrador.nacimiento = p.nacimiento || "";
     borrador.grupo = s.tipoSangre && s.tipoSangre !== "Sin grupo sanguineo"
       ? s.tipoSangre : "";
-    borrador.alergias = s.alergias || "";
-    borrador.condiciones = s.condiciones || "";
+    borrador.alergias = Array.isArray(s.alergias)
+      ? s.alergias.map((alergia) => alergia.nombre).filter(Boolean).join(", ")
+      : s.alergias || "";
+    borrador.condiciones = Array.isArray(s.condicionesCronicas)
+      ? s.condicionesCronicas.map((condicion) => condicion.nombre).filter(Boolean).join(", ")
+      : s.condiciones || "";
+    const contacto = Array.isArray(s.contactos) ? s.contactos[0] : null;
+    borrador.contactoNombre = p.contactoEmergenciaNombre || contacto && contacto.nombre || "";
+    borrador.contactoParentesco = p.contactoEmergenciaParentesco || contacto && contacto.parentesco || "";
+    borrador.contactoTelefono = p.contactoEmergenciaTelefono || contacto && contacto.telefono || "";
   }
 
   window.OnboardingModulo = {
-    render: pintar,
+    render: function () { paso = 0; sembrarDesdeElModelo(); pintar(); },
     reiniciar: function () { paso = 0; sembrarDesdeElModelo(); }
   };
 

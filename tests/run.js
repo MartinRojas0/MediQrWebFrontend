@@ -225,7 +225,7 @@ var out = ['vp=' + vp, 'sw=' + sw, 'maxDerecha=' + Math.round(maxDerecha),
 // Tercera pasada: cada vista dentro de un marco de ancho fijo, para
 // detectar desbordamiento horizontal. --window-sizeno baja de 492 px,
 // asi que la medicion se hace con iframes de ancho exacto.
-const VISTAS_RESPONSIVE = ['inicio', 'salud', 'historial', 'citas', 'documentos', 'perfil', 'acceso', 'onboarding'];
+const VISTAS_RESPONSIVE = ['inicio', 'salud', 'historial', 'citas', 'documentos', 'perfil', 'acceso', 'onboarding', 'qr'];
 const ANCHOS = [360, 390, 430, 540, 768, 1024, 1440];
 
 function medir(navegador, url) {
@@ -287,7 +287,7 @@ if (desborde > 1 || culpables.length > 0 || (!accesoSinBarra && texto.indexOf('n
 }
 // como ocurriria al recargar con la URL ya escrita.
 const RUTAS_DIRECTAS = [
-  'inicio', 'salud', 'historial', 'perfil', 'citas/agendar', 'citas/historial',
+  'inicio', 'salud', 'historial', 'perfil', 'qr', 'citas/agendar', 'citas/historial',
   'documentos/todos', 'documentos/recetas', 'documentos/examenes',
   'ruta-inexistente'
 ];

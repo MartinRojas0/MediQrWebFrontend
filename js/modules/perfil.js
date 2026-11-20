@@ -96,10 +96,11 @@
             </div>
 
             <form id="medical-edit-form" class="form-grid hidden"  data-action="perfil:guardar-medica">
-              <label>Grupo Sanguíneo: <input type="text" id="inp-blood" value="O+" required></label>
+              <label>Grupo Sanguíneo: <input type="text" id="inp-blood" value="O+"></label>
               <label>Alergias: <input type="text" id="inp-allergies" value="Penicilina, Aspirina"></label>
               <label>Condiciones: <input type="text" id="inp-conditions" value="Hipertensión leve"></label>
               <label>Información Relevante: <input type="text" id="inp-notes" value="Chequeo cardiológico anual recomendado."></label>
+              <p id="medical-error" class="error-msg data-grid-full hidden" role="alert"></p>
               <div class="form-actions mt-1 data-grid-full">
                 <button type="submit" class="btn btn-primary">Guardar</button>
                 <button type="button" class="btn btn-outline"  data-action="perfil:cancelar-medica">Cancelar</button>
@@ -151,6 +152,12 @@
         </main>
       </div>`;
 
+  function sesionServidor() {
+    return Boolean(window.MediApi && window.MediApi.storage &&
+      window.MediApi.storage.getToken() &&
+      !(window.AccesoModulo && window.AccesoModulo.sesion.esDemo));
+  }
+
   function render() {
     var destino = document.getElementById("view-perfil");
 
@@ -176,13 +183,22 @@
     const destino = document.getElementById('contacts-grid');
     if (!destino) return;
 
+    const botonAgregar = document.querySelector('[data-action="perfil:agregar-contacto"]');
+    const servidor = sesionServidor();
+    if (botonAgregar) {
+      botonAgregar.disabled = false;
+      botonAgregar.title = '';
+    }
+
     const lista = MediModules.salud.contactos || [];
 
     if (lista.length === 0) {
       destino.innerHTML = '<div class="empty-state">'
         + '<i data-icon="phone"></i>'
         + '<p><strong>Sin contactos de emergencia</strong></p>'
-        + '<p class="text-muted">Agrega a alguien a quien llamar si te ocurre algo.</p>'
+        + '<p class="text-muted">' + (servidor
+          ? 'Agrega un contacto. Se guardará de forma privada en tu cuenta.'
+          : 'Agrega a alguien a quien llamar si te ocurre algo.') + '</p>'
         + '</div>';
       MediIcons.render(destino);
       return;
@@ -248,6 +264,22 @@
 
     document.getElementById('val-email').textContent = paciente.email;
     document.getElementById('val-phone').textContent = paciente.telefono;
+
+    const servidor = sesionServidor();
+    const salud = MediModules.salud || {};
+    const nombres = function (elementos) {
+      return (elementos || []).map((elemento) =>
+        typeof elemento === "string" ? elemento : elemento.nombre
+      ).filter(Boolean).join(", ");
+    };
+    document.getElementById('val-blood').textContent = salud.tipoSangre || 'No especificado';
+    document.getElementById('val-allergies').textContent = nombres(salud.alergias) || 'No especificado';
+    document.getElementById('val-conditions').textContent =
+      nombres(salud.condicionesCronicas) || 'No especificado';
+    if (servidor) {
+      document.getElementById('val-notes').textContent =
+        MediModules.historialClinico && MediModules.historialClinico.observaciones || 'No registrado';
+    }
   }
 
   // 2. Navegación por pestañas del Perfil
@@ -275,10 +307,9 @@
     document.getElementById('inp-district').value = p.distrito;
     const emailInput = document.getElementById('inp-email');
     const emailHint = document.getElementById('email-readonly-hint');
-    const sesionServidor = window.MediApi && window.MediApi.storage &&
-      window.MediApi.storage.getToken();
-    if (emailInput) emailInput.readOnly = Boolean(sesionServidor);
-    if (emailHint) emailHint.classList.toggle('hidden', !sesionServidor);
+    const servidor = sesionServidor();
+    if (emailInput) emailInput.readOnly = servidor;
+    if (emailHint) emailHint.classList.toggle('hidden', !servidor);
 
     document.getElementById('personal-read-view').classList.add('hidden');
     document.getElementById('personal-edit-form').classList.remove('hidden');
@@ -318,9 +349,14 @@
     // con prefijo internacional: se comprueban los 9 digitos locales.
     const digitosLocales = valores.telefono.replace(/\D/g, '').slice(-9);
 
+    const apiActiva = sesionServidor();
     const resultado = MediValidaciones.todo([
       function () { return MediValidaciones.nombre(valores.nombre); },
-      function () { return MediValidaciones.nombreOpcional(valores.apellido); },
+      function () {
+        return apiActiva
+          ? MediValidaciones.nombre(valores.apellido)
+          : MediValidaciones.nombreOpcional(valores.apellido);
+      },
       function () { return MediValidaciones.dni(valores.dni); },
       function () { return MediValidaciones.nacimiento(valores.nacimiento); },
       function () { return MediValidaciones.email(valores.email); },
@@ -340,10 +376,9 @@
 
     const paciente = MediModules.paciente;
     const formulario = document.getElementById('personal-edit-form');
-    const sesionServidor = Boolean(window.MediApi && window.MediApi.storage &&
-      window.MediApi.storage.getToken());
+    const guardarEnServidor = apiActiva;
 
-    if (sesionServidor) {
+    if (guardarEnServidor) {
       if (paciente.id == null) {
         error.textContent = 'No se encontró el perfil del paciente en el servidor. No se guardaron los cambios.';
         error.classList.remove('hidden');
@@ -352,7 +387,7 @@
 
       try {
         const direccionCompleta = [valores.calle, valores.distrito].filter(Boolean).join(", ");
-        const guardado = await window.MediApi.pacientes.update(paciente.id, {
+        const guardado = await window.MediApi.pacientes.updateMe({
           nombres: valores.nombre,
           apellidos: valores.apellido || "Sin registrar",
           documentoIdentidad: valores.dni,
@@ -401,6 +436,20 @@
   // 4. Edición visual de Información Médica
   function enableMedicalEdit() {
     const formulario = document.getElementById('medical-edit-form');
+    const salud = MediModules.salud || {};
+    const historial = MediModules.historialClinico || {};
+    document.getElementById('inp-blood').value = salud.tipoSangre || '';
+    document.getElementById('inp-allergies').value = (salud.alergias || [])
+      .map((alergia) => typeof alergia === 'string'
+        ? alergia
+        : alergia.nombre + (alergia.severidad ? ' (' + alergia.severidad + ')' : ''))
+      .join(', ');
+    document.getElementById('inp-conditions').value = (salud.condicionesCronicas || [])
+      .map((condicion) => typeof condicion === 'string' ? condicion : condicion.nombre)
+      .join(', ');
+    document.getElementById('inp-notes').value = sesionServidor()
+      ? historial.observaciones || ''
+      : historial.observaciones || document.getElementById('val-notes').textContent;
     document.getElementById('medical-read-view').classList.add('hidden');
     document.getElementById('medical-edit-form').classList.remove('hidden');
     document.getElementById('btn-edit-medical').classList.add('hidden');
@@ -423,45 +472,67 @@
     const allergies = document.getElementById('inp-allergies').value.trim();
     const conditions = document.getElementById('inp-conditions').value.trim();
     const notes = document.getElementById('inp-notes').value.trim();
-
-    document.getElementById('val-blood').textContent = blood;
-    document.getElementById('val-allergies').textContent = allergies;
-    document.getElementById('val-conditions').textContent = conditions;
-    document.getElementById('val-notes').textContent = notes;
-
-    MediModules.salud.tipoSangre = blood;
-
-    // Persistencia bidireccional del historial clínico en el backend
+    const error = document.getElementById('medical-error');
+    const formulario = document.getElementById('medical-edit-form');
     const paciente = MediModules.paciente;
-    if (window.MediApi && window.MediApi.storage.getToken() && paciente.id) {
-      try {
-        const histExistente = await window.MediApi.historial.getMe().catch((error) => {
-          if (error && error.status === 404) return null;
-          throw error;
-        });
+    const apiActiva = sesionServidor();
+    const grupoSanguineo = blood.toUpperCase();
+    const gruposSanguineos = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
-        const payload = {
-          tipoSangre: blood,
+    if (grupoSanguineo && !gruposSanguineos.includes(grupoSanguineo)) {
+      error.textContent = 'Selecciona un grupo sanguíneo válido.';
+      error.classList.remove('hidden');
+      return;
+    }
+    if (apiActiva && !paciente.id) {
+      error.textContent = 'No se encontró el perfil de tu cuenta. No se guardaron los cambios.';
+      error.classList.remove('hidden');
+      return;
+    }
+
+    error.textContent = '';
+    error.classList.add('hidden');
+
+    if (apiActiva) {
+      try {
+        await MediModules.guardarHistorialServidor({
+          tipoSangre: grupoSanguineo,
           alergias: allergies,
           enfermedadesCronicas: conditions,
-          cirugias: histExistente ? histExistente.cirugias : "",
           observaciones: notes
-        };
-
-        await window.MediApi.historial.updateMe(payload);
+        });
+        document.getElementById('val-notes').textContent =
+          MediModules.historialClinico.observaciones || 'No registrado';
         MediModules.aviso('Información médica guardada en el servidor.');
+        MediFormularios.marcar(formulario);
+        cancelMedicalEdit();
       } catch (err) {
         console.warn("[MediQR] Error guardando historial en el backend:", err);
-        MediModules.avisoLocal('Información médica actualizada localmente (servidor no disponible).');
+        error.textContent = 'No se pudieron guardar los cambios en el servidor: ' +
+          (err && err.message ? err.message : 'inténtalo nuevamente.');
+        error.classList.remove('hidden');
       }
     } else {
+      const lista = (texto) => texto.split(",").map((item) => item.trim()).filter(Boolean);
+      MediModules.salud.tipoSangre = grupoSanguineo;
+      MediModules.salud.alergias = lista(allergies).map((nombre) => ({ nombre, severidad: "moderada" }));
+      MediModules.salud.condicionesCronicas = lista(conditions)
+        .map((nombre) => ({ nombre, diagnostico: "", fechaDiagnostico: "" }));
+      MediModules.historialClinico = {
+        tipoSangre: grupoSanguineo,
+        alergias: allergies,
+        enfermedadesCronicas: conditions,
+        cirugias: MediModules.historialClinico && MediModules.historialClinico.cirugias || "",
+        observaciones: notes
+      };
+      document.getElementById('val-blood').textContent = grupoSanguineo || 'No especificado';
+      document.getElementById('val-allergies').textContent = allergies || 'No especificado';
+      document.getElementById('val-conditions').textContent = conditions || 'No especificado';
+      document.getElementById('val-notes').textContent = notes || 'No registrado';
       MediModules.avisoLocal('Información médica actualizada.');
+      MediFormularios.marcar(formulario);
+      cancelMedicalEdit();
     }
-
-    if (window.SaludModulo && typeof window.SaludModulo.refrescar === "function") {
-      window.SaludModulo.refrescar();
-    }
-    cancelMedicalEdit();
   }
 
   // 6. Exportacion del expediente
@@ -548,6 +619,10 @@
   // que aporta foco atrapado, cierre con Escape y ::backdrop.
   var PerfilModales = {
     agregarContacto() {
+      if (sesionServidor()) {
+        MediModules.avisoLocal('La API todavía no permite guardar contactos de emergencia.');
+        return;
+      }
       MediModules.modal('Contacto de Emergencia', `
         <form id="contacto-form" class="module-form" novalidate data-action="perfil:guardar-contacto">
           <label class="wide">Nombre: <input name="nombre" type="text" placeholder="Ej. Juan Pérez" required></label>
@@ -563,7 +638,7 @@
         },
     eliminarContacto(id) {
       const contacto = MediModules.salud.contactos.filter(function (c) {
-        return c.id === id;
+        return String(c.id) === String(id);
       })[0];
 
       if (!contacto) return;
@@ -571,15 +646,37 @@
       MediModules.modal('¿Deseas eliminar este contacto?', `
         <p><strong>${MediPartes.dom.escapar(contacto.nombre)}</strong> ·
            ${MediPartes.dom.escapar(contacto.parentesco)}</p>
-        <p class="file-help">Se quitará de los contactos de emergencia de este
-           dispositivo. No hay servidor al que avisar.</p>
+        <p class="file-help">${sesionServidor()
+          ? 'El contacto se quitará de tu cuenta.'
+          : 'Se quitará de los contactos de este dispositivo.'}</p>
         <div class="module-actions">
           <button type="button" class="btn btn-outline"  data-action="modal:cerrar">Cancelar</button>
           <button type="button" class="btn btn-danger"  data-action="perfil:confirmar-eliminar" data-id="${contacto.id}">Eliminar</button>
         </div>
       `, true);
     },
-    confirmarEliminar(id) {
+    async confirmarEliminar(id) {
+      if (sesionServidor()) {
+        if (String(id) !== 'servidor') {
+          MediModules.close();
+          MediModules.aviso('No se pudo identificar el contacto del servidor.');
+          return;
+        }
+        try {
+          await window.MediApi.pacientes.clearEmergencyContact();
+          if (!(await MediModules.cargarDatosServidor())) {
+            throw new Error('No se pudo confirmar la eliminación en el servidor.');
+          }
+          pintarContactos();
+          MediModules.close();
+          MediModules.aviso('Contacto de emergencia eliminado de tu cuenta.');
+        } catch (error) {
+          MediModules.close();
+          MediModules.aviso('No se pudo eliminar el contacto: ' +
+            (error && error.message ? error.message : 'inténtalo nuevamente.'));
+        }
+        return;
+      }
       // Se borra de verdad el contacto, no solo se avisa.
       const lista = MediModules.salud.contactos;
       const indice = lista.findIndex(function (c) { return c.id === id; });
@@ -669,7 +766,7 @@
     "perfil:guardar-medica": function (el, evento) { saveMedicalEdit(evento); },
     "perfil:password": function (el, evento) { handlePasswordChange(evento); },
     "perfil:exportar": function () { exportarExpediente(); },
-    "perfil:guardar-contacto": function (el, evento) {
+    "perfil:guardar-contacto": async function (el, evento) {
       evento.preventDefault();
 
       const form = document.getElementById('contacto-form');
@@ -695,6 +792,29 @@
       }
 
       error.textContent = '';
+      if (sesionServidor()) {
+        const submit = form.querySelector('button[type="submit"]');
+        if (submit) submit.disabled = true;
+        try {
+          await window.MediApi.pacientes.updateEmergencyContact({
+            nombre: nombre,
+            parentesco: parentesco,
+            telefono: telefono
+          });
+          if (!(await MediModules.cargarDatosServidor())) {
+            throw new Error('No se pudo confirmar el contacto en el servidor.');
+          }
+          pintarContactos();
+          MediModules.close();
+          MediModules.aviso('Contacto de emergencia guardado en tu cuenta.');
+        } catch (saveError) {
+          error.textContent = 'No se pudo guardar el contacto: ' +
+            (saveError && saveError.message ? saveError.message : 'inténtalo nuevamente.');
+          if (submit) submit.disabled = false;
+        }
+        return;
+      }
+
       MediModules.salud.contactos.push({
         id: Date.now(),
         nombre: nombre,
@@ -708,8 +828,14 @@
     },
     
     "perfil:agregar-contacto": function () { PerfilModales.agregarContacto(); },
-    "perfil:eliminar-contacto": function (el) { PerfilModales.eliminarContacto(Number(el.dataset.id)); },
-    "perfil:confirmar-eliminar": function (el) { PerfilModales.confirmarEliminar(Number(el.dataset.id)); },
+    "perfil:eliminar-contacto": function (el) {
+      const id = el.dataset.id === 'servidor' ? 'servidor' : Number(el.dataset.id);
+      PerfilModales.eliminarContacto(id);
+    },
+    "perfil:confirmar-eliminar": function (el) {
+      const id = el.dataset.id === 'servidor' ? 'servidor' : Number(el.dataset.id);
+      PerfilModales.confirmarEliminar(id);
+    },
     "perfil:cambiar-password": function () { PerfilModales.cambiarPassword(); },
     "perfil:cerrar-sesion": function () { PerfilModales.cerrarSesion(); },
     "perfil:confirmar-cierre": function () { PerfilModales.confirmarCierre(); }
@@ -717,7 +843,10 @@
 
   // Se expone para que la vista pueda repintarse cuando cambian los
   // contactos, igual que Salud expone refrescar().
-  window.PerfilModulo = { pintarContactos, refrescar: pintarDerivados };
+  window.PerfilModulo = {
+    pintarContactos,
+    refrescar: function () { pintarDerivados(); pintarContactos(); }
+  };
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", iniciar);

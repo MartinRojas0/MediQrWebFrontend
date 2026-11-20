@@ -12,7 +12,13 @@ window.MediPartes = window.MediPartes || {};
 
 window.MediPartes.formato = {
   claseEstado(estado) {
-    return { "Próxima": "proxima", "Atendida": "atendida", "Cancelada": "cancelada" }[estado] || "proxima";
+    return {
+      "Próxima": "proxima",
+      "Pendiente": "proxima",
+      "Confirmada": "proxima",
+      "Atendida": "atendida",
+      "Cancelada": "cancelada"
+    }[estado] || "proxima";
   },
 
   insignia(estado) {

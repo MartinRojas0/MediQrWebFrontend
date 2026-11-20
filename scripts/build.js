@@ -5,13 +5,16 @@ const path = require("node:path");
 
 const configuredApiUrl = process.env.MEDIQR_API_URL;
 if (!configuredApiUrl) {
-  throw new Error("Set MEDIQR_API_URL to the deployed HTTPS API URL ending in /api.");
+  throw new Error("Set MEDIQR_API_URL to an HTTPS API URL or a loopback HTTP API URL ending in /api.");
 }
 
 const apiUrl = new URL(configuredApiUrl);
-if (apiUrl.protocol !== "https:" || !apiUrl.pathname.replace(/\/+$/, "").endsWith("/api") ||
+const isLoopbackHttp = apiUrl.protocol === "http:" &&
+  ["localhost", "127.0.0.1", "[::1]"].includes(apiUrl.hostname);
+if ((apiUrl.protocol !== "https:" && !isLoopbackHttp) ||
+    !apiUrl.pathname.replace(/\/+$/, "").endsWith("/api") ||
     apiUrl.search || apiUrl.hash || apiUrl.username || apiUrl.password) {
-  throw new Error("MEDIQR_API_URL must be an HTTPS URL ending in /api without credentials, query, or fragment.");
+  throw new Error("MEDIQR_API_URL must be HTTPS, or loopback HTTP for local development, ending in /api without credentials, query, or fragment.");
 }
 
 const root = path.resolve(__dirname, "..");

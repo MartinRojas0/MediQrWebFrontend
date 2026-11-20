@@ -99,6 +99,7 @@ async function comprobarEnlaceDirecto() {
     'documentos/recetas': () => vis(q('#view-documentos')) && qa('#documents-content .doc-card').length === 2,
     'documentos/examenes': () => vis(q('#view-documentos')) && qa('#documents-content .doc-card').length === 3,
     'documentos/todos': () => vis(q('#view-documentos')) && qa('#documents-content .doc-card').length === 9,
+    'qr': () => vis(q('#view-qr')) && !!q('[data-action="qr:issue"]'),
     'ruta-inexistente': () => location.hash === '#/inicio' && vis(q('#view-inicio'))
   };
 
@@ -190,7 +191,7 @@ async function run() {
   var hashInicial = location.hash;
   var recs = performance.getEntriesByType('resource').map(function (r) { return r.name; });
   ok('R.1 Entrada en la raiz del sitio', location.pathname === '/' || location.pathname === '/index.html', location.pathname);
-  ok('R.2 CSS cargados desde /css', recs.filter(function (u) { return /\.css$/.test(u); }).length === 7, recs.filter(function (u) { return /\.css$/.test(u); }).length + ' hojas');
+  ok('R.2 CSS cargados desde /css', recs.filter(function (u) { return /\.css$/.test(u); }).length === 8, recs.filter(function (u) { return /\.css$/.test(u); }).length + ' hojas');
   ok('R.3 Todos los scripts de la app se sirven desde /js', recs.filter(function (u) { return /\.js$/.test(u); })
     .filter(function (u) { return u.indexOf('/__test__/') === -1; })
     .every(function (u) { return /\/js\//.test(u); }));
@@ -199,7 +200,7 @@ async function run() {
   // que los modulos nuevos se cargan y que el antiguo ya no se pide.
   var esperados = ['lib/dates.js', 'lib/dom.js', 'lib/format.js', 'components/navbar.js',
     'components/modal.js', 'components/notificaciones.js', 'modules/citas.js', 'modules/documentos.js',
-    'modules/inicio.js', 'modules/perfil.js', 'data/store.js', 'router.js', 'app.js', 'icons.js'];
+    'modules/inicio.js', 'modules/perfil.js', 'modules/qr.js', 'data/store.js', 'router.js', 'app.js', 'icons.js'];
   var faltan = esperados.filter(function (n) {
     return !recs.some(function (u) { return u.indexOf('/js/' + n) !== -1; });
   });
@@ -256,9 +257,9 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
      qa('#view-inicio .summary-row').length === 3,
      'identidad + ' + qa('#view-inicio .summary-row').length + ' filas de resumen');
   ok('V1.3 Cuatro accesos rapidos', qa('#view-inicio .quick-card').length === 4, qa('#view-inicio .quick-card').length);
-  // La navegacion principal expone las cinco secciones reales del portal.
-  ok('V1.3c Las cinco secciones estan en la navegacion',
-     qa('.app-nav .nav-item').length === 5, qa('.app-nav .nav-item').length);
+  // La navegacion principal expone las seis secciones reales del portal.
+  ok('V1.3c Las seis secciones estan en la navegacion',
+     qa('.app-nav .nav-item').length === 6, qa('.app-nav .nav-item').length);
   ok('V1.3b El resumen se calcula con datos reales',
      /Próxima:/.test(q('#view-inicio .summary-list').textContent) &&
      /Última:/.test(q('#view-inicio .summary-list').textContent),
@@ -357,8 +358,14 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
   q('.sidebar-nav [data-action="perfil:pestana"][data-tab="info-medica"]').click();
   q('#ptab-info-medica [data-action="perfil:editar-medica"]').click(); await tick();
   ok('V4.7 Modo edicion medica se activa', vis(q('#medical-edit-form')));
+  q('#inp-blood').value = '';
   q('#medical-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
-  ok('V4.8 Vuelve a la vista de lectura', vis(q('#medical-read-view')));
+  ok('V4.8 Grupo sanguineo opcional no bloquea el guardado',
+     vis(q('#medical-read-view')) && q('#val-blood').textContent === 'No especificado',
+     q('#medical-error').textContent || q('#val-blood').textContent);
+  q('#ptab-info-medica [data-action="perfil:editar-medica"]').click(); await tick();
+  q('#inp-blood').value = 'O+';
+  q('#medical-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); await tick();
 
   // El movil muestra Edad y Direccion, y exporta el expediente. El portal
   // no tenia ninguno de los tres.
@@ -439,8 +446,29 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
   ok('M.0 Sistema antiguo eliminado', qa('.modal-backdrop').length === 0 && typeof window.openModal === 'undefined');
   ok('M.0b No hay contenedores modal-* sueltos', qa('[id^="modal-"]').length === 0);
 
+  q('#nav-inicio').click();
+  await tick();
+  var botonQr = Array.prototype.filter.call(q('#view-inicio').querySelectorAll('button, a'), function (b) {
+    return b.textContent.replace(/\s+/g, ' ').trim().indexOf('Gestionar mi QR') === 0;
+  })[0];
+  ok('M.QR.1 Boton QR encontrado', !!botonQr);
+  ok('M.QR.1b Inicio no duplica datos médicos ni ofrece compartir sin confirmar',
+     q('#view-inicio .identity-card').textContent.indexOf('Grupo sanguíneo') === -1 &&
+     !q('#view-inicio .identity-card').textContent.includes('Compartir información'));
+  if (botonQr) botonQr.click();
+  await tick();
+  ok('M.QR.2 El boton abre la vista QR real',
+     window.Router.rutaActual === 'qr' &&
+     q('#view-qr h1') &&
+     q('#view-qr h1').textContent === 'Identidad médica digital',
+     window.Router.rutaActual);
+  ok('M.QR.3 No se muestra un QR de demostracion',
+     q('#module-dialog').open === false &&
+     q('#view-qr').textContent.indexOf('Código QR en desarrollo') === -1 &&
+     typeof window.MediApi.qr.issue === 'function' &&
+     typeof window.MediApi.qr.resolvePublic === 'function');
+
   var disparadores = [
-    ['Ver QR', 'Código QR de emergencia', null],
     ['+ Agregar contacto', 'Contacto de Emergencia', 'contactos'],
     ['Eliminar', 'eliminar este contacto', 'contactos'],
     ['Cambiar contraseña', 'Cambiar contraseña', 'configuracion'],
@@ -656,6 +684,12 @@ ok('N.1d Alergia grave genera tarjeta de alerta en Salud',
 
   ok('V.10 Email sin arroba se rechaza', !V.email('paciente.demo').ok);
   ok('V.11 Email valido se acepta', V.email('paciente@ejemplo.com').ok);
+  ok('V.11a Identificador acepta email y normaliza nombre de usuario',
+     V.identificadorAcceso('paciente@ejemplo.com').ok &&
+     V.identificadorAcceso('  Paciente_01 ').valor === 'paciente_01');
+  ok('V.11b Identificador rechaza nombres de usuario fuera del formato',
+     !V.identificadorAcceso('paciente con espacios').ok &&
+     !V.identificadorAcceso('ñandú').ok);
 
   ok('V.12 Contrasena corta se rechaza', !V.contrasena('abc').ok);
   ok('V.13 Contrasena sin numero se rechaza', !V.contrasena('abcdef').ok, V.contrasena('abcdef').mensaje);
@@ -1178,26 +1212,21 @@ ok('F.24 Informa del resultado sin prometer una reserva confirmada',
      /e-?mail|correo/i.test(q('#personal-error').textContent),
      q('#personal-error').textContent);
 
-  // ---------- FUNCIONES PENDIENTES DE BACKEND ----------
-  // Ninguna debe fingir que funciona: o lo explica, o no se muestra.
+  // ---------- FLUJO QR REAL ----------
   q('[data-action="inicio:ver-qr"]').click(); await tick();
-  ok('D.1 El QR no muestra un patron que parezca escaneable',
+  ok('D.1 Inicio deriva a la identidad QR sin renderizar un código falso',
      qa('#module-dialog .qr-frame').length === 0 &&
-     qa('#module-dialog svg[viewBox="0 0 100 100"]').length === 0,
-     qa('#module-dialog .qr-frame').length + ' marcos, ' +
-     qa('#module-dialog svg[viewBox="0 0 100 100"]').length + ' patrones');
-  ok('D.2 El QR se declara pendiente y explica por que',
-     /en desarrollo|todav[ií]a no existe/i.test(q('#module-dialog').textContent) &&
-     /podr[ií]a escanearse por error/i.test(q('#module-dialog').textContent),
-     q('#module-dialog').textContent.replace(/\s+/g, ' ').slice(0, 90));
-  if (q('#module-dialog').open) q('#module-dialog').close();
-  await tick();
-
-  // El boton de compartir sigue_CONNECTADO al aviso honesto.
-  q('[data-action="inicio:compartir"]').click(); await tick();
-  ok('D.3 Compartir explica que depende del servicio de QR',
-     /a[uú]n no conectado|depende del servicio/i.test(q('#module-notice').textContent),
-     q('#module-notice').textContent);
+     window.Router.rutaActual === 'qr');
+  Router.ir('qr'); await tick();
+  ok('D.2 Mi QR muestra el administrador de identidad real',
+     window.Router.rutaActual === 'qr' &&
+     /Generar o renovar QR/.test(q('#view-qr').textContent) &&
+     !/Código QR en desarrollo/.test(q('#view-qr').textContent),
+     q('#view-qr').textContent.replace(/\s+/g, ' ').slice(0, 90));
+  Router.ir('inicio'); await tick();
+  ok('D.3 Inicio no duplica datos compartidos ni ofrece compartir sin confirmar',
+     q('#view-inicio .identity-card').textContent.indexOf('Grupo sanguíneo') === -1 &&
+     !q('#view-inicio .identity-card').textContent.includes('Compartir información'));
 
   // Subir un documento es local y de verdad se guarda en memoria: el
   // resultado que se muestra tiene que decirlo.
@@ -1667,7 +1696,8 @@ ok('P.4 Hay una regla de foco visible con contorno',
   // --- La pantalla de acceso ---
   ok('L.3 La pantalla ofrece correo y contrasena',
      !!q('#acc-correo') && !!q('#acc-contrasena') &&
-     q('#acc-correo').getAttribute('type') === 'email' &&
+     q('#acc-correo').getAttribute('type') === 'text' &&
+     /nombre de usuario/i.test(q('#view-acceso').textContent) &&
      q('#acc-contrasena').getAttribute('type') === 'password');
 
   ok('L.4 Declara que es una demostracion, de forma visible',
@@ -1854,11 +1884,20 @@ ok('P.4 Hay una regla de foco visible con contorno',
      location.hash === '#/acceso/registro' && /cuenta de demostraci/i.test(q('#view-acceso h1').textContent),
      location.hash);
 
-  ok('L.34 El registro pide confirmar la contrasena',
-     !!q('#acc-contrasena') && !!q('#acc-repetir') &&
+  ok('L.34 El registro pide usuario y confirmar la contrasena',
+     !!q('#acc-usuario') && !!q('#acc-contrasena') && !!q('#acc-repetir') &&
      /demostraci/i.test(q('#view-acceso').textContent));
 
   q('#acc-correo').value = 'nuevo@ejemplo.invalid';
+  q('#acc-usuario').value = 'ab';
+  q('#acc-contrasena').value = 'una-clave-larga';
+  q('#acc-repetir').value = 'una-clave-larga';
+  q('#registro-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  await tick();
+  ok('L.34a El registro rechaza un nombre de usuario invalido',
+     /3 y 30/i.test(q('#registro-error').textContent), q('#registro-error').textContent);
+
+  q('#acc-usuario').value = ' Paciente_01 ';
   q('#acc-contrasena').value = 'una-clave-larga';
   q('#acc-repetir').value = 'otra-clave-distinta';
   q('#registro-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
@@ -1898,8 +1937,8 @@ ok('P.4 Hay una regla de foco visible con contorno',
   ok('L.40 Recuperar explica que en la demo no se envia correo',
      /no se env[ií]a ning[uú]n correo/i.test(q('#view-acceso').textContent),
      q('#view-acceso h1').textContent.trim());
-  ok('L.41 Recuperar deja claro que el acceso real sigue pendiente',
-     /pendiente de integraci/i.test(q('#view-acceso').textContent));
+  ok('L.41 Recuperar indica que no hay un enlace de restablecimiento disponible',
+     /recuperaci[oó]n de acceso no disponible/i.test(q('#view-acceso').textContent));
 
   ok('L.42 Desde el acceso no se queda atrapado en un bucle',
      (function () {
@@ -2066,7 +2105,8 @@ ok('P.4 Hay una regla de foco visible con contorno',
   const api = window.MediApi;
   const getTokenOriginal = api.storage.getToken;
   const getUserOriginal = api.storage.getUser;
-  const updateOriginal = api.pacientes.update;
+  const updateMeOriginal = api.pacientes.updateMe;
+  const esDemoOriginal = window.AccesoModulo.sesion.esDemo;
   const confirmOriginalApi = window.confirm;
   const pacienteAntesApi = {
     id: MediModules.paciente.id,
@@ -2083,6 +2123,7 @@ ok('P.4 Hay una regla de foco visible con contorno',
   try {
     api.storage.getToken = function () { return 'token-de-prueba'; };
     api.storage.getUser = function () { return { email: pacienteAntesApi.email }; };
+    window.AccesoModulo.sesion.esDemo = false;
     MediModules.paciente.id = 77;
     window.confirm = function () { confirmacionesApi++; return true; };
 
@@ -2090,8 +2131,10 @@ ok('P.4 Hay una regla de foco visible con contorno',
     ok('API.1 El correo de acceso no se puede editar desde el perfil',
        q('#inp-email').readOnly && !q('#email-readonly-hint').classList.contains('hidden'));
 
-    api.pacientes.update = async function () { throw new Error('HTTP 500 de prueba'); };
+    api.pacientes.updateMe = async function () { throw new Error('HTTP 500 de prueba'); };
     q('#inp-name').value = 'No persistido';
+    q('#inp-lastname').value = 'Paciente de prueba';
+    q('#inp-dni').value = '76543210';
     q('#personal-edit-form').dispatchEvent(new Event('input', { bubbles: true }));
     q('#personal-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await tick();
@@ -2100,11 +2143,10 @@ ok('P.4 Hay una regla de foco visible con contorno',
        vis(q('#personal-edit-form')) &&
        /HTTP 500 de prueba/.test(q('#personal-error').textContent));
 
-    api.pacientes.update = async function (id, datos) {
-      return Object.assign({ id: id }, datos);
+    api.pacientes.updateMe = async function (datos) {
+      return Object.assign({ id: MediModules.paciente.id }, datos);
     };
     q('#inp-name').value = 'Perfil persistido';
-    q('#inp-dni').value = '76543210';
     q('#personal-edit-form').dispatchEvent(new Event('input', { bubbles: true }));
     q('#personal-edit-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await tick();
@@ -2118,7 +2160,8 @@ ok('P.4 Hay una regla de foco visible con contorno',
   } finally {
     api.storage.getToken = getTokenOriginal;
     api.storage.getUser = getUserOriginal;
-    api.pacientes.update = updateOriginal;
+    api.pacientes.updateMe = updateMeOriginal;
+    window.AccesoModulo.sesion.esDemo = esDemoOriginal;
     window.confirm = confirmOriginalApi;
     Object.keys(pacienteAntesApi).forEach(function (key) {
       if (key === 'id' && pacienteAntesApi.id == null) delete MediModules.paciente.id;
@@ -2292,6 +2335,19 @@ ok('P.4 Hay una regla de foco visible con contorno',
   window.MediNotifications.clear();
   ok('AV.7 El centro vacío se restablece sin persistir avisos',
      q('#notification-list').children.length === 0 && vis(q('#notification-empty')));
+
+  Router.ir('qr'); await tick();
+  ok('QR.1 La vista privada de QR se abre con sesión de demostración',
+     vis(q('#view-qr')) && !!q('[data-action="qr:issue"]'));
+  q('[data-action="qr:issue"]').click(); await tick();
+  q('[data-action="qr:image"]').click(); await tick();
+  q('[data-action="qr:revoke"]').disabled = false;
+  q('[data-action="qr:revoke"]').click(); await tick();
+  ok('QR.2 La ruta pública inválida presenta un estado seguro sin red',
+     (Router.ir('ficha/invalid'), vis(q('#view-ficha')) &&
+      /QR inválido/.test(q('#view-ficha').textContent) &&
+      !window.__red.some(function (url) { return /qr-emergencia\/public/.test(url); })));
+  Router.ir('inicio'); await tick();
 
   // Registro de acciones: todas las vistas viven en el DOM (solo ocultas),
   // asi que un recorrido del documento cubre el marcado completo. Un control

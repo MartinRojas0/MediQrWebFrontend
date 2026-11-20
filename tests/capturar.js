@@ -25,7 +25,7 @@ const TIPOS = {
   '.json': 'application/json'
 };
 
-const VISTAS = ['inicio', 'salud', 'historial', 'citas', 'documentos', 'perfil', 'acceso', 'onboarding'];
+const VISTAS = ['inicio', 'salud', 'historial', 'citas', 'documentos', 'perfil', 'acceso', 'onboarding', 'qr'];
 const VENTANAS = [
   { nombre: 'movil', w: 390, h: 1500 },
   { nombre: 'tablet', w: 768, h: 1300 },

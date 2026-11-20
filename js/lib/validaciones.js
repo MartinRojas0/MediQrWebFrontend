@@ -21,12 +21,28 @@
   "use strict";
 
   const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const USERNAME = /^[a-z0-9._-]{3,30}$/;
 
   const Validaciones = {
     email(valor) {
       if (!valor) return { ok: false, mensaje: "El email es requerido" };
       if (!EMAIL.test(valor)) return { ok: false, mensaje: "Email inválido" };
       return { ok: true };
+    },
+
+    nombreUsuario(valor) {
+      const normalizado = (valor || "").trim().toLowerCase();
+      if (!normalizado) return { ok: false, mensaje: "El nombre de usuario es requerido" };
+      if (!USERNAME.test(normalizado)) {
+        return { ok: false, mensaje: "Usa entre 3 y 30 letras ASCII, números, puntos, guiones o guiones bajos" };
+      }
+      return { ok: true, valor: normalizado };
+    },
+
+    identificadorAcceso(valor) {
+      const identificador = (valor || "").trim();
+      if (identificador.indexOf("@") >= 0) return this.email(identificador);
+      return this.nombreUsuario(identificador);
     },
 
     contrasena(valor) {

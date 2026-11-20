@@ -2,43 +2,41 @@
 
 Frontend web del portal de pacientes de MediQR. Es un sitio estático de
 **HTML, CSS y JavaScript plano**, sin framework ni dependencias de ejecución.
-El build prepara los archivos para Vercel y configura la URL de la API.
+El build prepara los archivos para Vercel e inyecta la URL del backend.
 
 ## Qué es y qué no es
 
-Es el frontend del MVP con integración al backend para registro, inicio de
-sesión y consulta/edición del perfil. La URL de la API se configura al compilar;
-consulta [`DEPLOYMENT.md`](DEPLOYMENT.md) para producción.
+El frontend se conecta al backend para registro, inicio de sesión, perfil,
+historial básico, contacto de emergencia, QR, documentos privados y citas.
+Medicamentos y recordatorios mantienen las autorizaciones actuales y no son
+editables por pacientes. La URL de API se configura al compilar; consulta
+[`DEPLOYMENT.md`](DEPLOYMENT.md).
 
-- **Solo algunas áreas se sincronizan.** Citas, documentos, medicamentos,
-  vacunas, contactos y alertas aún no son funciones persistentes.
 - **Las confirmaciones de la campana son de esta sesión.** Se generan a partir
   de acciones reales de la interfaz, se mantienen solo en memoria y se borran
   al salir; no son notificaciones ni recordatorios del servidor.
-- **El QR de emergencia no está implementado.** La acción "Ver QR" lo dice en
-  pantalla. No se dibuja un patrón de ejemplo, porque en una emergencia un QR
-  con aspecto escaneable haría perder tiempo a un sanitario.
 - **No es un sistema clínico.** No uses información médica real ni la app para
   tomar decisiones médicas o atender emergencias.
 
-El alcance inicial y sus pendientes están documentados en
-[`INTEGRACION-BACKEND.md`](INTEGRACION-BACKEND.md), que es histórico. La
-configuración actual está en [`DEPLOYMENT.md`](DEPLOYMENT.md).
+[`INTEGRACION-BACKEND.md`](INTEGRACION-BACKEND.md) describe el estado anterior
+a esta integración y se conserva solo como referencia histórica.
 
-## Estado verificado
+## Verificación local de esta integración
 
-Verificación manual con datos sintéticos el 2026-11-14:
+Con H2 local aislada y datos ficticios se verificó:
 
-- La web pública de Vercel respondió HTTP 200 y carga la API HTTPS de Render.
-- Registro e inicio de sesión completados; el token de sesión se restauró
-  después de recargar la misma pestaña.
-- El perfil personal se actualizó y volvió a leerse desde la API después de
-  recargar. `/api/health` respondió HTTP 200 con CORS para el origen de Vercel.
-- Neon no se modificó durante estas pruebas. La suite local no prueba Neon.
+- `npm test`: 5/5 pruebas; `npm run build`: correcto.
+- `node tests/run.js`: 392/392 comprobaciones de interfaz y responsive. Este
+  harness bloquea la red y no sustituye pruebas de integración.
+- En Edge contra el backend local: login, navegación por QR/documentos/citas,
+  emisión y renderizado de PNG QR, estado vacío de documentos y llamadas API
+  sin errores JavaScript. Se verificaron anchos de escritorio y móvil.
+- La creación, reprogramación, cancelación, persistencia y aislamiento de citas
+  se cubren en `MiCitaControllerIntegrationTest`; el navegador no pudo reservar
+  una cita porque la H2 de demostración no contiene personal de salud activo.
 
-El aviso `404` de `/api/historial-clinico/me` para una cuenta nueva significa
-que todavía no hay fila de historial; el frontend lo trata como historial vacío.
-No se introdujo información médica real.
+No se ejecutaron migraciones, no se probó PostgreSQL real y no se volvió a
+verificar Vercel, Render ni Neon durante esta integración.
 
 ## Requisitos
 
@@ -48,22 +46,17 @@ No se introdujo información médica real.
 
 ## Ejecución local
 
-El sitio es estático, así que basta con servir la carpeta por HTTP y abrir la
-raíz. Con Node, que ya hace falta para las pruebas, sin instalar nada:
-
 ```
-node -e "const h=require('http'),f=require('fs'),p=require('path');const M={'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8'};h.createServer((q,r)=>{const u=q.url.split('?')[0]==='/'?'/index.html':q.url.split('?')[0];const d=p.join(process.cwd(),u);if(!f.existsSync(d)){r.writeHead(404);return r.end('')}r.writeHead(200,{'Content-Type':M[p.extname(d)]||'application/octet-stream'});r.end(f.readFileSync(d))}).listen(8000)"
+$env:MEDIQR_API_URL = 'http://127.0.0.1:8081/api'
+npm run build
+npm run serve
 ```
 
-Y luego <http://localhost:8000>. Para desarrollo local, `js/config.js` apunta
-a `http://localhost:8080/api`; ejecuta el backend según su
-[`README.md`](../MedyQR_BACKEND/README.md). Debe estar disponible para
-registrarse, iniciar sesión y sincronizar el perfil. Si no está accesible, la
-aplicación muestra el error en lugar de simular una sesión.
-
-> Abrir `index.html` con doble clic también funciona, pero algunos navegadores
-> restringen ciertas cosas con el protocolo `file://`. Servirlo por HTTP es lo
-> recomendado.
+El build escribe el sitio en `dist/`; `npm run serve` lo sirve en
+`http://127.0.0.1:8810`. Inicia el backend en `127.0.0.1:8081` con el perfil
+demo según el README del backend. El perfil usa H2 en archivo y un directorio
+local para documentos; ninguno debe apuntar a producción. Ejecuta
+`node tests/run.js` por separado para el harness de interfaz.
 
 ## Estructura
 
@@ -81,7 +74,7 @@ js/
   icons.js            iconos SVG locales (no hay CDN ni fuentes remotas)
   core/acciones.js    delegación de eventos por data-action
   components/         navbar, modal y avisos de actividad de la sesión
-  data/store.js       estado en memoria y datos de módulos aún no conectados
+  data/store.js       estado de sesión y sincronización con la API
   lib/validaciones.js reglas de validación compartidas con la app móvil
   modules/            una vista por archivo: inicio, salud, historial,
                       citas, documentos, perfil, acceso, onboarding
@@ -93,10 +86,9 @@ tests/
 
 `js/data/api.js` envía las llamadas autenticadas al backend. `js/modules/acceso.js`
 registra e inicia sesión y valida la sesión restaurada; `js/data/store.js`
-carga el perfil del paciente desde la API. `js/modules/perfil.js` envía y
-presenta los cambios del perfil; en modo API, un error mantiene el borrador en
-el formulario y no modifica el estado local como si se hubiera guardado.
-Las vistas que aún no están conectadas usan datos de demostración en memoria.
+sincroniza el perfil, el historial y las citas. Los módulos de QR y documentos
+usan rutas autenticadas y borran el estado al cambiar de sesión. Los fallos de
+API se muestran sin presentar una operación no persistida como guardada.
 
 ## Rutas
 
@@ -137,22 +129,26 @@ node tests/capturar.js
 
 Las deja en `.capturas/`, que está en `.gitignore`.
 
-## Qué hay que mirar antes de dar algo por terminado
+## Límites conocidos
 
-- La sesión se guarda en `sessionStorage` y se restaura al recargar la misma
-  pestaña; no se conserva al cerrar la pestaña o el navegador.
-- El correo de acceso no se modifica desde el formulario del perfil. El cambio
-  de correo/contraseña y la recuperación de contraseña siguen pendientes.
-- Los datos de ejemplo son ficticios y hay que mantenerlos como tales: si
-  aparece un nombre real, un DNI real o un historial clínico real, hay que
-  quitarlo antes de compartir el repositorio.
-- El perfil médico no formó parte de la prueba de persistencia final.
-- El QR no funciona. No hay que presentarlo como implementado.
+- La sesión se conserva en `sessionStorage` y se valida contra el backend al
+  restaurarse; cerrar sesión borra el estado del paciente anterior.
+- El cambio/recuperación de contraseña sigue pendiente.
+- Reservar citas requiere que existan profesionales activos y horarios válidos.
+- El almacenamiento local de documentos sirve para pruebas; producción requiere
+  un volumen persistente o almacenamiento privado de objetos.
+- Las cuentas locales y todos sus datos son ficticios. No cargues información
+  médica real ni compartas el archivo H2 o los documentos locales.
 
 ## Documentación
 
+- [`docs/GUIA_DEMO.md`](docs/GUIA_DEMO.md): arranque y recorrido local.
+- [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md): componentes y comunicación.
+- [`docs/DESPLIEGUE.md`](docs/DESPLIEGUE.md): configuración y limitaciones.
+- [`docs/SEGURIDAD.md`](docs/SEGURIDAD.md): autenticación, permisos, QR y archivos.
+- [`docs/MIGRACIONES.md`](docs/MIGRACIONES.md): orden y validaciones pendientes.
 - [`AUDITORIA_FRONTEND.md`](AUDITORIA_FRONTEND.md): qué hay en el proyecto,
   con qué está construido y qué se revisó.
-- [`INTEGRACION-BACKEND.md`](INTEGRACION-BACKEND.md): qué falta para conectar
-  un backend, dónde está el punto de corte en el código y qué se vería hoy.
+- [`INTEGRACION-BACKEND.md`](INTEGRACION-BACKEND.md): registro histórico del
+  estado previo a la integración.
 - [`tests/README.md`](tests/README.md): qué comprueba cada bloque de pruebas.

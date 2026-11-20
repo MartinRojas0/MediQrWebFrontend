@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="css/views/inicio.css">
   <link rel="stylesheet" href="css/views/historial.css">
   <link rel="stylesheet" href="css/views/acceso.css">
+  <link rel="stylesheet" href="css/views/qr.css">
 </head>
 <body>
 
@@ -111,6 +112,10 @@
       <span class="nav-item-icon"><i data-icon="user"></i></span>
       <span class="nav-item-label">Perfil</span>
     </a>
+    <a id="nav-qr" class="nav-item" data-action="nav:ir" data-ruta="qr">
+      <span class="nav-item-icon"><i data-icon="qrcode"></i></span>
+      <span class="nav-item-label">Mi QR</span>
+    </a>
   </nav>
 
 <main class="app-main" id="app-main" tabindex="-1">
@@ -135,7 +140,7 @@
         <button type="button" role="tab" class="segmented-item" data-menu="citas" data-vista="agendar" data-action="citas:ir">Agendar</button>
       </div>
 
-      <p class="demo-note">
+      <p id="citas-demo-note" class="demo-note">
         Vista de demostración · Los cambios se mantienen
         mientras esta página esté abierta.
       </p>
@@ -161,7 +166,7 @@
     </button>
   </div>
 
-<p class="demo-note">
+<p id="doc-demo-note" class="demo-note">
         Vista de demostración · Los archivos seleccionados
         no se envían a un servidor.
       </p>
@@ -247,6 +252,9 @@
     <section id="view-onboarding" class="view-section hidden">
     </section>
 
+    <section id="view-qr" class="view-section hidden"></section>
+    <section id="view-ficha" class="view-section hidden"></section>
+
   </div>
 
   <!-- ========================================== -->
@@ -298,6 +306,7 @@
      asi que tiene que venir despues de las librerias. -->
 <script src="js/modules/acceso.js"></script>
 <script src="js/modules/onboarding.js"></script>
+<script src="js/modules/qr.js"></script>
 <script src="js/components/navbar.js"></script>
 <script src="js/components/modal.js"></script>
 <script src="js/components/notificaciones.js"></script>

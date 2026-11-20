@@ -29,11 +29,13 @@ const RUTAS = {
   // El acceso vive fuera de la barra: se llega desde el propio flujo de
   // entrada y desde Perfil > Configuración.
   acceso: { vista: "acceso" },
-  onboarding: { vista: "onboarding" }
+  onboarding: { vista: "onboarding" },
+  qr: { vista: "qr" },
+  ficha: { vista: "ficha" }
 };
 
 // Rutas por las que se puede entrar sin sesión de demostración.
-const SIN_SESION = { acceso: true, onboarding: true };
+const SIN_SESION = { acceso: true, onboarding: true, ficha: true };
 
 const RUTA_INICIAL = "inicio";
 
@@ -64,7 +66,9 @@ const TITULOS = {
   perfil: "MediQR - Perfil del paciente",
   acceso: "MediQR - Iniciar sesión",
   "acceso/registro": "MediQR - Crear una cuenta",
-  "acceso/recuperar": "MediQR - Recuperar acceso"
+  "acceso/recuperar": "MediQR - Recuperar acceso",
+  qr: "MediQR - Mi QR de emergencia",
+  ficha: "MediQR - Ficha de emergencia"
 };
 
 const TITULO_GENERICO = "MediQR - Portal del Paciente";
@@ -151,6 +155,12 @@ const Router = {
       return;
     }
 
+    if (acceso && acceso.estaActiva() && !acceso.sesion.esDemo &&
+        !acceso.sesion.onboarding && base !== "onboarding" && base !== "acceso") {
+      this.ir("onboarding", { reemplazar: true });
+      return;
+    }
+
     const vista = document.getElementById("view-" + definicion.vista);
     if (!vista) return;
 
@@ -202,6 +212,7 @@ const Router = {
     // navegación, ni el contenido de otras secciones. El login ocupa la
     // ventana entera y no hay nada del portal detrás.
     document.body.classList.toggle("solo-acceso", base === "acceso");
+    document.body.classList.toggle("solo-ficha", base === "ficha");
 
     if (typeof this.alEntrar === "function") {
       this.alEntrar(base, sub, definicion);

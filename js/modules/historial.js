@@ -18,6 +18,12 @@
 
   const esc = (v) => MediPartes.dom.escapar(v == null ? "" : String(v));
 
+  function sesionServidor() {
+    return Boolean(window.MediApi && window.MediApi.storage &&
+      window.MediApi.storage.getToken() &&
+      !(window.AccesoModulo && window.AccesoModulo.sesion.esDemo));
+  }
+
   // HistorialActivity.cargarHistorial(): todas las citas, ordenadas de
   // mas reciente a mas antigua.
   function citasOrdenadas() {
@@ -113,7 +119,9 @@
     const lista = filtrar(busqueda ? busqueda.value : "");
 
     const cuerpo = lista.length === 0
-      ? `<p class="empty-state">No hay consultas registradas en el historial</p>`
+      ? `<p class="empty-state">${sesionServidor()
+        ? "El historial de consultas todavía no está conectado a una API segura para tu cuenta."
+        : "No hay consultas registradas en el historial"}</p>`
       : `<ol class="hist-timeline">${lista.map(item).join("")}</ol>`;
 
     destino.innerHTML = `
@@ -145,7 +153,9 @@
     const contenido = document.getElementById("hist-contenido");
 
     contenido.innerHTML = lista.length === 0
-      ? `<p class="empty-state">No hay consultas registradas en el historial</p>`
+      ? `<p class="empty-state">${sesionServidor()
+        ? "El historial de consultas todavía no está conectado a una API segura para tu cuenta."
+        : "No hay consultas registradas en el historial"}</p>`
       : `<ol class="hist-timeline">${lista.map(item).join("")}</ol>`;
 
     document.querySelector("#view-historial .hist-count").textContent =

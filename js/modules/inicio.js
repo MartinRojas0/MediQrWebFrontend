@@ -103,20 +103,17 @@
       <h1 data-titulo-vista class="heading-1">Hola, ${esc(saludo())} <i data-icon="hand" class="icon-wave"></i></h1>
       <p class="text-muted">Consulta el resumen de tu perfil y accede a tus secciones personales.</p>
 
-      <!-- Identidad medica: el QR es lo primero, igual que en el movil -->
+      <!-- Inicio enlaza a la vista única que administra la identidad QR. -->
       <article class="card identity-card">
         <div class="identity-main">
           <span class="identity-label">Identidad médica digital</span>
-          <p class="identity-name">${esc(saludo())} · ${esc(salud.tipoSangre || "Sin grupo sanguíneo")}</p>
-          <p class="identity-detail">${esc(alergias || "Sin alergias registradas")}</p>
+          <p class="identity-name">${esc(saludo())}</p>
+          <p class="identity-detail">Administra tu QR y elige qué información médica compartes.</p>
           <div class="identity-actions">
-            <button type="button" class="btn btn-outline" data-action="inicio:ver-qr">Ver QR</button>
-            <button type="button" class="btn btn-primary" data-action="inicio:compartir">
-              <i data-icon="share"></i> Compartir información
-            </button>
+            <button type="button" class="btn btn-primary" data-action="inicio:ver-qr">Gestionar mi QR</button>
           </div>
         </div>
-        <button type="button" class="identity-qr" data-action="inicio:ver-qr" aria-label="Ver código QR de emergencia">
+        <button type="button" class="identity-qr" data-action="inicio:ver-qr" aria-label="Gestionar código QR de emergencia">
           <i data-icon="qrcode"></i>
         </button>
       </article>
@@ -150,9 +147,6 @@
 
   MediAcciones.definirVarias({
     "inicio:ver-qr": function () { MediModules.verQr(); },
-    "inicio:compartir": function () {
-      MediModules.aviso("Compartir información médica depende del servicio de QR, aún no conectado.");
-    },
     // Las filas del resumen llevan a la seccion que corresponde.
 // Cada fila lleva a donde corresponde. Antes "Ultima" abria Documentos y la
     // fila de alerta abria Recetas: dos destinos que no tienen nada que ver

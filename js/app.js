@@ -24,6 +24,8 @@
       historial: "Historial",
       onboarding: "Configuración inicial",
       acceso: "Acceso",
+      qr: "Mi QR",
+      ficha: "Ficha de emergencia",
     };
     const subtitulos = {
       calendario: "Calendario",
@@ -82,6 +84,8 @@
     if (base === "onboarding" && window.OnboardingModulo) {
       window.OnboardingModulo.render();
     }
+    if (base === "qr" && window.QrModulo) window.QrModulo.render();
+    if (base === "ficha" && window.QrModulo) window.QrModulo.renderPublica(sub);
     // El marcado de Perfil se crea una sola vez, pero sus datos hay que
     // repintarlos al entrar: el onboarding y el propio guardado cambian el
     // modelo despues de la primera carga, y sin esto la vista se quedaba con
